@@ -8,3 +8,4 @@ export * from "./ScheduleList";
 export * from "./SectionIntro";
 export * from "./SpecialMeetingCard";
 export * from "./SiteHeader";
+export * from "./Hero";

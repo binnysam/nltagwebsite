@@ -11,7 +11,7 @@ New Life Tamil AG Church (NLTAG), Kuwait. Bilingual (Tamil default `/ta`, Englis
 Report conflicts; never resolve them silently.
 
 ## Current phase
-Phase 2 (design system) complete, awaiting owner approval. Phase 3 (hero motion) not started. CMS, membership, homepage, deployment: **not authorised**.
+Phase 2 (design system) integrated. Phase 3 (motion system, homepage hero) complete, awaiting owner review. CMS, membership, rest of the homepage (Phase 5), deployment: **not authorised**.
 
 ## Skills — use the matching one
 | Task | Skill |
@@ -33,7 +33,7 @@ Read: `docs/design-system/foundations/foundations.md` → `docs/design-system/to
 ## Hard rules
 - Look up, don't make up: tokens only (layers 2–3); never edit `tokens.css`; new tokens go in `component-tokens.css` as `[ADDITION]` and need approval.
 - Reuse components; no parallel visual language for any feature.
-- Only the homepage hero animates a gradient. Everything else is static.
+- Only the homepage hero (`Hero` component) animates a gradient. Everything else is static.
 - All text on gradients is `--color-text-on-gradient`. 44px minimum targets. Tamil never gets negative tracking or uppercase.
 - Never invent church content: names, history, beliefs, times, addresses, contacts, events, testimonies, Bible wording, social accounts. Missing → `CONTENT REQUIRED`, unpublished.
 - Schedule facts only from `src/content/schedule.ts` (Gate 0). Sunday School is on **Friday**. Write **NECK** exactly. No address.

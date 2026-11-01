@@ -31,7 +31,7 @@ All implemented in Phase 2 under `src/design-system/components/`. Visual rules c
 **Visual:** pill, 13px/500, dot + word, 700 text on 50 fill. The dot is `aria-hidden`; the word carries meaning.
 
 ## GradientSurface
-**Use:** any static gradient area (verse card, meeting art, gallery). Not the hero.
+**Use:** any static gradient area (verse card, meeting art, gallery). Not the hero (see `hero.md`).
 **API:** `preset`, `as?`. Sets `color: var(--color-text-on-gradient)`. Grain via `::after`, `pointer-events: none`, falls back to the plain gradient, removed in forced-colours mode.
 
 ## ScheduleList
@@ -55,4 +55,4 @@ Eyebrow (14px ink-500) → display-l heading with `id` (for `aria-labelledby`) �
 `Container`, `Section`, `Stack`, `Cluster`, `Grid`, `Divider`, `Surface`, `Heading`, `Text`, `VisuallyHidden`, `Spinner`, `Skeleton`, `Icon` (`src/design-system/primitives`). Gap and padding props accept only space-scale steps. `Skeleton` is static (no shimmer). `Spinner` is a static ring (no rotation); it is decorative and must sit next to a visible label.
 
 ## Not yet built (later phases, by plan)
-Hero with animated gradient and pause control (Phase 3); dialogs, toasts, tabs, accordion, checkbox, radio, select, date picker, file upload (built when a feature needs them, Phases 4–5); footer and breadcrumbs (Phase 5).
+Dialogs, toasts, tabs, accordion, checkbox, radio, select, date picker, file upload (built when a feature needs them, Phases 4–5); footer and breadcrumbs (Phase 5).

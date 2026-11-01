@@ -103,6 +103,19 @@
   --color-glass-fill-solid: var(--glass-fill-solid);
   --color-glass-edge: var(--glass-edge);
 
+  /* ── Homepage hero (Phase 3; Phase 1 §3.4, §8) ──
+     The only animated gradient. Colour comes from the five approved static presets
+     (crossfaded) and the four approved hero fields (drifting). Primitives are aliased here
+     because components may only read layers 2–3. */
+  --home-hero-surface: var(--hero-base);
+  --home-hero-field-1: var(--hero-field-1);
+  --home-hero-field-2: var(--hero-field-2);
+  --home-hero-field-3: var(--hero-field-3);
+  --home-hero-field-4: var(--hero-field-4);
+  --home-hero-radius: var(--radius-xl);
+  --motion-hero-preset-cycle: calc(var(--motion-hero-cycle) * 2.5); /* [ADDITION] 120s: five presets, 24s each (≈7s crossfade) */
+  --home-hero-field-opacity: 0.35;                 /* [ADDITION] fields add movement; the preset stays readable */
+
   /* ── Gradient layer ── */
   --grain-tile-size: 220px;                        /* matches the 220×220 pre-rendered tile in --texture-grain */
 }

@@ -6,6 +6,7 @@
 | Tokens (layers, additions awaiting sign-off) | `tokens/token-reference.md` |
 | Button, ButtonLink, IconButton | `components/button.md` |
 | Bible Verse Showcase Card | `components/verse-card.md` |
+| Homepage hero (the only animated gradient) | `components/hero.md` |
 | Header, LanguageSwitch, TextField, StatusBadge, GradientSurface, ScheduleList, SectionIntro, SpecialMeetingCard, primitives | `components/other-components.md` |
 | Motion | `motion/motion.md` |
 | Accessibility | `accessibility/accessibility.md` |

@@ -1,0 +1,161 @@
+/* Homepage hero (Phase 1 §8, Phase 3). The ONLY animated gradient on the site.
+
+   Layers, back to front (all decorative, aria-hidden, no pointer events):
+     1. base       --home-hero-surface
+     2. presets    the five approved static presets, crossfading (opacity only)
+     3. fields     the four approved hero fields, drifting (transform only)
+     4. grain      the approved pre-rendered tile, static
+   Only opacity and transform change, so frames are composited without layout or paint.
+   No filter, no backdrop blur.
+
+   Motion runs only when ALL of these hold: JavaScript has hydrated (data-ready), the viewer has
+   not paused it (data-motion="running"), the hero is on screen (data-visible="true") and the
+   viewer has not asked for reduced motion. Otherwise the first frame is shown, still. */
+
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  contain: paint;
+  border-radius: var(--home-hero-radius);
+  background: var(--home-hero-surface);
+  color: var(--color-text-on-gradient);
+}
+
+/* ── Decorative stack ── */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-behind);
+  pointer-events: none;
+}
+.layer {
+  position: absolute;
+  inset: 0;
+}
+.preset {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: var(--home-hero-preset);
+}
+.preset:first-child { opacity: 1; } /* still frame: Vaigarai, the default preset */
+
+.vaigarai { --home-hero-preset: var(--gradient-vaigarai); }
+.manal { --home-hero-preset: var(--gradient-manal); }
+.kadal { --home-hero-preset: var(--gradient-kadal); }
+.andhi { --home-hero-preset: var(--gradient-andhi); }
+.thalir { --home-hero-preset: var(--gradient-thalir); }
+
+.fields {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: var(--home-hero-field-opacity);
+}
+.field {
+  position: absolute;
+  width: 130%;
+  aspect-ratio: 1;
+}
+.field1 { left: -45%; top: -30%; background: radial-gradient(closest-side, var(--home-hero-field-1), transparent); }
+.field2 { right: -55%; top: -10%; background: radial-gradient(closest-side, var(--home-hero-field-2), transparent); }
+.field3 { left: -20%; bottom: -55%; background: radial-gradient(closest-side, var(--home-hero-field-3), transparent); }
+.field4 { right: -40%; bottom: -40%; background: radial-gradient(closest-side, var(--home-hero-field-4), transparent); }
+
+.grain {
+  position: absolute;
+  inset: 0;
+  background-image: var(--texture-grain);
+  background-size: var(--grain-tile-size) var(--grain-tile-size);
+  opacity: var(--texture-grain-opacity);
+  mix-blend-mode: var(--texture-grain-blend);
+}
+@supports not (mix-blend-mode: multiply) {
+  .grain { display: none; }
+}
+
+/* ── Motion ──
+   Crossfade: each preset is fully visible for 14% of the cycle (≈17s) and fades over 6% (≈7s)
+   while the next fades in. Negative delays place every layer on the same timeline, so the
+   first frame is Vaigarai at full strength and a paused hero always shows a real frame. */
+@keyframes hero-preset-crossfade {
+  0% { opacity: 0; }
+  6% { opacity: 1; }
+  20% { opacity: 1; }
+  26% { opacity: 0; }
+  100% { opacity: 0; }
+}
+/* Drift: the approved Phase 1 field motion (§8.2), transform only. */
+@keyframes hero-field-drift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(8%, 6%, 0) scale(1.06); }
+  100% { transform: translate3d(-6%, 4%, 0) scale(0.97); }
+}
+
+.preset {
+  animation: hero-preset-crossfade var(--motion-hero-preset-cycle) var(--motion-ease-ambient) infinite both;
+  animation-delay: calc(var(--motion-hero-preset-cycle) * (var(--home-hero-preset-index) * 0.2 - 1.06));
+  animation-play-state: paused;
+}
+.preset:nth-child(1) { --home-hero-preset-index: 0; }
+.preset:nth-child(2) { --home-hero-preset-index: 1; }
+.preset:nth-child(3) { --home-hero-preset-index: 2; }
+.preset:nth-child(4) { --home-hero-preset-index: 3; }
+.preset:nth-child(5) { --home-hero-preset-index: 4; }
+
+.field {
+  animation: hero-field-drift var(--motion-hero-cycle) var(--motion-ease-ambient) infinite alternate;
+  animation-delay: calc(var(--motion-hero-cycle) * var(--home-hero-field-index) * -0.25);
+  animation-play-state: paused;
+}
+.field1 { --home-hero-field-index: 0; }
+.field2 { --home-hero-field-index: 1; }
+.field3 { --home-hero-field-index: 2; }
+.field4 { --home-hero-field-index: 3; }
+
+.hero[data-ready="true"][data-motion="running"][data-visible="true"] .preset,
+.hero[data-ready="true"][data-motion="running"][data-visible="true"] .field {
+  animation-play-state: running;
+}
+
+/* ── Content ── */
+.content {
+  position: relative;
+  z-index: var(--z-raised);
+  padding: var(--space-8) var(--space-5);
+  /* keep the motion control clear of the last line of content */
+  padding-bottom: calc(var(--target-min) + var(--space-4) * 2);
+}
+@media (min-width: 768px) {
+  .content {
+    padding: var(--space-9) var(--space-7);
+    padding-bottom: var(--space-9);
+  }
+}
+@media (min-width: 1024px) {
+  .content { padding: var(--space-10) var(--space-8); }
+}
+
+/* ── Motion control (WCAG 2.2.2) ── */
+.toggle {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: var(--z-raised);
+}
+@media (min-width: 768px) {
+  .toggle { right: var(--space-5); bottom: var(--space-5); }
+}
+
+/* ── Reduced motion: still frame, no control (there is nothing to pause) ── */
+@media (prefers-reduced-motion: reduce) {
+  .preset, .field { animation: none; }
+  .toggle { display: none; }
+}
+
+/* ── Windows high contrast: drop decoration ── */
+@media (forced-colors: active) {
+  .hero { background: Canvas; color: CanvasText; }
+  .backdrop { display: none; }
+}

@@ -10,16 +10,17 @@ Target: WCAG 2.2 AA. Every component is checked by axe-core in unit tests (jsdom
 - **Colour:** status always has a word; text on gradients is always ink-900; secondary text (ink-500) only on paper.
 - **Forms:** visible label above every field; hint and error linked by `aria-describedby`; `aria-invalid` on error; errors in words.
 - **Names:** icon buttons require `label`; visible text equals the accessible name (2.5.3).
-- **Motion:** reduced-motion zeroes all motion tokens; no looping motion except the hero (with pause). The loading indicator is a static ring with a label.
+- **Motion:** reduced-motion zeroes all motion tokens; no looping motion except the homepage hero. The hero has a visible 44px pause/play control (2.2.2), never moves before that control exists (still without JavaScript), pauses off screen, and is a still frame with no control under reduced motion. The loading indicator is a static ring with a label.
 - **Forced colours:** gradients and grain are removed so text stays on the system background.
 - **Menu:** disclosure with `aria-expanded`/`aria-controls`; Escape closes and returns focus.
 
 ## Checks to run before completing UI work
 1. `npm run audit:tokens`
 2. `npm test` (includes axe on each component)
-3. `npm run test:e2e` (axe with contrast, 44px targets, no horizontal scroll at 390px, keyboard menu)
+3. `npm run test:e2e` (axe with contrast, 44px targets, no horizontal scroll at 390px, keyboard menu; hero: contrast over the full animation cycle, keyboard pause, reduced motion, no-JavaScript still frame)
 4. Manual: keyboard-only pass, 200% zoom, screen reader spot check in Tamil and English.
 
 ## Known gaps (tracked)
+- The hero has not been checked on a real low-end Android phone (Phase 1 §8.2); emulated profiles pass. Pre-launch checklist item 10.
 - Screen-reader testing with Tamil voices on iOS/Android has not been done yet (Phase 6).
 - Square/portrait verse compositions have very small on-screen metadata at phone width; they are export previews, not reading surfaces.
