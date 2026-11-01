@@ -1,0 +1,90 @@
+/* Text styles (§4.3). English values by default; :lang(ta) switches family, size, line height
+   and removes tracking. Tamil never takes negative tracking or uppercase transforms. */
+
+.displayXl, .displayL, .h1, .h2, .h3 {
+  font-family: var(--font-stack-en-display);
+  color: var(--color-text-primary);
+  text-wrap: balance;
+}
+
+.displayXl {
+  font-size: var(--text-display-xl);
+  font-weight: var(--font-weight-display-en);
+  line-height: var(--leading-display-en);
+  letter-spacing: var(--tracking-display-en);
+}
+.displayL {
+  font-size: var(--text-display-l);
+  font-weight: var(--font-weight-display-en);
+  line-height: var(--leading-display-en);
+  letter-spacing: var(--tracking-display-en);
+}
+.h1 {
+  font-size: var(--text-h1);
+  font-weight: var(--font-weight-body);
+  line-height: var(--leading-h1-en);
+  letter-spacing: var(--tracking-h1-en);
+}
+.h2 {
+  font-size: var(--text-h2);
+  font-weight: var(--font-weight-body);
+  line-height: var(--leading-h2-en);
+  letter-spacing: var(--tracking-h2-en);
+}
+.h3 {
+  font-size: var(--text-h3);
+  font-weight: var(--font-weight-body);
+  line-height: var(--leading-h3-en);
+  letter-spacing: var(--tracking-h3-en);
+}
+
+.displayXl:lang(ta), .displayL:lang(ta), .h1:lang(ta), .h2:lang(ta), .h3:lang(ta) {
+  font-family: var(--font-stack-ta-display);
+  letter-spacing: var(--tracking-ta);
+  text-transform: none;
+}
+.displayXl:lang(ta) {
+  font-size: var(--text-display-xl-ta);
+  font-weight: var(--font-weight-display-ta-large);
+  line-height: var(--leading-display-ta);
+}
+.displayL:lang(ta) {
+  font-size: var(--text-display-l-ta);
+  font-weight: var(--font-weight-display-ta-large);
+  line-height: var(--leading-display-l-ta);
+}
+.h1:lang(ta) { font-weight: var(--font-weight-display-ta-small); line-height: var(--leading-h1-ta); }
+.h2:lang(ta) { font-weight: var(--font-weight-display-ta-small); line-height: var(--leading-h2-ta); }
+.h3:lang(ta) { font-weight: var(--font-weight-display-ta-small); line-height: var(--leading-h3-ta); }
+
+/* Running text */
+.bodyL { font-size: var(--text-body-l); }
+.body { font-size: var(--text-body); }
+.body:lang(ta) { font-size: var(--text-body-ta); }
+.small, .caption {
+  line-height: var(--leading-small-en);
+  letter-spacing: var(--tracking-small-en);
+}
+.small { font-size: var(--text-small); }
+.caption { font-size: var(--text-caption); }
+.small:lang(ta), .caption:lang(ta) { line-height: var(--leading-small-ta); letter-spacing: var(--tracking-ta); }
+.eyebrow {
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-body);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-small-en);
+}
+.eyebrow:lang(ta) { line-height: var(--leading-small-ta); letter-spacing: var(--tracking-ta); }
+
+/* Tones */
+.primary { color: var(--color-text-primary); }
+.secondary { color: var(--color-text-secondary); }
+.strongSecondary { color: var(--color-text-strong-secondary); }
+.onGradient { color: var(--color-text-on-gradient); }
+
+/* Weight */
+.medium { font-weight: var(--font-weight-medium); }
+
+/* Measure */
+.measure { max-width: var(--measure-en); }
+.measure:lang(ta) { max-width: var(--measure-ta); }

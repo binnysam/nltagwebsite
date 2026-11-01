@@ -1,0 +1,31 @@
+/* Private gallery layout only. Uses tokens like any component. */
+.page { padding-block: var(--space-7) var(--space-9); }
+.notice {
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+  font-size: var(--text-small);
+  margin-bottom: var(--space-7);
+}
+.block { padding-block: var(--space-7); border-top: var(--border-width-hairline) solid var(--color-border-subtle); scroll-margin-top: var(--header-height); }
+.blockTitle { margin-bottom: var(--space-5); }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); }
+.label { min-width: calc(var(--space-9) + var(--space-4)); font-size: var(--text-caption); color: var(--color-text-secondary); }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--space-10) + var(--space-6)), 1fr)); gap: var(--space-4); }
+.swatch { display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--text-caption); color: var(--color-text-secondary); }
+.chipColor { height: var(--space-8); border-radius: var(--radius-sm); box-shadow: var(--shadow-1); }
+.specimen { display: grid; gap: var(--space-4); }
+.specimenRow { display: grid; gap: var(--space-1); }
+.tokenName { font-size: var(--text-caption); color: var(--color-text-secondary); font-family: var(--font-stack-en-body); }
+.scale { display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: flex-end; }
+.space { background: var(--color-surface-sunken); height: var(--space-4); }
+.radius { width: var(--space-9); height: var(--space-8); background: var(--color-surface-card); box-shadow: var(--shadow-1); }
+.elev { width: calc(var(--space-10) + var(--space-6)); height: var(--space-9); border-radius: var(--radius-lg); background: var(--color-surface-card); display: grid; place-items: center; font-size: var(--text-caption); }
+.presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--space-10) + var(--space-8)), 1fr)); gap: var(--space-4); }
+.preset { aspect-ratio: 16 / 10; max-width: 100%; border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; justify-content: flex-end; }
+.gradientStage { border-radius: var(--radius-lg); padding: var(--space-5); }
+.fields { display: grid; gap: var(--space-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--space-10) * 2 + var(--space-8))), 1fr)); }
+.verseGrid { display: grid; gap: var(--space-6); grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--space-10) * 2 + var(--space-9))), 1fr)); align-items: start; }
+.verseItem { display: grid; gap: var(--space-2); }
+.meetings { display: grid; gap: var(--space-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--space-10) * 2 + var(--space-6))), 1fr)); }

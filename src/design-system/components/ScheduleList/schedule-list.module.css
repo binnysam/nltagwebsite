@@ -1,0 +1,45 @@
+/* Schedule list (§6): editorial rows divided by line-10; columns name / when / where,
+   stacking under 680px. Name in Anek Tamil 400 with the other language beneath in 14px
+   ink-500. Tabular numerals. Row tint paper-100 on hover. */
+
+.list { list-style: none; margin: 0; padding: 0; border-top: var(--border-width-hairline) solid var(--color-border-subtle); }
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+  padding: var(--space-5) var(--space-3);
+  margin-inline: calc(var(--space-3) * -1);
+  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
+  transition: background-color var(--motion-duration-standard) var(--motion-ease-standard);
+}
+.row:hover { background: var(--color-surface-subtle); }
+
+@container schedule (min-width: 680px) {
+  .row {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 5fr) minmax(0, 3fr);
+    gap: var(--space-5);
+    align-items: baseline;
+  }
+}
+.wrap { container: schedule / inline-size; }
+
+.names { display: flex; flex-direction: column; }
+.name {
+  font-family: var(--font-stack-ta-display);
+  font-weight: var(--font-weight-display-ta-small);
+  font-size: var(--text-h3);
+  line-height: var(--leading-h3-ta);
+  color: var(--color-text-primary);
+}
+.name:lang(en) { font-family: var(--font-stack-en-display); line-height: var(--leading-h3-en); letter-spacing: var(--tracking-h3-en); }
+.alt {
+  font-family: var(--font-stack-en-body);
+  font-size: var(--text-small);
+  line-height: var(--leading-small-en);
+  color: var(--color-text-secondary);
+}
+.alt:lang(ta) { font-family: var(--font-stack-ta-body); line-height: var(--leading-small-ta); }
+
+.when { font-variant-numeric: tabular-nums; color: var(--color-text-primary); }
+.where { font-size: var(--text-small); color: var(--color-text-secondary); }

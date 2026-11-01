@@ -1,0 +1,116 @@
+/* ==========================================================================
+   NLTAG — Layer 3 component tokens (Phase 2)
+   Every value here is either an alias of tokens.css or a number written in the
+   approved Phase 1 documentation (section noted). Values marked [ADDITION] are new
+   and listed in docs/design-system/tokens/token-reference.md for owner sign-off.
+   tokens.css itself is the approved file and is never edited here.
+   ========================================================================== */
+
+:root {
+  /* ── Font stacks (§4.1–4.2): self-hosted next/font faces first, approved fallbacks after ── */
+  --font-stack-ta-display: var(--nf-anek-ta, "Anek Tamil"), var(--nf-anek-latin, "Anek Tamil"), var(--font-ta-display);
+  --font-stack-ta-body: var(--nf-noto-sans-ta, "Noto Sans Tamil"), var(--nf-noto-sans-latin, "Noto Sans Tamil"), var(--font-ta-body);
+  --font-stack-ta-scripture: var(--nf-noto-serif-ta, "Noto Serif Tamil"), var(--nf-noto-serif-latin, "Noto Serif Tamil"), var(--font-ta-scripture);
+  --font-stack-en-display: var(--nf-inter-tight, "Inter Tight"), var(--font-en-display);
+  --font-stack-en-body: var(--nf-inter, "Inter"), var(--font-en-body);
+  --font-stack-en-scripture: var(--nf-newsreader, "Newsreader"), var(--font-en-scripture);
+
+  /* ── Type scale details from the §4.3 table (not separately named in tokens.css) ── */
+  --leading-display-l-ta: 1.3;
+  --leading-h1-en: 1.15;  --tracking-h1-en: -0.015em;
+  --leading-h1-ta: 1.4;
+  --leading-h2-en: var(--leading-heading-en); --tracking-h2-en: var(--tracking-heading-en);
+  --leading-h2-ta: var(--leading-heading-ta);
+  --leading-h3-en: 1.3;   --tracking-h3-en: 0;
+  --leading-h3-ta: 1.5;
+  --leading-small-en: 1.5; --tracking-small-en: 0.01em;
+  --leading-small-ta: 1.7;
+  --leading-control: 1.4;               /* [ADDITION] single-line control labels */
+  --tracking-wordmark: 0.08em;          /* §6 Header */
+
+  /* ── Borders and focus (§6 Button, Form field) ── */
+  --border-width-hairline: 1px;
+  --border-width-strong: 2px;           /* error edge */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 3px;
+  --focus-ring: var(--focus-ring-width) solid var(--color-focus-ring);
+
+  /* ── Controls ── */
+  --control-height: var(--target-min);             /* 44px buttons, icon buttons, switch */
+  --control-height-input: 48px;                    /* §6 Form field */
+  --color-border-control-hover: var(--ink-700);    /* §6 Form field hover edge */
+  --control-segment-height: 38px;                  /* §6 Language switch segment (hit area extended to 44px) */
+  --control-segment-inset: 3px;                    /* (44 − 38) / 2 */
+  --button-padding-inline: 20px;                   /* §6 Button */
+  --button-padding-inline-compact: var(--space-4); /* §6 Button, compact = 16px */
+  --button-padding-block: var(--space-2);
+  --button-font-size: var(--text-small);           /* 14px */
+  --icon-size: 20px;                               /* [ADDITION] interface icons */
+  --icon-size-small: 14px;                         /* [ADDITION] hero pause glyph, badge-adjacent icons */
+  --badge-dot-size: 6px;                           /* [ADDITION] status badge dot */
+  --badge-padding-block: 2px;                      /* [ADDITION] */
+  --spinner-size: 16px;                            /* [ADDITION] */
+  --spinner-stroke: 2px;                           /* [ADDITION] */
+
+  /* ── Header ── */
+  --header-height: var(--space-8);                 /* 64px */
+
+  /* ── Layering [ADDITION] ── */
+  --z-behind: -1;                                  /* decorative layers under content */
+  --z-base: 0;
+  --z-raised: 1;
+  --z-header: 10;
+  --z-menu: 20;
+  --z-skip-link: 30;
+
+  /* ── Grid (§5) ── */
+  --grid-gap-resolved: var(--grid-gap);            /* 16px; 24px from 1024 */
+
+  /* ── Section rhythm (§5) ── */
+  --section-padding-block: var(--space-8);         /* 64px phone */
+  --section-padding-block-lg: var(--space-9);      /* 96px desktop */
+
+  /* ── Bible Verse Showcase Card (§7) ── */
+  --verse-radius: var(--radius-xl);
+  --verse-shadow: var(--shadow-2);
+  --verse-padding: var(--space-6);
+  --verse-padding-compact: var(--space-5);         /* §7.4 compact: 24px */
+  --verse-export-margin: var(--space-8);           /* §7.4 social sizes: 64px of 1080 */
+  --verse-rule-width: 40px;                        /* §7.1 */
+  --verse-rule-color: var(--line-18);
+  --verse-measure-ta: 34ch;
+  --verse-measure-en: 40ch;
+  --verse-leading-ta: 1.75;
+  --verse-leading-en: 1.45;
+  --verse-text-ta: var(--text-h3);                 /* compact/landscape size; social sizes scale by cqi */
+  --verse-text-en: var(--text-body-l);
+  --verse-meta-size: var(--text-caption);          /* 13px */
+  --verse-split-divider: var(--line-18);           /* §7.1 C Split pane divider */
+  /* Social sizes scale with card width (cqi) so the preview is a scale model of the PNG (§7.3).
+     1080px card → 64px margin (§7.4). Type ratios below are [ADDITION]s: ≈45 / 37 / 24px at 1080. */
+  --verse-social-margin: 5.926cqi;                 /* 64 / 1080 */
+  --verse-social-text-ta: 4.2cqi;                  /* [ADDITION] */
+  --verse-social-text-en: 3.4cqi;                  /* [ADDITION] */
+  --verse-social-meta: 2.2cqi;                     /* [ADDITION] */
+  --verse-landscape-text-ta: 3cqi;                 /* [ADDITION] fluid, clamped to h3…h1 */
+  --verse-landscape-text-en: 2.4cqi;               /* [ADDITION] fluid, clamped to body-l…h2 */
+
+  /* ── Special meeting card (§6) ── */
+  --meeting-art-ratio: 16 / 10;
+
+  /* ── Glass (§3.1: only over gradients; solid fill over the animated hero, §8.2) ── */
+  --color-glass-fill: var(--glass-fill);
+  --color-glass-fill-solid: var(--glass-fill-solid);
+  --color-glass-edge: var(--glass-edge);
+
+  /* ── Gradient layer ── */
+  --grain-tile-size: 220px;                        /* matches the 220×220 pre-rendered tile in --texture-grain */
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --grid-gap-resolved: var(--space-5);           /* §5: 24px gap from 1024 */
+    --section-padding-block: var(--section-padding-block-lg);
+  }
+}
+

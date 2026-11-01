@@ -1,0 +1,46 @@
+/* Language switch (§6): segmented pill on paper-100, 44px control, 38px segments,
+   selected segment white + shadow-1. Each segment's hit area is extended to 44px. */
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  height: var(--control-height);
+  padding: var(--control-segment-inset);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+}
+
+.segment {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--control-segment-height);
+  min-width: var(--control-height);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-stack-en-body);
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--leading-control);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: background-color var(--motion-duration-fast) var(--motion-ease-standard),
+    color var(--motion-duration-fast) var(--motion-ease-standard);
+}
+.segment:lang(ta) { font-family: var(--font-stack-ta-body); letter-spacing: var(--tracking-ta); }
+
+/* 44px hit area: extends the segment's clickable box by the 3px inset above and below */
+.segment::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--control-segment-inset) * -1) 0;
+}
+
+.segment:hover { color: var(--color-text-primary); }
+
+.segment[aria-current="true"] {
+  background: var(--color-surface-card);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-1);
+}

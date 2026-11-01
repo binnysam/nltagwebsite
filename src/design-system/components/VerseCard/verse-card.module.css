@@ -1,0 +1,135 @@
+/* Bible Verse Showcase Card (§7). Static preset gradient (via GradientSurface), radius 28,
+   shadow-2, grain. All text ink-900 (--color-text-on-gradient). Actions live outside the card. */
+
+.frame { container-type: inline-size; width: 100%; }
+
+.card {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--verse-padding);
+  border-radius: var(--verse-radius);
+  box-shadow: var(--verse-shadow);
+}
+.card > * { position: relative; z-index: var(--z-raised); }
+
+/* ── Variants (§7.4) ── */
+.compact { padding: var(--verse-padding-compact); }
+
+/* Landscape: 16:9 from 720px viewport; auto height below so text never clips.
+   aspect-ratio only sets a minimum here: the box grows if content needs more room. */
+@media (min-width: 720px) {
+  .landscape { aspect-ratio: 16 / 9; justify-content: space-between; }
+}
+.landscape .textTa { font-size: clamp(var(--text-h3), var(--verse-landscape-text-ta), var(--text-h1)); }
+.landscape .textEn { font-size: clamp(var(--text-body-l), var(--verse-landscape-text-en), var(--text-h2)); }
+
+/* Social sizes: everything in cqi so a 390px preview is a scale model of the 1080px PNG */
+.square, .portrait {
+  padding: var(--verse-social-margin);
+  justify-content: space-between;
+  gap: calc(var(--verse-social-margin) * 0.5);
+}
+.square { aspect-ratio: 1 / 1; }
+.portrait { aspect-ratio: 4 / 5; }
+.square .textTa, .portrait .textTa { font-size: var(--verse-social-text-ta); }
+.square .textEn, .portrait .textEn { font-size: var(--verse-social-text-en); }
+.square .meta, .square .top, .portrait .meta, .portrait .top { font-size: var(--verse-social-meta); }
+.square .rule, .portrait .rule { width: calc(var(--verse-social-margin) * 0.625); }
+
+/* ── Anatomy ── */
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--verse-meta-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--leading-small-ta);
+}
+.brand { display: flex; flex-wrap: wrap; column-gap: var(--space-2); }
+
+.chip {
+  flex: none;
+  padding: var(--badge-padding-block) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-glass-fill);
+  border: var(--border-width-hairline) solid var(--color-glass-edge);
+  font-family: var(--font-stack-en-body);
+  font-weight: var(--font-weight-medium);
+}
+.chip:lang(ta) { font-family: var(--font-stack-ta-body); }
+
+.body { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.textTa, .textEn { margin: 0; color: var(--color-text-on-gradient); }
+.textTa {
+  font-family: var(--font-stack-ta-scripture);
+  font-weight: var(--font-weight-body);
+  font-size: var(--verse-text-ta);
+  line-height: var(--verse-leading-ta);
+  letter-spacing: var(--tracking-ta);
+  max-width: var(--verse-measure-ta);
+}
+.textEn {
+  font-family: var(--font-stack-en-scripture);
+  font-weight: var(--font-weight-body);
+  font-size: var(--verse-text-en);
+  line-height: var(--verse-leading-en);
+  max-width: var(--verse-measure-en);
+}
+
+.rule {
+  width: var(--verse-rule-width);
+  height: 0;
+  margin: 0;
+  border: 0;
+  border-top: var(--border-width-hairline) solid var(--verse-rule-color);
+}
+
+/* C Split: side-by-side panes with a divider when the card is ≥ 620px wide; stacked below */
+@container (min-width: 620px) {
+  .split .body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0;
+  }
+  .split .body > .pane ~ .pane {
+    border-inline-start: var(--border-width-hairline) solid var(--verse-split-divider);
+    padding-inline-start: var(--space-6);
+  }
+  .split .body > .pane:first-child { padding-inline-end: var(--space-6); }
+  .split .rule { display: none; }
+}
+.pane { min-width: 0; }
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--verse-meta-size);
+  line-height: var(--leading-small-ta);
+}
+.reference { font-weight: var(--font-weight-medium); }
+
+.fallback {
+  font-family: var(--font-stack-ta-display);
+  font-weight: var(--font-weight-display-ta-small);
+  font-size: var(--text-h3);
+  line-height: var(--leading-h3-ta);
+}
+.fallback:lang(en) { font-family: var(--font-stack-en-display); line-height: var(--leading-h3-en); }
+
+/* Export frame: safe margin guide for social sizes. Preview only; excluded from the PNG. */
+.exportGuide {
+  position: absolute;
+  inset: var(--verse-social-margin);
+  z-index: var(--z-raised);
+  border: var(--border-width-hairline) dashed var(--verse-rule-color);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+
+/* Actions sit outside the card node so they are never exported (§7.2) */
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-4); }
