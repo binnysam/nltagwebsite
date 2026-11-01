@@ -1,6 +1,6 @@
 # Migration plan v3 — execution checklist
 
-**Date:** 1 November 2026 · **Status:** approach approved by the owner in principle (v2). This checklist adds the owner's seven conditions.
+**Date:** 1 November 2026 · **Status:** approach and checklist approved by the owner (1 Nov 2026). Steps 0–2 done; waiting at Gate 1.
 **Source:** Phase 2 bundle (`7e8a14c` + review pass `d3c3992` + Tamil approval `6f8fea0` + this plan).
 **Canonical repo:** `/Users/Binny/NLTAG/NLTAGWebsite/nltagwebsite` · **GitHub:** `binnysam/nltagwebsite` (public, empty)
 
@@ -38,7 +38,9 @@
 | — | **STOP — Gate 2** | Report with verification results | — | Owner |
 | 9 | GitHub | Only after explicit approval: push `main`, `integrate/phase2`, `archive/scaffold-canary-experiment`; open PR. No force-push. **Stop before merge** | — | Owner |
 
-Not in scope without separate approval: merging the PR, changing repository visibility, Phase 3.
+Not in scope without separate approval: merging the PR, changing repository visibility, adding the untracked documents to Git, Phase 3.
+
+Pre-launch items (Tamil formatter phrases, date formatting and others) are tracked in `docs/reports/pre-launch-approval-checklist.md`. They do not block the migration.
 
 ## C. Deletions (complete list)
 
@@ -53,7 +55,8 @@ Git also creates and removes its own lock files under `.git/` during steps 3–8
 
 - `main` at `76dc53c`, unchanged. All history.
 - Uncommitted edits: on `archive/scaffold-canary-experiment`, in B2 and A.
-- The 10 untracked documents: not touched, still untracked (they would become public on push; the owner decides).
+- The 10 untracked documents stay on the Mac, untouched and untracked. Pushing Git branches publishes only committed files, so these documents are **not** published by step 9. They are not added to Git, moved, edited or deleted unless the owner explicitly approves adding them. Step 7 checks they are still present, untracked and byte-identical to backup B3:
+  `LLM-DESIGN-SYSTEMS.md`, `NLTAG-CHURCH-CLAUDE-MASTER-PROMPT.md`, `warm-editorial-bento-ui-skill.md`, `docs/design-system/proposals/phase-1-visual-foundations.md`, `docs/design-system/proposals/specimen/index.html`, `docs/design-system/proposals/tokens.proposal.css`, `docs/product/gate-0-decisions.md`, `docs/research/bible-permissions.md`, `docs/research/infrastructure-zero-cost.md`, `docs/research/live-site-audit-2026-11-01.md`.
 - `AGENTS.md`, `public/*.svg`, `node_modules/`, `.next/`, `next-env.d.ts`, `.DS_Store`.
 
 ## E. Git author

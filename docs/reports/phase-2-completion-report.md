@@ -83,7 +83,7 @@ No test, axe rule or audit rule was weakened. One audit finding came up during t
 ## 6. Remaining issues
 
 1. ~~Spinner rotation~~ — resolved: static (§2).
-2. ~~Draft Tamil in builds~~ — resolved 1 Nov 2026: all 48 items approved (§4). The formatter phrases listed in §4 still need confirmation before public launch.
+2. ~~Draft Tamil in builds~~ — resolved 1 Nov 2026: all 48 items approved (§4). The formatter phrases and date formatting listed in §4 are on the pre-launch approval checklist (`docs/reports/pre-launch-approval-checklist.md`).
 3. **Hostinger's 22.x patch is not published.** Confirm it in hPanel at deployment time (§1).
 4. **Dev tooling advisories.** `npm audit` reports 16 moderate findings, all in dev tooling (minimatch via eslint-config-next). There are none in production dependencies. Fixing them needs `--force` and breaking upgrades, so they were not changed. eslint 9.39.5 also prints a deprecation notice.
 5. **Linux-only visual baselines.** The four baselines are Linux snapshots. Running `test:e2e` on macOS will create new `-darwin` baselines instead of comparing. Run browser tests on Linux or in CI.
