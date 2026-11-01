@@ -1,106 +1,65 @@
-# Safe migration plan — reviewed Phase 2 → canonical NLTAGWebsite repo
+# Migration plan v3 — execution checklist
 
-**Date:** 1 November 2026 · **Status:** proposal, awaiting owner approval · Nothing has been run on the owner's Mac.
+**Date:** 1 November 2026 · **Status:** approach approved by the owner in principle (v2). This checklist adds the owner's seven conditions.
+**Source:** Phase 2 bundle (`7e8a14c` + review pass `d3c3992` + Tamil approval `6f8fea0` + this plan).
+**Canonical repo:** `/Users/Binny/NLTAG/NLTAGWebsite/nltagwebsite` · **GitHub:** `binnysam/nltagwebsite` (public, empty)
 
-## Goal and guarantees
+## Owner conditions (1 Nov 2026)
 
-Bring the reviewed Phase 2 project (commit `7e8a14c` plus the review pass) into the owner's local `NLTAGWebsite` Git repository and its GitHub repository.
+1. Finalised Tamil is in the project and its approval records. **Done** (§A).
+2. Full backup procedure is kept. **No change to the repo until the owner confirms an extra copy of the backups outside the Mac's internal disk** (Gate 1).
+3. Preserve all files, Git history, uncommitted changes and untracked documents.
+4. Separate archive branch and integration branch.
+5. Delete nothing beyond the four listed scaffold files without showing the owner first.
+6. Run the complete verification after integration.
+7. No push, no visibility change, no PR merge, no Phase 3 without explicit approval.
 
-- **Nothing is overwritten or deleted.** The existing `main`, all branches, all commits and the uncommitted `package.json` edits are preserved.
-- **No force-push, ever.** `main` on GitHub changes only when the owner merges a pull request.
-- **Two independent backups** exist before the first Git command that writes anything.
-- **Every step is reversible** (rollback at the end).
+## A. Tamil content (done, in the cloud copy only)
 
-## What we know, and what pre-flight must confirm
+- 48 of 48 items `confirmed`: 22 owner-supplied (exact), 26 recommended drafts approved unchanged.
+- Record: `docs/content/tamil-content-review.md` (generated) and `src/content/tamil-approvals.ts` (owner strings and previous drafts).
+- Checks: `npm run verify` pass; 39/39 unit tests; 53 browser tests pass, 1 skipped by design. Five visual baselines were regenerated because their Tamil text changed; nothing else in them changed.
 
-| Fact | Source | Confirm in pre-flight |
-|---|---|---|
-| Local folder `NLTAGWebsite/nltagwebsite` holds an older create-next-app scaffold | Phase 2 report §6.7 | Exact path; whether `.git` is in `nltagwebsite/` or `NLTAGWebsite/` |
-| It has an uncommitted `package.json` pointing to Next canary / React RC | Phase 2 report §6.7 | `git status`, `git diff` |
-| Reviewed project history is one commit (`7e8a14c`), unrelated to the local history | Reviewed repo | — |
-| GitHub remote, default branch, protection rules, visibility | Unknown | `git remote -v`, GitHub settings |
-| Whether the owner wrote any files in the scaffold (beyond create-next-app defaults) | Unknown | `git log --stat`, file list |
+## B. Checklist
 
-If pre-flight finds anything different (e.g. no remote, work the owner wants kept in `app/`), I stop and report before continuing.
+| # | Where | Step | Writes to the owner's folder | Gate |
+|---|---|---|---|---|
+| 0 | Cloud | Commit review pass and Tamil approval; create `nltag-phase2-reviewed.bundle`; `git bundle verify`; test clone + `git fsck` | No | — |
+| 1 | Mac | Create backups in `NLTAGWebsite/_migration-backups-2026-11-01/`: A full folder `.tar.gz` (incl. `.git`, `node_modules`, `.next`, `.DS_Store`); B1 history bundle; B2 uncommitted-changes patch; B3 untracked-files `.tar.gz`; `SHA256SUMS.txt` | New backup folder only | — |
+| 1v | Mac | Verify: archive file count = disk count; test-restore A to a temp folder inside the backup folder and byte-compare every file; `git bundle verify` B1, clone + `git fsck`; `git apply --check` B2 on `76dc53c`; byte-compare B3; `shasum -a 256 -c` | Temp folder inside backup folder | — |
+| 2 | Mac | Copy the Phase 2 bundle to `_migration-backups-2026-11-01/incoming/` and verify its checksum | New file only | — |
+| — | **STOP — Gate 1** | **Owner copies `_migration-backups-2026-11-01/` to an external drive or cloud storage and confirms.** Optional: connect that copy and I verify it against `SHA256SUMS.txt` | — | Owner |
+| 3 | Repo | Commit the uncommitted `package.json` / `package-lock.json` edits to `archive/scaffold-canary-experiment`; return to `main` (restores those two files to their committed content — originals stay in the archive branch and backups A, B2) | Yes: the two files | After Gate 1 |
+| 4 | Repo | `git fetch <bundle> main:import/phase2-reviewed` | New branch only | — |
+| 5 | Cloud | Dry-run merge in a verification clone; compare with the expected conflicts (`package.json`, `package-lock.json`, `tsconfig.json`, `next.config.ts`, `eslint.config.mjs`, `README.md`, `.gitignore` union) and removals (§C). **Any difference → stop and show the owner** | No | — |
+| 6 | Repo | `integrate/phase2` from `main`; `merge --no-ff --allow-unrelated-histories`; resolve as above; remove only §C | Yes, as listed | — |
+| 7 | Cloud | Complete verification on a fresh clone of `integrate/phase2`: `npm ci`; `npm run verify` (token audit, Tamil record check, lint, typecheck, unit tests, production build); Playwright at 390 and 1280; production smoke test; `tokens.css` SHA-256 = `909a67ca…f58`; secret scan; `npm audit --omit=dev`; `git fsck`; untracked files and archive branch still present and unchanged | No | — |
+| 8 | Repo | `git remote add origin https://github.com/binnysam/nltagwebsite.git` (config only) | `.git/config` only | — |
+| — | **STOP — Gate 2** | Report with verification results | — | Owner |
+| 9 | GitHub | Only after explicit approval: push `main`, `integrate/phase2`, `archive/scaffold-canary-experiment`; open PR. No force-push. **Stop before merge** | — | Owner |
 
-## Step 0 — Freeze the reviewed project (in the cloud workspace)
+Not in scope without separate approval: merging the PR, changing repository visibility, Phase 3.
 
-1. Commit the review pass on top of `7e8a14c` as one commit: *"Phase 2 review: static loading indicator, Node 22 pin, Tamil review gate"*. Author: the owner's Git identity (name/email to be confirmed), with a Claude co-author line.
-2. Create `nltag-phase2.bundle` (a Git bundle: a single file containing the full history) and run `git bundle verify`.
-3. Deliver the bundle with its SHA-256 checksum.
+## C. Deletions (complete list)
 
-## Step 1 — Back up (owner's Mac)
+Removed on `integrate/phase2` only; they stay on `main`, in history and in backup A:
+`app/favicon.ico`, `app/globals.css`, `app/layout.tsx`, `app/page.tsx`.
 
-```bash
-cd ~/<path>/NLTAGWebsite
-ditto nltagwebsite ~/NLTAG-backups/nltagwebsite-2026-11-01          # full copy, incl. .git and uncommitted files
-cd nltagwebsite
-git bundle create ~/NLTAG-backups/nltagwebsite-pre-phase2.bundle --all
-git diff > ~/NLTAG-backups/uncommitted-package-json.patch            # human-readable copy
-```
+Anything else that would be removed → stop and show the owner first.
 
-## Step 2 — Preserve the uncommitted scaffold edits on their own branch
+Git also creates and removes its own lock files under `.git/` during steps 3–8 and rewrites the two files in step 3. That needs the folder's delete permission (one prompt). It is used only for these Git operations.
 
-```bash
-git switch -c archive/scaffold-canary-experiment
-git add package.json package-lock.json   # only files shown as modified in pre-flight
-git commit -m "Archive: uncommitted canary/RC experiment before Phase 2 integration"
-git switch main                          # main is now exactly as it was
-```
+## D. Preserved (checked in step 7)
 
-The canary/RC edits are kept in history, not discarded, and are not carried forward (Phase 2 pins Next 16.4.3 / React 19.3.1).
+- `main` at `76dc53c`, unchanged. All history.
+- Uncommitted edits: on `archive/scaffold-canary-experiment`, in B2 and A.
+- The 10 untracked documents: not touched, still untracked (they would become public on push; the owner decides).
+- `AGENTS.md`, `public/*.svg`, `node_modules/`, `.next/`, `next-env.d.ts`, `.DS_Store`.
 
-## Step 3 — Import Phase 2 as a separate branch
+## E. Git author
 
-```bash
-git bundle verify ~/Downloads/nltag-phase2.bundle
-git fetch ~/Downloads/nltag-phase2.bundle main:import/phase2-reviewed
-```
+`binnysam <binnysamuelchristy@gmail.com>` for the review-pass, Tamil, archive and merge commits (review-pass and Tamil commits add `Co-Authored-By: Claude`). Phase 2 commit `7e8a14c` unchanged. Nothing is pushed, so the author can still be changed (for example to `Mersheena <mersheena2001@gmail.com>`) before step 9.
 
-This only adds a branch. `main` and the working tree are untouched.
+## F. Rollback
 
-## Step 4 — Integrate on a feature branch
-
-```bash
-git switch -c integrate/phase2 main
-git merge --no-ff --allow-unrelated-histories import/phase2-reviewed
-```
-
-- **Overlapping files** (expected: `package.json`, `package-lock.json`, `tsconfig.json`, `next.config.ts`, `eslint.config.mjs`, `.gitignore`, `README.md`, `next-env.d.ts`): take the Phase 2 version.
-- **Leftover scaffold files** that Phase 2 replaces (expected: root `app/` or `src/app/page.tsx`, `globals.css`, default SVGs in `public/`): removed **in a commit on this branch only**, after I list them for the owner. Any file the owner wrote is kept and reported, never removed silently.
-- Result: one merge commit whose history contains both the scaffold commits and the Phase 2 commits.
-
-## Step 5 — Verify on the Mac
-
-```bash
-nvm install 22.23.4 && nvm use          # reads .nvmrc
-rm -rf node_modules .next && npm ci
-npm run verify                          # token audit, Tamil check, lint, typecheck, unit tests, build
-scripts/serve-gallery.sh && npx playwright test --grep-invert "visual baselines"
-```
-
-Visual baselines are Linux snapshots (Phase 2 report §6.5), so on macOS they are skipped; I rerun the full suite including baselines in the cloud workspace against the same commit. Also check: `git status` clean, no `.env` tracked (`git ls-files | grep -i env` → only `.env.example`), `tokens.css` SHA-256 = `909a67ca…df58`.
-
-## Step 6 — GitHub (pull request, not a push to main)
-
-```bash
-git push -u origin integrate/phase2
-git push origin archive/scaffold-canary-experiment
-```
-
-Open a pull request `integrate/phase2 → main`. The owner reviews and merges (merge commit, not squash, so the Phase 2 history stays). Repository visibility, branch protection and settings are not changed. `import/phase2-reviewed` stays local.
-
-## Rollback
-
-| Situation | Action |
-|---|---|
-| Before the PR is merged | Delete the `integrate/phase2` branch; `main` was never touched |
-| After merge | `git revert -m 1 <merge-commit>` and push via a PR (no history rewrite) |
-| Anything unexpected | Restore from `~/NLTAG-backups/` (folder copy or bundle) |
-
-## Decisions needed from the owner
-
-1. **Approve this plan.**
-2. **Git identity for the commit in Step 0** (name and email to use as author).
-3. **Who runs Steps 1–6:** the owner (copy-paste commands), or Claude through the linked Mac — that needs access to the `NLTAGWebsite` folder (one permission prompt), and Claude stops before `git push` for a final confirmation.
-4. **Merge strategy:** recommended `--allow-unrelated-histories` merge (keeps both histories). Alternative: start Phase 2 on a fresh branch with no shared history (simpler, but `main` then needs replacing via PR).
+Before push: `git switch main`; delete `integrate/phase2`, `import/phase2-reviewed` and the archive branch if unwanted. Anything unexpected: restore backup A or B.
