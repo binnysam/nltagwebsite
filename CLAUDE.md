@@ -11,7 +11,7 @@ New Life Tamil AG Church (NLTAG), Kuwait. Bilingual (Tamil default `/ta`, Englis
 Report conflicts; never resolve them silently.
 
 ## Current phase
-Phase 2 (design system) integrated. Phase 3 (motion system, homepage hero) complete, awaiting owner review. CMS, membership, rest of the homepage (Phase 5), deployment: **not authorised**.
+Phase 2 (design system) integrated. Phase 3 (motion system, homepage hero) approved by the owner on 1 Nov 2026 (120s preset cycle, 0.35 hero field opacity, Tamil font preload on both locales). Phase 4 (CMS and membership): architecture proposal only — no building until the owner reviews it. CMS, membership, rest of the homepage (Phase 5), deployment: **not authorised**.
 
 ## Skills — use the matching one
 | Task | Skill |

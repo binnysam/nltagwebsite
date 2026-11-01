@@ -1,6 +1,6 @@
 # Phase 3 completion report — motion system and homepage hero
 
-**Date:** 1 November 2026 · **Status:** complete, awaiting owner review · **Base:** `main` at `317c0cb` · **Branch:** `phase3/hero-motion` (local, not pushed)
+**Date:** 1 November 2026 · **Status:** approved by the owner, 1 Nov 2026 (120s cycle, 0.35 field opacity, Tamil preload on both locales) · **Base:** `main` at `317c0cb` · **Branch:** `phase3/hero-motion`
 **Not started:** CMS, membership, the rest of the homepage (Phase 5), deployment.
 
 ## 1. What was built
@@ -79,10 +79,10 @@ No physical Android device was available to this session. Emulated profiles pass
 5. Optional: Chrome remote debugging → Performance panel, 10s recording: frames ≥ 55 fps, no long tasks from the hero.
 
 ## 6. Remaining items
-1. Owner sign-off on the two token additions and the font preload (§2).
-2. Real low-end Android check (§5; pre-launch item 10).
+1. ~~Owner sign-off on the two token additions and the font preload (§2).~~ Approved 1 Nov 2026.
+2. Real low-end Android check (§5; pre-launch item 10). Owner: stays on the pre-launch checklist; does not block Phase 4.
 3. Hero welcome copy is CONTENT REQUIRED (pre-launch item 12).
-4. Nothing pushed. Branch `phase3/hero-motion` is ready to push and open as a PR on approval.
+4. Branch `phase3/hero-motion` pushed and opened as a PR against `main` after approval.
 
 ## Files
 New: `src/design-system/components/Hero/{Hero.tsx, Hero.client.tsx, hero.module.css, index.ts}`, `src/content/church.ts`, `src/app/[locale]/home.module.css`, `docs/design-system/components/hero.md`, `docs/reports/phase-3-completion-report.md`, `tests/e2e/hero.spec.ts` (+ 2 baselines), `tests/unit/hero.test.tsx`.

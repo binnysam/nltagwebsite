@@ -27,7 +27,7 @@ Produced by formatters, not part of the 48 approved items (`docs/content/tamil-c
 |---|---|---|
 | 8 | Hostinger's Node 22.x patch version, checked in hPanel at deployment | Open |
 | 9 | Bible reproduction permission (BSI Tamil, NKJV) and exact credit lines; verse card stays a placeholder until then | Open |
-| 10 | Hero check on a real low-end Android phone (Phase 1 §8.2). Emulated profiles pass (Phase 3 report §3); steps for the real check in Phase 3 report §5 | Open — needs a device |
+| 10 | Hero check on a real low-end Android phone (Phase 1 §8.2). Emulated profiles pass (Phase 3 report §3); steps for the real check in Phase 3 report §5 | Open — needs a device. Owner: does not block Phase 4; must close before launch |
 | 11 | Repository visibility (currently public) | Owner decision |
 | 12 | Hero welcome copy (Tamil and English) — CONTENT REQUIRED. The hero currently shows the church name and the approved notice "This website is being prepared." | Awaiting church content |
-| 13 | Phase 3 token additions: `--motion-hero-preset-cycle` (120s) and `--home-hero-field-opacity` (0.35) | Awaiting owner sign-off |
+| 13 | Phase 3 token additions: `--motion-hero-preset-cycle` (120s) and `--home-hero-field-opacity` (0.35); Tamil font preload on both locales | Approved by owner, 1 Nov 2026 |
