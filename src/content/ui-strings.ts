@@ -5,10 +5,11 @@
  *   - "confirmed"     → approved by the church/owner (Gate 0 or later).
  *   - "proposed"      → English interface wording written by the project team; owner may edit.
  *   - "draft-review"  → Tamil wording awaiting church review. Must not go live on a public
- *                        page until changed to "confirmed".
+ *                        page until changed to "confirmed". New strings start here.
  *
- * The full review sheet lives in docs/content/tamil-content-review.md and is generated from
- * the same entries. Do not add church facts (names, times, addresses) here: those belong in
+ * All existing Tamil was approved by the owner on 1 Nov 2026 (src/content/tamil-approvals.ts).
+ * Owner-supplied Tamil is reproduced exactly; never rephrase it. The approval record lives in
+ * docs/content/tamil-content-review.md and is generated from the same entries. Do not add church facts (names, times, addresses) here: those belong in
  * src/content/schedule.ts or the CMS.
  */
 
@@ -37,87 +38,89 @@ const s = (
   extra: Partial<Pick<UiString, "taAlternatives" | "taShortAlternative" | "note" | "enStatus" | "taStatus">> = {},
 ): UiString => ({ en, ta, enStatus: "proposed", taStatus: "draft-review", ...extra });
 
+/** Tamil approved by the owner (1 Nov 2026). Use `s()` for any new string. */
+const c = (
+  en: string,
+  ta: string,
+  extra: Partial<Pick<UiString, "note" | "enStatus">> = {},
+): UiString => ({ en, ta, enStatus: "proposed", taStatus: "confirmed", ...extra });
+
 export const uiStrings = {
   // Navigation
-  "nav.home": s("Home", "முகப்பு"),
-  "nav.about": s("About", "எங்களைப் பற்றி", { taAlternatives: ["சபையைப் பற்றி"] }),
-  "nav.worshipTimes": s("Worship times", "ஆராதனை நேரங்கள்", { taAlternatives: ["கூடுகை நேரங்கள்"] }),
-  "nav.sermons": s("Sermons", "பிரசங்கங்கள்", { taAlternatives: ["தேவ செய்திகள்"] }),
-  "nav.contact": s("Contact", "தொடர்பு", { taAlternatives: ["தொடர்பு கொள்ள"] }),
-  "nav.menu": s("Menu", "மெனு", { taAlternatives: ["பட்டியல்"] }),
-  "nav.closeMenu": s("Close menu", "மெனுவை மூடு"),
-  "nav.primary": s("Main navigation", "முதன்மை வழிசெலுத்தல்"),
-  "nav.skipToContent": s("Skip to main content", "முதன்மை உள்ளடக்கத்திற்குச் செல்லவும்"),
+  "nav.home": c("Home", "முகப்பு"),
+  "nav.about": c("About", "சபை வரலாறு"),
+  "nav.worshipTimes": c("Worship times", "ஆராதனை ஒழுங்குமுறை"),
+  "nav.sermons": c("Sermons", "தேவ செய்திகள்"),
+  "nav.contact": c("Contact", "தொடர்பு கொள்ள"),
+  "nav.menu": c("Menu", "மெனு"),
+  "nav.closeMenu": c("Close menu", "மெனுவை மூடு"),
+  "nav.primary": c("Main navigation", "முதன்மை பக்கம்"),
+  "nav.skipToContent": c("Skip to main content", "முதன்மை பகுதிக்கு செல்லவும்"),
 
   // Calls to action
-  "cta.joinFriday": s("Join us this Friday", "இந்த வெள்ளிக்கிழமை எங்களுடன் இணையுங்கள்", {
+  "cta.joinFriday": c("Join us this Friday", "ஆராதனையில் இணைந்துகொள்ளுங்கள்", {
     enStatus: "confirmed",
-    taAlternatives: ["இந்த வெள்ளிக்கிழமை ஆராதனைக்கு வாருங்கள்"],
-    taShortAlternative: "இந்த வெள்ளிக்கிழமை வாருங்கள்",
-    note: "Gate 0 replaced 'Join us this Sunday' with this wording. Measured 1 Nov 2026 at phone width (390 CSS pixels): the recommended Tamil and the first alternative both wrap to two lines in a full-width pill button; the short alternative fits on one line.",
+    note: "Gate 0 replaced 'Join us this Sunday' with the English wording. Tamil supplied by the owner on 1 Nov 2026.",
   }),
 
   // Language switch
-  "lang.label": s("Language", "மொழி"),
+  "lang.label": c("Language", "மொழி"),
   "lang.ta": s("தமிழ்", "தமிழ்", { enStatus: "confirmed", taStatus: "confirmed" }),
   "lang.en": s("English", "English", { enStatus: "confirmed", taStatus: "confirmed" }),
 
   // Hero motion control (WCAG 2.2.2)
-  "hero.pause": s("Pause background animation", "பின்னணி அசைவை நிறுத்து"),
-  "hero.play": s("Play background animation", "பின்னணி அசைவைத் தொடங்கு"),
+  "hero.pause": c("Pause background animation", "பின்னணி அசைவை நிறுத்து"),
+  "hero.play": c("Play background animation", "பின்னணி அசைவை தொடங்கு"),
 
   // Bible Verse Showcase Card
-  "verse.today": s("Today's verse", "இன்றைய வசனம்", { taAlternatives: ["இன்றைய தேவ வசனம்"] }),
-  "verse.placeholderChip": s("Placeholder", "மாதிரி", {
+  "verse.today": c("Today's verse", "இன்றைய தேவ வசனம்"),
+  "verse.placeholderChip": c("Placeholder", "மாதிரி", {
     note: "Shown until Bible reproduction permission is confirmed.",
   }),
-  "verse.placeholderText": s(
+  "verse.placeholderText": c(
     "Verse text appears here once reproduction permission is confirmed.",
     "மறுபதிப்பு அனுமதி உறுதியானதும் வசனம் இங்கே இடம்பெறும்.",
   ),
-  "verse.placeholderReference": s("Reference", "வசனக் குறிப்பு"),
-  "verse.publisherCredit": s(
+  "verse.placeholderReference": c("Reference", "வசனக் குறிப்பு"),
+  "verse.publisherCredit": c(
     "Publisher credit line required",
     "வெளியீட்டாளர் நன்றிக் குறிப்பு தேவை",
     { note: "Exact credit lines come from the BSI and NKJV permission letters." },
   ),
-  "verse.share": s("Share", "பகிர்"),
-  "verse.download": s("Download PNG", "PNG பதிவிறக்கு", { taAlternatives: ["படமாகப் பதிவிறக்கு"] }),
-  "verse.fallback": s(
+  "verse.share": c("Share", "பகிர்"),
+  "verse.download": c("Download PNG", "PNG பதிவிறக்கு"),
+  "verse.fallback": c(
     "Today's verse will be published soon.",
     "இன்றைய வசனம் விரைவில் வெளியிடப்படும்.",
   ),
 
   // Schedule
-  "schedule.heading": s("Worship schedule", "ஆராதனை அட்டவணை", {
-    enStatus: "confirmed",
-    taAlternatives: ["ஆராதனை நேரங்கள்"],
-  }),
-  "schedule.col.name": s("Gathering", "கூடுகை", { taAlternatives: ["நிகழ்ச்சி"] }),
-  "schedule.col.when": s("When", "நேரம்"),
-  "schedule.col.where": s("Where", "இடம்"),
-  "schedule.timezone": s("All times are Kuwait time.", "அனைத்து நேரங்களும் குவைத் நேரம்."),
+  "schedule.heading": c("Worship schedule", "ஆராதனை அட்டவணை", { enStatus: "confirmed" }),
+  "schedule.col.name": c("Gathering", "கூடுகை"),
+  "schedule.col.when": c("When", "நேரம்"),
+  "schedule.col.where": c("Where", "இடம்"),
+  "schedule.timezone": c("All times are Kuwait time.", "அனைத்து நேரங்களும் குவைத் நேரம்."),
 
-  // Membership status (Tamil labels are drafts per Phase 1 §6)
-  "status.draft": s("Draft", "வரைவு"),
-  "status.emailVerified": s("Email verified", "மின்னஞ்சல் சரிபார்க்கப்பட்டது"),
-  "status.pendingReview": s("Pending review", "பரிசீலனையில்"),
-  "status.correctionRequested": s("Correction requested", "திருத்தம் கோரப்பட்டுள்ளது"),
-  "status.active": s("Active", "செயலில்", { taAlternatives: ["நடப்பில்"] }),
-  "status.rejected": s("Rejected", "நிராகரிக்கப்பட்டது"),
+  // Membership status
+  "status.draft": c("Draft", "வரைவு"),
+  "status.emailVerified": c("Email verified", "மின்னஞ்சல் சரிபார்க்கப்பட்டது"),
+  "status.pendingReview": c("Pending review", "பரிசீலனையில்"),
+  "status.correctionRequested": c("Correction requested", "திருத்தம் கோரப்பட்டுள்ளது"),
+  "status.active": c("Active", "செயலில்"),
+  "status.rejected": c("Rejected", "நிராகரிக்கப்பட்டது"),
 
   // Forms
-  "form.required": s("Required", "அவசியம்"),
-  "form.optional": s("Optional", "விருப்பத்தேர்வு"),
-  "form.errorRequired": s("This field is required.", "இந்தப் புலம் அவசியம்."),
-  "form.loading": s("Please wait…", "காத்திருக்கவும்…"),
+  "form.required": c("Required", "அவசியம்"),
+  "form.optional": c("Optional", "விருப்பத்தேர்வு"),
+  "form.errorRequired": c("This field is required.", "இந்தப் புலம் அவசியம்."),
+  "form.loading": c("Please wait…", "காத்திருக்கவும்…"),
 
   // Holding page (pre-launch)
-  "site.inPreparation": s("This website is being prepared.", "இந்த இணையதளம் தயாராகி வருகிறது."),
+  "site.inPreparation": c("This website is being prepared.", "இந்த இணையதளம் தயாராகி வருகிறது."),
 
   // Special meetings
-  "special.typeLabel": s("Special meeting", "சிறப்புக் கூட்டம்"),
-  "special.empty": s(
+  "special.typeLabel": c("Special meeting", "சிறப்புக் கூட்டம்"),
+  "special.empty": c(
     "Special meetings are announced individually.",
     "சிறப்புக் கூட்டங்கள் தனித்தனியாக அறிவிக்கப்படும்.",
   ),

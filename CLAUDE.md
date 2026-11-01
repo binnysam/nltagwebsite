@@ -38,7 +38,7 @@ Read: `docs/design-system/foundations/foundations.md` → `docs/design-system/to
 - Never invent church content: names, history, beliefs, times, addresses, contacts, events, testimonies, Bible wording, social accounts. Missing → `CONTENT REQUIRED`, unpublished.
 - Schedule facts only from `src/content/schedule.ts` (Gate 0). Sunday School is on **Friday**. Write **NECK** exactly. No address.
 - Bible text: placeholder only until permission is documented.
-- Tamil interface wording stays `draft-review` until the church approves it.
+- Tamil wording: the 48 reviewed items were approved by the owner on 1 Nov 2026 (`docs/content/tamil-content-review.md`). Owner-supplied Tamil (`src/content/tamil-approvals.ts`) is reproduced exactly; never rephrase or "correct" it. New Tamil strings start as `draft-review` and need owner approval.
 - Ask before changing tokens, membership policy, security, SEO strategy, dependencies with cost, or deployment. Never deploy, push to `main`, change repo visibility or touch DNS without explicit approval.
 
 ## Definition of done

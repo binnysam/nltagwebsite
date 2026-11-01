@@ -10,7 +10,7 @@ All implemented in Phase 2 under `src/design-system/components/`. Visual rules c
 **API:** `locale`, `navItems?: {href,label}[]` (only routes that exist), `currentPath?` (sets `aria-current="page"`), `cta?: {href,label}`. With no nav items and no CTA the menu button is omitted.
 **States:** resting (white, no shadow) · scrolled (`data-stuck="true"`, shadow-1) · menu open/closed · nav link hover (paper-100 pill) and current.
 **Keyboard:** Tab order follows reading order. Menu button has `aria-expanded` and `aria-controls`; Escape closes the panel and returns focus to the button; following a link closes it. The panel is a disclosure, not a modal, so focus is not trapped.
-**Responsive:** the inline nav appears from **1280px** (not 1024): with the draft Tamil labels the four links, switch and CTA wrapped at 1024–1279px. Revisit when Tamil wording is approved.
+**Responsive:** the inline nav appears from **1280px** (not 1024): with the Phase 2 draft Tamil labels the four links, switch and CTA wrapped at 1024–1279px. Tamil wording was approved on 1 Nov 2026; re-measure the breakpoint with the approved labels in Phase 3.
 **Tokens:** `--header-height`, `--z-header`, `--tracking-wordmark`, `--shadow-1`, `--color-surface-card`, `--color-border-subtle`.
 
 ## LanguageSwitch
@@ -27,7 +27,7 @@ All implemented in Phase 2 under `src/design-system/components/`. Visual rules c
 **Accessibility:** `<label for>`, hint and error joined in `aria-describedby`; error never colour-only. Input height 48px.
 
 ## StatusBadge / MembershipStatusBadge
-**Use:** short states. Membership mapping: Draft → neutral · Email verified, Pending review → info · Correction requested → warning · Active → success · Rejected → error. Tamil labels are drafts.
+**Use:** short states. Membership mapping: Draft → neutral · Email verified, Pending review → info · Correction requested → warning · Active → success · Rejected → error. Tamil labels approved 1 Nov 2026.
 **Visual:** pill, 13px/500, dot + word, 700 text on 50 fill. The dot is `aria-hidden`; the word carries meaning.
 
 ## GradientSurface
@@ -36,7 +36,7 @@ All implemented in Phase 2 under `src/design-system/components/`. Visual rules c
 
 ## ScheduleList
 **Use:** worship schedule (homepage section and worship-times page in Phase 5).
-**Data:** `src/content/schedule.ts` only (Gate 0); later the CMS. Times, days and NECK are confirmed; Tamil names and "மாலை/இரவு" are drafts.
+**Data:** `src/content/schedule.ts` only (Gate 0); later the CMS. Times, days and NECK are confirmed; Tamil gathering names were supplied by the owner and காலை/மாலை approved (1 Nov 2026). Weekday names and other formatter phrases still need confirmation (see the approval record).
 **Anatomy:** `<ul role="list">` of rows: name (page language, Anek Tamil 400 / Inter Tight 400) with the other language beneath (14px ink-500, own `lang`) → when (tabular numerals) → where. Screen readers get "When:" / "Where:" prefixes.
 **Responsive:** one column below a 680px container width; three columns (5fr / 5fr / 3fr) above.
 **States:** row tint paper-100 on hover.

@@ -18,7 +18,7 @@ describe("schedule (Gate 0)", () => {
     ]);
   });
 
-  it("renders the Tamil drafts from Phase 1 §9", () => {
+  it("renders the approved Tamil schedule wording", () => {
     expect(formatWhen(byId("main-worship"), "ta")).toBe("ஒவ்வொரு வெள்ளிக்கிழமை, காலை 7:30 – 9:30");
     expect(formatWhen(byId("fasting-prayer"), "ta")).toBe("ஒவ்வொரு சனிக்கிழமை, மாலை 7:30 – 8:30");
     expect(formatWhen(byId("ladies-meeting"), "ta")).toBe("ஒவ்வொரு மாதத்தின் கடைசி வியாழக்கிழமை, மாலை 7:00 – 9:00");
@@ -28,8 +28,10 @@ describe("schedule (Gate 0)", () => {
   it("never presents Sunday School on a Sunday", () => {
     const s = byId("sunday-school");
     expect(s.recurrence).toEqual({ kind: "weekly", weekday: 5 });
-    expect(s.name.ta).not.toContain("ஞாயிறு");
-    expect(s.name.taAlternatives.join()).not.toContain("ஞாயிறு");
+    // Owner-approved Tamil name (1 Nov 2026). "ஞாயிறு" here is part of the name; the day is Friday.
+    expect(s.name.ta).toBe("ஞாயிறு பள்ளி");
+    expect(formatWhen(s, "ta")).toBe("ஒவ்வொரு வெள்ளிக்கிழமை, காலை 9:30 – 10:30");
+    expect(formatWhen(s, "ta")).not.toContain("ஞாயிற்றுக்கிழமை");
   });
 
   it("writes NECK exactly and publishes no address", () => {
@@ -42,7 +44,7 @@ describe("schedule (Gate 0)", () => {
 });
 
 describe("interface strings", () => {
-  it("has Tamil and English for every key, and Tamil stays draft until confirmed", () => {
+  it("has Tamil and English for every key, and a known Tamil status", () => {
     for (const [key, v] of Object.entries(uiStrings)) {
       expect(v.en.trim(), key).not.toBe("");
       expect(v.ta.trim(), key).not.toBe("");

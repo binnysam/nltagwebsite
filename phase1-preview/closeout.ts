@@ -27,7 +27,7 @@ const row = (key: string, en: string, ta: string, alts: readonly string[], note 
 
 const sections: string[] = [];
 sections.push(`<h3>Schedule names</h3><p class="sub">Times, days and NECK are confirmed (Gate 0). Only the Tamil names need review.</p><div class="tw"><table><thead><tr><th>ID</th><th>English (confirmed)</th><th>Recommended Tamil</th><th>Alternatives</th><th>Note</th><th>Status</th></tr></thead><tbody>${schedule
-  .map((i) => row(i.id, i.name.en, i.name.ta, i.name.taAlternatives, i.id === "sunday-school" ? "Takes place on Friday. Avoid ஞாயிறு பள்ளி. Confirm audience (children or all ages)." : i.id === "cottage-meeting" ? "Host addresses are never published." : ""))
+  .map((i) => row(i.id, i.name.en, i.name.ta, i.name.taAlternatives ?? [], i.id === "sunday-school" ? "Takes place on Friday. Avoid ஞாயிறு பள்ளி. Confirm audience (children or all ages)." : i.id === "cottage-meeting" ? "Host addresses are never published." : ""))
   .join("")}${extra.map((e) => row(e.key, e.en, e.ta, e.alts, e.note)).join("")}</tbody></table></div>`);
 
 for (const [prefix, label] of Object.entries(groups)) {

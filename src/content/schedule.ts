@@ -2,11 +2,14 @@
  * Official NLTAG schedule — Gate 0 decisions (1 Nov 2026). All times Asia/Kuwait.
  *
  * Times, days and locations are CONFIRMED and must not be edited without owner approval.
- * Tamil names and Tamil time-of-day words are DRAFTS awaiting church review
- * (Phase 1 §9; docs/content/tamil-content-review.md).
+ * Tamil gathering names were supplied by the owner on 1 Nov 2026 and are reproduced exactly
+ * (src/content/tamil-approvals.ts). The time-of-day words காலை / மாலை were approved as
+ * recommended. Weekday names and the other formatter phrases below are not in the review
+ * record yet (see docs/content/tamil-content-review.md, "Not yet in the record").
  *
  * Rules: "NECK" is written exactly and never expanded. No street address. Cottage Meeting
- * host addresses are private and never published. Sunday School is on FRIDAY.
+ * host addresses are private and never published. Sunday School is on FRIDAY (its approved
+ * Tamil name ஞாயிறு பள்ளி is a name, not a day; the day shown is always Friday).
  */
 import type { Locale, ReviewStatus } from "./ui-strings";
 
@@ -22,7 +25,7 @@ export type Venue = { kind: "neck" } | { kind: "members-homes" } | { kind: "vari
 
 export interface ScheduleItem {
   id: string;
-  name: { en: string; ta: string; taStatus: ReviewStatus; taAlternatives: readonly string[] };
+  name: { en: string; ta: string; taStatus: ReviewStatus; taAlternatives?: readonly string[] };
   recurrence: Recurrence;
   /** 24-hour "HH:MM", Asia/Kuwait. Absent for individually scheduled items. */
   start?: string;
@@ -33,7 +36,7 @@ export interface ScheduleItem {
 export const schedule: readonly ScheduleItem[] = [
   {
     id: "main-worship",
-    name: { en: "Main Worship Service", ta: "பிரதான ஆராதனை", taStatus: "draft-review", taAlternatives: ["சபை ஆராதனை", "ஆராதனை"] },
+    name: { en: "Main Worship Service", ta: "சபை ஆராதனை", taStatus: "confirmed" },
     recurrence: { kind: "weekly", weekday: 5 },
     start: "07:30",
     end: "09:30",
@@ -41,7 +44,7 @@ export const schedule: readonly ScheduleItem[] = [
   },
   {
     id: "sunday-school",
-    name: { en: "Sunday School", ta: "சண்டே ஸ்கூல்", taStatus: "draft-review", taAlternatives: ["வேதபாட வகுப்பு"] },
+    name: { en: "Sunday School", ta: "ஞாயிறு பள்ளி", taStatus: "confirmed" },
     recurrence: { kind: "weekly", weekday: 5 },
     start: "09:30",
     end: "10:30",
@@ -49,7 +52,7 @@ export const schedule: readonly ScheduleItem[] = [
   },
   {
     id: "fasting-prayer",
-    name: { en: "Fasting Prayer", ta: "உபவாச ஜெபம்", taStatus: "draft-review", taAlternatives: ["உபவாச ஜெபக்கூட்டம்"] },
+    name: { en: "Fasting Prayer", ta: "உபவாச ஆராதனை", taStatus: "confirmed" },
     recurrence: { kind: "weekly", weekday: 6 },
     start: "19:30",
     end: "20:30",
@@ -57,7 +60,7 @@ export const schedule: readonly ScheduleItem[] = [
   },
   {
     id: "cottage-meeting",
-    name: { en: "Cottage Meeting", ta: "வீட்டு ஜெபக்கூட்டம்", taStatus: "draft-review", taAlternatives: ["குடும்ப ஜெபக்கூட்டம்", "காட்டேஜ் மீட்டிங்"] },
+    name: { en: "Cottage Meeting", ta: "வீட்டு ஜெபக்கூட்டம்", taStatus: "confirmed" },
     recurrence: { kind: "weekly", weekday: 2 },
     start: "19:30",
     end: "20:30",
@@ -65,7 +68,7 @@ export const schedule: readonly ScheduleItem[] = [
   },
   {
     id: "ladies-meeting",
-    name: { en: "Ladies Meeting", ta: "சகோதரிகள் கூட்டம்", taStatus: "draft-review", taAlternatives: ["பெண்கள் ஜெபக்கூட்டம்", "மகளிர் கூட்டம்"] },
+    name: { en: "Ladies Meeting", ta: "ஸ்திரீகள் ஜெபக்கூட்டம்", taStatus: "confirmed" },
     recurrence: { kind: "monthly-last", weekday: 4 },
     start: "19:00",
     end: "21:00",
@@ -73,14 +76,14 @@ export const schedule: readonly ScheduleItem[] = [
   },
   {
     id: "special-meetings",
-    name: { en: "Special Meetings", ta: "சிறப்புக் கூட்டங்கள்", taStatus: "draft-review", taAlternatives: ["விசேஷ கூட்டங்கள்"] },
+    name: { en: "Special Meetings", ta: "விசேஷ ஆராதனைகள்", taStatus: "confirmed" },
     recurrence: { kind: "individual" },
     venue: { kind: "varies" },
   },
 ];
 
 const weekdayEn = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
-/** Draft-review Tamil weekday names. */
+/** Tamil weekday names. Not yet in the Tamil approval record. */
 const weekdayTa = ["ஞாயிற்றுக்கிழமை", "திங்கட்கிழமை", "செவ்வாய்க்கிழமை", "புதன்கிழமை", "வியாழக்கிழமை", "வெள்ளிக்கிழமை", "சனிக்கிழமை"] as const;
 
 /** Formats "19:30" as "7:30". Period word added separately. */
@@ -92,8 +95,8 @@ function clock(hhmm: string): { text: string; pm: boolean } {
 }
 
 /**
- * Tamil period word. "மாலை" (evening) is the recommended draft for 7–9 PM;
- * reviewers may choose "இரவு" (night). Change here only after church review.
+ * Tamil period words, approved as recommended on 1 Nov 2026: "மாலை" for the 7–9 PM
+ * gatherings, "காலை" for the morning. Change only with owner approval.
  */
 const TA_MORNING = "காலை";
 const TA_EVENING = "மாலை";

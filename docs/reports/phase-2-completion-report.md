@@ -1,6 +1,6 @@
 # Phase 2 completion report — NLTAG design system
 
-**Date:** 1 November 2026 · **Status:** complete; spinner decision applied · **Phase 3:** not started (awaiting migration-plan approval)
+**Date:** 1 November 2026 · **Status:** complete; spinner decision applied; Tamil approved (1 Nov 2026) · **Phase 3:** not started (awaiting migration-plan approval)
 
 Base: commit `7e8a14c` (Phase 2). Changes in this review pass are uncommitted working-tree changes; nothing was pushed.
 
@@ -64,15 +64,15 @@ No test, axe rule or audit rule was weakened. One audit finding came up during t
 
 **Browser tests (per viewport):** both locales: no horizontal scroll, `lang`, page background; axe WCAG 2.0, 2.1 and 2.2 AA with no violations; 44px targets; approved faces only. Specifications: primary button; secondary, compact, loading and disabled buttons; form field; verse card radius, ink and order; split layout; 1:1 and 4:5 ratios; reduced motion zeroes tokens; motion tokens apply; sticky header. Tamil display typography; Latin digits in Tamil text; mobile menu (390 only); root redirect; noindex; unknown locale 404. Visual baselines: verse-compact, verse-square, verse-split, schedule.
 
-## 4. Tamil review
+## 4. Tamil review — approved 1 November 2026
 
-- All **48** Tamil items remain `draft-review`. Only the language names `தமிழ்` and `English` are `confirmed`. A unit test now enforces both facts.
-- The review sheet is generated from the source, and both `npm run verify` and a unit test fail if it is stale. The IDs and recommended Tamil are unchanged from the previous sheet.
-- **Short CTA highlighted for the church.** `cta.joinFriday` now has a `taShortAlternative`, shown in a "For church decision" section at the top of the sheet:
-  - Recommended: இந்த வெள்ளிக்கிழமை எங்களுடன் இணையுங்கள்
-  - **Short alternative: இந்த வெள்ளிக்கிழமை வாருங்கள்**
-  - Measured at 390px in a full-width pill: the recommended text and the first alternative wrap to two lines (57px tall). The short alternative fits on one line (44px).
-- The short alternative is review data only. The UI renders the recommended `ta` text until the church decides.
+- **All 48 items are approved** (`confirmed`). The owner supplied the final Tamil for 22 items and approved the other 26 as recommended. No item remains `draft-review`.
+- The 22 owner-supplied strings are recorded in `src/content/tamil-approvals.ts` with their previous drafts, and are reproduced exactly as supplied. `tests/unit/tamil-review.test.ts` compares each one character by character, and checks that the 26 recommended drafts are unchanged.
+- `docs/content/tamil-content-review.md` is now the approval record (approved Tamil, how it was approved, previous draft). It is still generated from the source and checked by `npm run verify`.
+- Alternatives and the short CTA alternative were removed from the source: the decisions are made. `cta.joinFriday` uses the owner's Tamil, ஆராதனையில் இணைந்துகொள்ளுங்கள்.
+- **Owner decision that changed a guard:** Sunday School's approved Tamil is ஞாயிறு பள்ளி. The old test that rejected "ஞாயிறு" in the name now checks the exact approved name and that the schedule still says Friday (வெள்ளிக்கிழமை), never ஞாயிற்றுக்கிழமை.
+- **Not yet in the record:** weekday names, ஒவ்வொரு / ஒவ்வொரு மாதத்தின் கடைசி, தனித்தனியாக அறிவிக்கப்படும், சபை அங்கத்தினர்களின் வீடுகளில், நிகழ்ச்சியைப் பொறுத்து, and Intl month names. These were never among the 48 and are listed at the end of the record for confirmation.
+- **Historical copies left unchanged:** `docs/reference/NLTAG-PHASE-1-VISUAL-FOUNDATIONS.md` §9 and `phase1-preview/` keep the Phase 1 drafts as approved Phase 1 artefacts. The approval record supersedes them.
 
 ## 5. Completed components
 
@@ -83,7 +83,7 @@ No test, axe rule or audit rule was weakened. One audit finding came up during t
 ## 6. Remaining issues
 
 1. ~~Spinner rotation~~ — resolved: static (§2).
-2. **Draft Tamil in builds.** The `/ta` holding page and header render `draft-review` Tamil. This is acceptable while nothing is deployed and every route is `noindex`. Before any deployment, a publication gate is needed: an English fallback for unconfirmed Tamil, or church approval. This is a Phase 5 or deployment decision.
+2. ~~Draft Tamil in builds~~ — resolved 1 Nov 2026: all 48 items approved (§4). The formatter phrases listed in §4 still need confirmation before public launch.
 3. **Hostinger's 22.x patch is not published.** Confirm it in hPanel at deployment time (§1).
 4. **Dev tooling advisories.** `npm audit` reports 16 moderate findings, all in dev tooling (minimatch via eslint-config-next). There are none in production dependencies. Fixing them needs `--force` and breaking upgrades, so they were not changed. eslint 9.39.5 also prints a deprecation notice.
 5. **Linux-only visual baselines.** The four baselines are Linux snapshots. Running `test:e2e` on macOS will create new `-darwin` baselines instead of comparing. Run browser tests on Linux or in CI.

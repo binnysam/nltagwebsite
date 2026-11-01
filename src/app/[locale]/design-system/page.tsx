@@ -43,7 +43,7 @@ export default async function DesignSystemGallery({ params }: { params: Promise<
       <main id="main">
         <Container className={g.page}>
           <p className={g.notice} lang="en">
-            Private design-system gallery (Phase 2). Not indexed, not linked. Tamil wording is draft pending church review.
+            Private design-system gallery (Phase 2). Not indexed, not linked. Tamil wording approved by the owner on 1 Nov 2026.
             Bracketed text marks content the church has not supplied.
           </p>
           <Heading level={1} styleAs="display-xl" lang="en">NLTAG Design System</Heading>

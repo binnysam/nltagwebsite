@@ -123,10 +123,10 @@ describe("LanguageSwitch", () => {
 });
 
 describe("SiteHeader", () => {
-  const nav = [{ href: "/ta/about", label: "எங்களைப் பற்றி" }];
+  const nav = [{ href: "/ta/about", label: "சபை வரலாறு" }];
 
   it("toggles the mobile menu, closes on Escape and returns focus", async () => {
-    render(<SiteHeader locale="ta" navItems={nav} cta={{ href: "/ta/visit", label: "இந்த வெள்ளிக்கிழமை எங்களுடன் இணையுங்கள்" }} />);
+    render(<SiteHeader locale="ta" navItems={nav} cta={{ href: "/ta/visit", label: "ஆராதனையில் இணைந்துகொள்ளுங்கள்" }} />);
     const button = await screen.findByRole("button", { name: "மெனு" });
     expect(button).toHaveAttribute("aria-expanded", "false");
     await userEvent.click(button);
@@ -169,7 +169,7 @@ describe("VerseCard", () => {
 
   it("shows the placeholder chip, both languages, reference, translations and credit", async () => {
     const { container } = render(<VerseCard verse={verse} locale="ta" dateLabel="1 நவம்பர், 2026" />);
-    const card = screen.getByRole("figure", { name: "இன்றைய வசனம்" });
+    const card = screen.getByRole("figure", { name: "இன்றைய தேவ வசனம்" });
     expect(within(card).getByText("மாதிரி")).toBeInTheDocument();
     expect(within(card).getByText(verse.text.ta!)).toBeInTheDocument();
     expect(within(card).getByText(verse.text.en!)).toBeInTheDocument();

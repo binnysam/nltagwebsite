@@ -54,6 +54,6 @@ A small set of 20×20 line icons drawn for NLTAG (`<Icon name>`): menu, close, p
 ## 8. Localisation
 - Routes: `/ta/...` (default) and `/en/...`; `/` redirects to `/ta`.
 - `<html lang>` follows the route.
-- Interface strings: `src/content/ui-strings.ts`. Tamil entries are `draft-review` until the church approves them (review sheet: `docs/content/tamil-content-review.md`).
+- Interface strings: `src/content/ui-strings.ts`. Existing Tamil entries were approved by the owner on 1 Nov 2026 (approval record: `docs/content/tamil-content-review.md`); new entries start as `draft-review`.
 - Church facts never live in interface strings. The schedule lives in `src/content/schedule.ts` (Gate 0) and later the CMS.
 - Dates and the daily verse use Asia/Kuwait (`src/lib/date.ts`).

@@ -22,7 +22,7 @@ Not implemented. Approved decisions only (Gate 0); infrastructure needs Phase 4 
 - Schedule facts come from the confirmed Gate 0 schedule; special meetings are CMS records with date, start/end time, location and Tamil + English announcement.
 - Bible verses: stable ID, reference, text and translation label per language, theme preset, scheduled date (Asia/Kuwait), publisher credit, status. No verse text until reproduction permission is documented.
 - Never fabricate pastor names, history, beliefs, events, testimonies, contacts or social accounts. Missing → `CONTENT REQUIRED`, unpublished.
-- Interface wording lives in `src/content/ui-strings.ts`; Tamil items stay `draft-review` until the church approves them (`docs/content/tamil-content-review.md`, regenerate with `node scripts/tamil-review.ts`).
+- Interface wording lives in `src/content/ui-strings.ts`; the 48 reviewed Tamil items were approved on 1 Nov 2026 (approval record: `docs/content/tamil-content-review.md`, regenerate with `node scripts/tamil-review.ts`). Owner-supplied Tamil in `src/content/tamil-approvals.ts` is reproduced exactly. New Tamil starts as `draft-review`.
 
 ## Escalate
 Choice of CMS/database/storage/email provider, any paid service, role changes, and publishing anything before Church Admin approval.

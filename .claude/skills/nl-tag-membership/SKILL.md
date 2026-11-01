@@ -17,7 +17,7 @@ Not implemented. No production membership data may be collected until Gate 4 app
 - Google sign-in never auto-approves membership.
 
 ## UI available now
-`MembershipStatusBadge` (statuses mapped to tones), `TextField`, `Button` (loading/disabled). Tamil status labels are drafts.
+`MembershipStatusBadge` (statuses mapped to tones), `TextField`, `Button` (loading/disabled). Tamil status labels were approved on 1 Nov 2026.
 
 ## Security and privacy rules
 Server-side authorisation on every action; never trust client IDs or roles; household isolation tests; rate limiting; no DOBs, phones, passwords or tokens in logs; birthdays visible only to authorised staff, children's never public; exports permission-controlled and audited.
