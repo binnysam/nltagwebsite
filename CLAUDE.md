@@ -11,7 +11,7 @@ New Life Tamil AG Church (NLTAG), Kuwait. Bilingual (Tamil default `/ta`, Englis
 Report conflicts; never resolve them silently.
 
 ## Current phase
-Phase 2 (design system) integrated. Phase 3 (motion system, homepage hero) approved by the owner on 1 Nov 2026 (120s preset cycle, 0.35 hero field opacity, Tamil font preload on both locales). Phase 4 (CMS and membership): architecture proposal only — no building until the owner reviews it. CMS, membership, rest of the homepage (Phase 5), deployment: **not authorised**.
+Phase 2 (design system) integrated. Phase 3 (motion system, homepage hero) approved by the owner on 1 Nov 2026 (120s preset cycle, 0.35 hero field opacity, Tamil font preload on both locales). Phase 4 architecture approved with adjustments; Phase 4a (Hostinger check) done: MariaDB 11.8.9. Phase 4b (database, auth, roles, audit, rate limits, account emails) built locally on branch `phase4b/data-auth-foundation`, awaiting owner review. Phase 4c CMS, 4d membership interface, rest of the homepage (Phase 5), production database and deployment: **not authorised**.
 
 ## Skills — use the matching one
 | Task | Skill |
@@ -24,6 +24,7 @@ Phase 2 (design system) integrated. Phase 3 (motion system, homepage hero) appro
 | Metadata, sitemap, hreflang | `nl-tag-seo` |
 | Content models, CMS roles | `nl-tag-cms-content` |
 | Membership | `nl-tag-membership` |
+| Database, auth, roles, audit, emails | `nl-tag-data-and-auth` |
 | Testing | `nl-tag-quality-assurance` |
 | GitHub, Hostinger | `nl-tag-hostinger-deployment` |
 
@@ -42,4 +43,4 @@ Read: `docs/design-system/foundations/foundations.md` → `docs/design-system/to
 - Ask before changing tokens, membership policy, security, SEO strategy, dependencies with cost, or deployment. Never deploy, push to `main`, change repo visibility or touch DNS without explicit approval.
 
 ## Definition of done
-`npm run verify` (token audit, lint, typecheck, unit tests, build) and `scripts/serve-gallery.sh && npm run test:e2e` pass; docs/specs updated when behaviour or rules change; report changes, tests and remaining risks.
+`npm run verify` (token audit, lint, typecheck, unit tests, build), `npm run test:integration` (MariaDB) and `scripts/serve-gallery.sh && npm run test:e2e` pass (account pages: `E2E_AUTH=1`, see `tests/e2e/auth.spec.ts`); docs/specs updated when behaviour or rules change; report changes, tests and remaining risks.

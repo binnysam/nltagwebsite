@@ -1,0 +1,49 @@
+# Runs on every pull request and push to main. Uses the production database engine (MariaDB 11.8)
+# so integration tests exercise the same collation, JSON and locking behaviour as Hostinger.
+# Uses only GitHub-hosted runners and public images (free for public repositories).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_DATABASE: nltag_test
+          MARIADB_USER: nltag
+          MARIADB_PASSWORD: ci-only-password
+          MARIADB_ROOT_PASSWORD: ci-only-root-password
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      TEST_DATABASE_URL: mysql://nltag:ci-only-password@127.0.0.1:3306/nltag_test
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Production dependency audit (high and critical fail the build)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Token audit, Tamil record, lint, typecheck, unit tests, build
+        run: npm run verify
+      - name: Database collation for Tamil
+        run: |
+          docker exec ${{ job.services.mariadb.id }} mariadb -uroot -pci-only-root-password \
+            -e "ALTER DATABASE nltag_test CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci;"
+      - name: Integration and security tests (MariaDB 11.8)
+        run: npm run test:integration

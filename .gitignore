@@ -29,3 +29,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+
+# Local data (dev mail outbox with live links, local uploads)
+.data/
