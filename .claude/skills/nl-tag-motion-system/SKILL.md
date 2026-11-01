@@ -16,7 +16,7 @@ Calm, purposeful motion that never distracts from worship or reading.
 - **The homepage hero is the only animated gradient.** Verse cards, meeting art and all other gradients are static.
 - Animate `transform` and `opacity` only. No `filter: blur()` animation; hero fields carry their soft edge in `radial-gradient(closest-side, …)`.
 - Over the moving hero, glass uses `--color-glass-fill-solid` and no `backdrop-filter`.
-- No parallax, scroll-jacking, bounce, or looping motion outside the hero. The loading spinner is the only exception and stops under reduced motion.
+- No parallax, scroll-jacking, bounce, or looping motion outside the hero. No exceptions: the loading indicator is a static ring beside its label (owner decision, Phase 2 review). A unit test fails on any `@keyframes` outside the hero.
 - Hero must have a visible pause control (WCAG 2.2.2), hidden when reduced motion is on (hero is then static).
 - Reveals start from a visible state; content never waits on JavaScript or an observer.
 - Stagger at most 4 items, 60ms apart.

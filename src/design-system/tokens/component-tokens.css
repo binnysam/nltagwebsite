@@ -51,7 +51,6 @@
   --badge-padding-block: 2px;                      /* [ADDITION] */
   --spinner-size: 16px;                            /* [ADDITION] */
   --spinner-stroke: 2px;                           /* [ADDITION] */
-  --motion-spinner-cycle: 900ms;                   /* [ADDITION] loading spinner only; 0 under reduced motion */
 
   /* ── Header ── */
   --header-height: var(--space-8);                 /* 64px */
@@ -115,6 +114,3 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  :root { --motion-spinner-cycle: 0ms; }
-}

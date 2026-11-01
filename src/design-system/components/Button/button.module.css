@@ -78,7 +78,7 @@
 }
 .tertiary:disabled, .tertiary[aria-disabled="true"] { background: transparent; }
 
-/* Loading: spinner + label; the control is busy and does not accept presses */
+/* Loading: static ring + label (no rotation); the control is busy and does not accept presses */
 .button[aria-busy="true"] { cursor: progress; }
 
 /* Icon-only: exact 44×44 */

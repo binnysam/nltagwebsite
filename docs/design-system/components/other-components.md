@@ -52,7 +52,7 @@ Eyebrow (14px ink-500) → display-l heading with `id` (for `aria-labelledby`) �
 **States:** with `href` the whole card is clickable through the title link's `::after`; hover and focus-within lift −2px with shadow-2; focus ring drawn on the card.
 
 ## Primitives
-`Container`, `Section`, `Stack`, `Cluster`, `Grid`, `Divider`, `Surface`, `Heading`, `Text`, `VisuallyHidden`, `Spinner`, `Skeleton`, `Icon` (`src/design-system/primitives`). Gap and padding props accept only space-scale steps. `Skeleton` is static (no shimmer). `Spinner` is decorative and must sit next to a visible label.
+`Container`, `Section`, `Stack`, `Cluster`, `Grid`, `Divider`, `Surface`, `Heading`, `Text`, `VisuallyHidden`, `Spinner`, `Skeleton`, `Icon` (`src/design-system/primitives`). Gap and padding props accept only space-scale steps. `Skeleton` is static (no shimmer). `Spinner` is a static ring (no rotation); it is decorative and must sit next to a visible label.
 
 ## Not yet built (later phases, by plan)
 Hero with animated gradient and pause control (Phase 3); dialogs, toasts, tabs, accordion, checkbox, radio, select, date picker, file upload (built when a feature needs them, Phases 4–5); footer and breadcrumbs (Phase 5).

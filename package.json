@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "engines": {
-    "node": ">=20.9.0"
+    "node": ">=22.22.2 <23"
   },
   "scripts": {
     "dev": "next dev",
@@ -14,7 +14,9 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "audit:tokens": "node scripts/token-audit.mjs",
-    "verify": "npm run audit:tokens && npm run lint && npm run typecheck && npm run test && npm run build"
+    "review:tamil": "node scripts/tamil-review.ts",
+    "review:tamil:check": "node scripts/tamil-review.ts --check",
+    "verify": "npm run audit:tokens && npm run review:tamil:check && npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "next": "16.4.3",

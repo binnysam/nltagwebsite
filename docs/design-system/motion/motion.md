@@ -15,12 +15,11 @@
 | `--motion-distance-subtle / -standard` | 8 / 16px | reveal offsets |
 | `--motion-lift-hover` / `--motion-scale-press` | −2px / 0.98 | cards / buttons |
 | `--motion-stagger` | 60ms, max 4 items | list reveals |
-| `--motion-spinner-cycle` [addition] | 900ms | loading spinner only |
 
 ## Rules
-- Under `prefers-reduced-motion: reduce` every duration, distance, lift, scale and the spinner resolve to zero/neutral (verified in the browser suite).
+- Under `prefers-reduced-motion: reduce` every duration, distance, lift, and scale resolve to zero/neutral (verified in the browser suite).
 - Only `transform` and `opacity` animate; colour changes use the fast duration.
-- No parallax, scroll-jacking, bounce, or looping motion outside the hero (the spinner stops under reduced motion and always has a text label).
+- No parallax, scroll-jacking, bounce, or looping motion outside the hero. The loading indicator is static (owner decision, Phase 2 review); `npm run test` fails if any `@keyframes` appears outside the hero.
 - Content is visible without JavaScript and before any reveal.
 - Gradients other than the hero never animate (`animation-name: none` is asserted on the verse card).
 

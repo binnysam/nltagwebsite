@@ -97,6 +97,11 @@ test.describe("component specifications (Phase 1 §6–§8)", () => {
     await expect(def!).toHaveCSS("border-top-color", "rgba(60, 42, 24, 0.18)");
     await expect(compact!).toHaveCSS("padding-left", "16px");
     await expect(loading!).toHaveAttribute("aria-busy", "true");
+    // Static loading indicator: a still ring, no rotation, in either motion mode
+    const ring = loading!.locator("span[aria-hidden='true']").first();
+    await expect(ring).toBeVisible();
+    await expect(ring).toHaveCSS("animation-name", "none");
+    await expect(ring).toHaveCSS("transform", "none");
     await expect(disabled!).toBeDisabled();
     await expect(disabled!).toHaveCSS("background-color", "rgb(233, 227, 218)");
     await expect(disabled!).toHaveCSS("color", INK_400);

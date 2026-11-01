@@ -18,7 +18,7 @@ interface CommonProps {
 
 export interface ButtonProps extends CommonProps, Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
   /**
-   * Shows a spinner, sets aria-busy and ignores presses (onClick is detached) while keeping focus.
+   * Shows a static loading ring, sets aria-busy and ignores presses (onClick is detached) while keeping focus.
    * Forms must also guard against double submission on the server.
    */
   loading?: boolean;

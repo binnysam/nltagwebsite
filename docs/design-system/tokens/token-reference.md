@@ -62,8 +62,7 @@ Phase 1 did not specify these values. They were needed to implement the approved
 | `--leading-control` | 1.4 | Line height for single-line button and switch labels |
 | `--icon-size` / `--icon-size-small` | 20px / 14px | Interface icons (menu, share, download) and the hero pause glyph |
 | `--badge-dot-size` / `--badge-padding-block` | 6px / 2px | Status badge anatomy |
-| `--spinner-size` / `--spinner-stroke` | 16px / 2px | Loading state ("spinner + label") |
-| `--motion-spinner-cycle` | 900ms (0 under reduced motion) | The spinner is the only loop outside the hero; it stops with reduced motion and the label remains |
+| `--spinner-size` / `--spinner-stroke` | 16px / 2px | Loading state: static ring + label (no rotation) |
 | `--z-behind/base/raised/header/menu/skip-link` | −1 / 0 / 1 / 10 / 20 / 30 | Stacking order |
 | `--verse-social-text-ta/en`, `--verse-social-meta` | 4.2 / 3.4 / 2.2 cqi (≈45 / 37 / 24px at 1080) | Type sizes for the square and portrait export compositions |
 | `--verse-landscape-text-ta/en` | 3 / 2.4 cqi, clamped to h3…h1 and body-l…h2 | Fluid sizing for the landscape feature card |

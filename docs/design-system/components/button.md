@@ -14,7 +14,7 @@
 - One primary action per region. Use secondary for the rest; tertiary for low-emphasis text actions.
 
 ## Anatomy
-Pill container · optional leading icon (decorative) · label · optional spinner (loading) · hidden loading text.
+Pill container · optional leading icon (decorative) · label · optional static loading ring (loading) · hidden loading text.
 
 ## Tokens
 `--control-height`, `--button-padding-inline(-compact)`, `--button-padding-block`, `--button-font-size`, `--font-weight-medium`, `--leading-control`, `--radius-pill`, `--color-action-primary(-hover/-pressed)`, `--color-text-inverse`, `--color-surface-card/-subtle/-sunken`, `--color-border-strong`, `--color-glass-fill-solid`, `--color-glass-edge`, `--color-text-disabled`, `--motion-duration-fast/-instant`, `--motion-ease-standard`, `--motion-scale-press`, focus tokens.
@@ -26,7 +26,7 @@ Pill container · optional leading icon (decorative) · label · optional spinne
 | `compact` | boolean | false | 16px padding; height stays 44px |
 | `fullWidth` | boolean | false | |
 | `icon` | ReactNode | — | Leading, decorative |
-| `loading` (Button) | boolean | false | Spinner, `aria-busy`, presses ignored, focus kept |
+| `loading` (Button) | boolean | false | Static ring, `aria-busy`, presses ignored, focus kept |
 | `loadingLabel` (Button) | string | — | Appended to the accessible name while loading |
 | `disabled` (Button) | boolean | false | Native disabled |
 | `href` (ButtonLink) | string | required | Internal paths use `next/link` |
@@ -40,7 +40,7 @@ Pill container · optional leading icon (decorative) · label · optional spinne
 | Hover | ink-800 | paper-100 | 2px underline | white |
 | Pressed | ink-1000 + scale 0.98 | paper-200 + scale | scale | scale |
 | Focus-visible | 2px blue-700 ring, 3px offset (all) ||||
-| Loading | spinner + label, `aria-busy="true"` ||||
+| Loading | static ring + label (no rotation), `aria-busy="true"` ||||
 | Disabled | paper-200 fill, ink-400 text, no press ||||
 
 ## Keyboard and accessibility

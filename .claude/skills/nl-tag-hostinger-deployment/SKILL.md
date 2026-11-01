@@ -9,7 +9,7 @@ description: Use for NLTAG GitHub and Hostinger Business deployment: runtime, bu
 Not authorised. Deployment happens only after Gate 6 (release candidate) and Gate 7 (launch) approvals.
 
 ## Facts to re-verify at deployment time
-- Hostinger Business Node.js Web App hosting supports Next.js and GitHub deployment; supported Node versions are listed by Hostinger (project uses Node 22, `engines >= 20.9`).
+- Hostinger Business Node.js Web App hosting supports Next.js and GitHub deployment; supported Node versions are listed by Hostinger (project pins Node 22.23.4 in `.nvmrc`; `engines` is `>=22.22.2 <23`; select 22.x in hPanel — Hostinger offers 18.x/20.x/22.x/24.x and does not publish the patch; production runtime (`next start`, Next 16.4.3) needs only ≥ 20.9, the 22.22.2 floor comes from dev/test tooling).
 - Shared resource limits; ~120s request timeout; no inbound WebSockets; no always-running workers. Use cron/external scheduling.
 - Build: `npm ci && npm run build`; start: `npm start`. Never set `NLTAG_DESIGN_SYSTEM_GALLERY` in production.
 

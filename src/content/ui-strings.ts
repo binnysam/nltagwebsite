@@ -23,12 +23,18 @@ export interface UiString {
   taAlternatives?: readonly string[];
   /** Note for the church reviewer. */
   note?: string;
+  /**
+   * Shorter Tamil wording offered where the recommended text does not fit its control
+   * (for example a one-line pill at 390px). Highlighted separately in the review sheet.
+   * Draft only: it is never rendered until the church picks it and taStatus is "confirmed".
+   */
+  taShortAlternative?: string;
 }
 
 const s = (
   en: string,
   ta: string,
-  extra: Partial<Pick<UiString, "taAlternatives" | "note" | "enStatus" | "taStatus">> = {},
+  extra: Partial<Pick<UiString, "taAlternatives" | "taShortAlternative" | "note" | "enStatus" | "taStatus">> = {},
 ): UiString => ({ en, ta, enStatus: "proposed", taStatus: "draft-review", ...extra });
 
 export const uiStrings = {
@@ -47,7 +53,8 @@ export const uiStrings = {
   "cta.joinFriday": s("Join us this Friday", "இந்த வெள்ளிக்கிழமை எங்களுடன் இணையுங்கள்", {
     enStatus: "confirmed",
     taAlternatives: ["இந்த வெள்ளிக்கிழமை ஆராதனைக்கு வாருங்கள்"],
-    note: "Gate 0 replaced 'Join us this Sunday' with this wording.",
+    taShortAlternative: "இந்த வெள்ளிக்கிழமை வாருங்கள்",
+    note: "Gate 0 replaced 'Join us this Sunday' with this wording. Measured 1 Nov 2026 at phone width (390 CSS pixels): the recommended Tamil and the first alternative both wrap to two lines in a full-width pill button; the short alternative fits on one line.",
   }),
 
   // Language switch

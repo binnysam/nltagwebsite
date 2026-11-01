@@ -10,7 +10,7 @@ Target: WCAG 2.2 AA. Every component is checked by axe-core in unit tests (jsdom
 - **Colour:** status always has a word; text on gradients is always ink-900; secondary text (ink-500) only on paper.
 - **Forms:** visible label above every field; hint and error linked by `aria-describedby`; `aria-invalid` on error; errors in words.
 - **Names:** icon buttons require `label`; visible text equals the accessible name (2.5.3).
-- **Motion:** reduced-motion zeroes all motion tokens; no looping motion except the hero (with pause) and the spinner (stops; labelled).
+- **Motion:** reduced-motion zeroes all motion tokens; no looping motion except the hero (with pause). The loading indicator is a static ring with a label.
 - **Forced colours:** gradients and grain are removed so text stays on the system background.
 - **Menu:** disclosure with `aria-expanded`/`aria-controls`; Escape closes and returns focus.
 

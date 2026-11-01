@@ -38,7 +38,8 @@
 .surfaceSubtle { background: var(--color-surface-subtle); border-radius: var(--radius-lg); }
 .pad4 { padding: var(--space-4); } .pad5 { padding: var(--space-5); } .pad6 { padding: var(--space-6); }
 
-/* Loading */
+/* Loading: a still ring beside the visible label. Static by owner decision
+   (Phase 2 review): no looping motion outside the hero. */
 .spinner {
   display: inline-block;
   flex: none;
@@ -47,11 +48,6 @@
   border-radius: var(--radius-pill);
   border: var(--spinner-stroke) solid currentColor;
   border-inline-end-color: transparent;
-  animation: spin var(--motion-spinner-cycle) linear infinite;
-}
-@keyframes spin { to { transform: rotate(1turn); } }
-@media (prefers-reduced-motion: reduce) {
-  .spinner { animation: none; }
 }
 
 /* Skeleton: static fill, no shimmer (no looping motion outside the hero) */

@@ -45,7 +45,7 @@ export function Surface({
   return <Tag className={cx(subtle ? styles.surfaceSubtle : styles.surface, pad, className)} {...rest} />;
 }
 
-/** Decorative spinner. Always pair with a visible text label; it is hidden from assistive tech. */
+/** Static loading indicator (a still ring, no rotation). Always pair with a visible text label; it is hidden from assistive tech. */
 export function Spinner({ className }: { className?: string }) {
   return <span className={cx(styles.spinner, className)} aria-hidden="true" />;
 }
