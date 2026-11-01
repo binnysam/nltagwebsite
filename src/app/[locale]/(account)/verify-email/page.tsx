@@ -5,7 +5,10 @@ import { t, type Locale } from "@/content/ui-strings";
 import { AccountPage } from "../page-parts";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Email verification" };
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return { title: t("auth.verify.title", locale) };
+}
 
 /** Landing page after the verification link. Better Auth adds ?error= when the link is bad or expired. */
 export default async function VerifyEmailPage({ params, searchParams }: { params: Promise<{ locale: Locale }>; searchParams: Promise<{ error?: string }> }) {

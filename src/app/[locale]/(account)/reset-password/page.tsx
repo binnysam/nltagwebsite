@@ -6,7 +6,10 @@ import { AuthForm } from "../AuthForm";
 import { AccountPage } from "../page-parts";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Choose a new password", referrer: "no-referrer" };
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return { title: t("auth.reset.title", locale), referrer: "no-referrer" };
+}
 
 /** Reached from the emailed link via Better Auth, which appends ?token= (or ?error=INVALID_TOKEN). */
 export default async function ResetPasswordPage({

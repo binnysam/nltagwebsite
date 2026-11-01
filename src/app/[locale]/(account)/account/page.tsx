@@ -10,7 +10,10 @@ import { SessionActions } from "./SessionActions";
 import styles from "../account.module.css";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Your account" };
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return { title: t("account.title", locale) };
+}
 
 /**
  * Minimal signed-in page for Phase 4b: who is signed in and on which devices. The member

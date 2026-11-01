@@ -57,6 +57,10 @@ for (const locale of ["ta", "en"] as const) {
       expect(res!.headers()["x-robots-tag"]).toContain("noindex");
       await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
       await expect(page.locator("html")).toHaveAttribute("lang", locale);
+      // Page title in the page language; header with home link and language switch present.
+      if (locale === "ta") await expect(page).toHaveTitle(/[\u0B80-\u0BFF]/);
+      await expect(page.getByRole("link", { name: /NLTAG/ })).toHaveAttribute("href", `/${locale}`);
+      await expect(page.getByRole("navigation", { name: locale === "ta" ? "மொழி" : "Language" })).toBeVisible();
       await checkPage(page);
     }
   });

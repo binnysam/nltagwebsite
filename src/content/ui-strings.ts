@@ -157,6 +157,7 @@ export const uiStrings = {
     "This link is invalid or has expired. Please request a new one.",
     "இந்த இணைப்பு செல்லாதது அல்லது காலாவதியானது. புதிய இணைப்பைக் கோருங்கள்.",
   ),
+  "auth.verify.title": s("Email verification", "மின்னஞ்சல் சரிபார்ப்பு"),
   "auth.verify.done": s("Your email address is verified.", "உங்கள் மின்னஞ்சல் முகவரி சரிபார்க்கப்பட்டது."),
   "auth.verify.pending": s(
     "Please verify your email address before signing in. We have sent you a new link.",

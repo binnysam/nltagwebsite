@@ -6,7 +6,10 @@ import { AuthForm } from "../AuthForm";
 import { AccountPage, googleEnabled } from "../page-parts";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Sign in" };
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return { title: t("auth.signIn.title", locale) };
+}
 
 export default async function SignInPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;

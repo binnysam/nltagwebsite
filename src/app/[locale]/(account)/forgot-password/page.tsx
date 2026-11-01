@@ -5,7 +5,10 @@ import { t, type Locale } from "@/content/ui-strings";
 import { AuthForm } from "../AuthForm";
 import { AccountPage } from "../page-parts";
 
-export const metadata: Metadata = { title: "Reset your password" };
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return { title: t("auth.forgot.title", locale) };
+}
 
 export default async function ForgotPasswordPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;

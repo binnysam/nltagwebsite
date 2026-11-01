@@ -1,7 +1,7 @@
 # Tamil content approval record
 
 **Generated from** `src/content/ui-strings.ts`, `src/content/schedule.ts` and `src/content/tamil-approvals.ts` by `node scripts/tamil-review.ts`. Do not edit by hand; `npm run verify` fails if this file is out of date.
-**Approved by the owner on 2026-11-01.** 48 of 87 items approved (22 owner-supplied, 26 recommended drafts approved); 39 still awaiting review. Times, days and NECK were confirmed at Gate 0.
+**Approved by the owner on 2026-11-01.** 48 of 88 items approved (22 owner-supplied, 26 recommended drafts approved); 40 still awaiting review. Times, days and NECK were confirmed at Gate 0.
 
 Owner-supplied Tamil is approved content and is reproduced exactly as supplied. Do not rephrase, re-spell or "correct" it; a unit test compares every character. Any change needs new owner approval. The language names தமிழ் and English were confirmed at Gate 0 and are not listed.
 
@@ -77,6 +77,7 @@ Owner-supplied Tamil is approved content and is reproduced exactly as supplied. 
 | auth.reset.submit | Save new password | புதிய கடவுச்சொல்லைச் சேமி | — | — |  | Awaiting church review (`draft-review`) |
 | auth.reset.done | Your password has been changed. Please sign in. | உங்கள் கடவுச்சொல் மாற்றப்பட்டது. மீண்டும் உள்நுழையவும். | — | — |  | Awaiting church review (`draft-review`) |
 | auth.reset.invalid | This link is invalid or has expired. Please request a new one. | இந்த இணைப்பு செல்லாதது அல்லது காலாவதியானது. புதிய இணைப்பைக் கோருங்கள். | — | — |  | Awaiting church review (`draft-review`) |
+| auth.verify.title | Email verification | மின்னஞ்சல் சரிபார்ப்பு | — | — |  | Awaiting church review (`draft-review`) |
 | auth.verify.done | Your email address is verified. | உங்கள் மின்னஞ்சல் முகவரி சரிபார்க்கப்பட்டது. | — | — |  | Awaiting church review (`draft-review`) |
 | auth.verify.pending | Please verify your email address before signing in. We have sent you a new link. | உள்நுழைவதற்கு முன் உங்கள் மின்னஞ்சல் முகவரியைச் சரிபார்க்கவும். புதிய இணைப்பை அனுப்பியுள்ளோம். | — | — |  | Awaiting church review (`draft-review`) |
 | auth.error.invalid | Email or password is incorrect. | மின்னஞ்சல் அல்லது கடவுச்சொல் தவறானது. | — | — |  | Awaiting church review (`draft-review`) |

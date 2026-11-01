@@ -150,7 +150,7 @@ export function AuthForm({ mode, locale, token, googleEnabled }: Props) {
             </div>
           ) : null}
           {error ? (
-            <Text id={`${uid}-error`} role="alert">
+            <Text id={`${uid}-error`} role="alert" medium className={styles.formError}>
               {L(error)}
             </Text>
           ) : null}

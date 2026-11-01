@@ -6,7 +6,10 @@ import { AuthForm } from "../AuthForm";
 import { AccountPage, googleEnabled } from "../page-parts";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Create an account" };
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return { title: t("auth.signUp.title", locale) };
+}
 
 /**
  * Creating an account does not make anyone a member. Membership applications and admin approval

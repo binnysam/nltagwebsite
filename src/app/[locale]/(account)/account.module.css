@@ -10,3 +10,7 @@
   margin: 0;
   padding: 0;
 }
+/* Form-level error: same colour token as the TextField error message, so it reads as an error. */
+.formError {
+  color: var(--color-status-error-text);
+}
