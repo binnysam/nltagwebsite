@@ -1,0 +1,63 @@
+/* Layout primitives (§5). Spacing comes only from the space scale. */
+
+.container {
+  width: 100%;
+  max-width: calc(var(--layout-content) + var(--layout-gutter) * 2);
+  margin-inline: auto;
+  padding-inline: var(--layout-gutter);
+}
+.wide { max-width: calc(var(--layout-wide) + var(--layout-gutter) * 2); }
+
+.section { padding-block: var(--section-padding-block); }
+
+.stack { display: flex; flex-direction: column; }
+.cluster { display: flex; flex-wrap: wrap; align-items: center; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
+  gap: var(--grid-gap-resolved);
+}
+
+.gap1 { gap: var(--space-1); } .gap2 { gap: var(--space-2); } .gap3 { gap: var(--space-3); }
+.gap4 { gap: var(--space-4); } .gap5 { gap: var(--space-5); } .gap6 { gap: var(--space-6); }
+.gap7 { gap: var(--space-7); } .gap8 { gap: var(--space-8); }
+
+.divider {
+  border: 0;
+  border-top: var(--border-width-hairline) solid var(--color-border-subtle);
+  margin: 0;
+}
+
+/* Card surface: white, radius 20, shadow-1 (always paired with a line-10 hairline inside the shadow token) */
+.surface {
+  background: var(--color-surface-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+}
+.surfaceSubtle { background: var(--color-surface-subtle); border-radius: var(--radius-lg); }
+.pad4 { padding: var(--space-4); } .pad5 { padding: var(--space-5); } .pad6 { padding: var(--space-6); }
+
+/* Loading */
+.spinner {
+  display: inline-block;
+  flex: none;
+  width: var(--spinner-size);
+  height: var(--spinner-size);
+  border-radius: var(--radius-pill);
+  border: var(--spinner-stroke) solid currentColor;
+  border-inline-end-color: transparent;
+  animation: spin var(--motion-spinner-cycle) linear infinite;
+}
+@keyframes spin { to { transform: rotate(1turn); } }
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; }
+}
+
+/* Skeleton: static fill, no shimmer (no looping motion outside the hero) */
+.skeleton {
+  display: block;
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-sm);
+  min-height: var(--space-4);
+}

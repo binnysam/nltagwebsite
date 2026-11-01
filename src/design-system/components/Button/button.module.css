@@ -1,0 +1,85 @@
+/* Button (§6). Pill, 44px min height, 20px padding (16px compact), 14px/500.
+   States: default, hover, focus-visible, pressed, loading, disabled. */
+
+.button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  min-width: var(--control-height);
+  padding: var(--button-padding-block) var(--button-padding-inline);
+  border: var(--border-width-hairline) solid transparent;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-stack-en-body);
+  font-size: var(--button-font-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--leading-control);
+  letter-spacing: var(--tracking-body-en);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-ease-standard),
+    border-color var(--motion-duration-fast) var(--motion-ease-standard),
+    color var(--motion-duration-fast) var(--motion-ease-standard),
+    transform var(--motion-duration-instant) var(--motion-ease-standard);
+}
+.button:lang(ta) { font-family: var(--font-stack-ta-body); letter-spacing: var(--tracking-ta); }
+.button:active:not([aria-disabled="true"]) { transform: scale(var(--motion-scale-press)); }
+
+.compact { padding-inline: var(--button-padding-inline-compact); }
+.fullWidth { width: 100%; }
+
+/* Primary: ink-900 → hover ink-800 → pressed ink-1000 */
+.primary { background: var(--color-action-primary); color: var(--color-text-inverse); }
+.primary:hover { background: var(--color-action-primary-hover); }
+.primary:active { background: var(--color-action-primary-pressed); }
+
+/* Secondary: white + line-18 edge → hover paper-100 */
+.secondary {
+  background: var(--color-surface-card);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+.secondary:hover { background: var(--color-surface-subtle); }
+.secondary:active { background: var(--color-surface-sunken); }
+
+/* Tertiary: underlined text action, keeps the 44px target */
+.tertiary {
+  background: transparent;
+  color: var(--color-text-primary);
+  text-decoration: underline;
+  text-decoration-thickness: var(--border-width-hairline);
+  text-underline-offset: var(--space-1);
+  padding-inline: var(--space-2);
+}
+.tertiary:hover { text-decoration-thickness: var(--border-width-strong); }
+
+/* Glass: only over gradients. Solid fill, no backdrop blur (safe over the animated hero, §8.2). */
+.glass {
+  background: var(--color-glass-fill-solid);
+  border-color: var(--color-glass-edge);
+  color: var(--color-text-on-gradient);
+}
+.glass:hover { background: var(--color-surface-card); }
+
+/* Disabled: paper-200 fill, ink-400 text. aria-disabled keeps the control focusable for links. */
+.button:disabled,
+.button[aria-disabled="true"] {
+  background: var(--color-surface-sunken);
+  border-color: transparent;
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+  transform: none;
+}
+.tertiary:disabled, .tertiary[aria-disabled="true"] { background: transparent; }
+
+/* Loading: spinner + label; the control is busy and does not accept presses */
+.button[aria-busy="true"] { cursor: progress; }
+
+/* Icon-only: exact 44×44 */
+.icon { padding: 0; width: var(--control-height); height: var(--control-height); }

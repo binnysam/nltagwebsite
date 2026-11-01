@@ -1,0 +1,36 @@
+/* Static gradient preset + deterministic grain (§3.4). Never animated.
+   Decorative layers take no pointer events and sit behind content. */
+
+.surface {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  color: var(--color-text-on-gradient);
+  background: var(--surface-gradient);
+}
+.surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-behind);
+  pointer-events: none;
+  background-image: var(--texture-grain);
+  background-size: var(--grain-tile-size) var(--grain-tile-size);
+  opacity: var(--texture-grain-opacity);
+  mix-blend-mode: var(--texture-grain-blend);
+}
+/* Fallback: plain gradient where blending is unsupported */
+@supports not (mix-blend-mode: multiply) {
+  .surface::after { display: none; }
+}
+/* Windows high contrast: drop decoration, keep text legible on the system background */
+@media (forced-colors: active) {
+  .surface { background: Canvas; color: CanvasText; }
+  .surface::after { display: none; }
+}
+
+.vaigarai { --surface-gradient: var(--gradient-vaigarai); }
+.manal { --surface-gradient: var(--gradient-manal); }
+.kadal { --surface-gradient: var(--gradient-kadal); }
+.andhi { --surface-gradient: var(--gradient-andhi); }
+.thalir { --surface-gradient: var(--gradient-thalir); }

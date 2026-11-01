@@ -1,0 +1,170 @@
+/* ==========================================================================
+   NLTAG Design Tokens — Phase 1 final package (for Gate 1 final approval)
+   Status: PROPOSED-FINAL. Not yet in src/. Light mode only at launch.
+   Layers: 1 primitive → 2 semantic → 3 component. Components use layers 2–3 only.
+   Contrast values: WCAG 2.x, measured 1 Nov 2026 (see Phase 1 doc §3.3).
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ── 1. PRIMITIVE ─────────────────────────────────────────────────────── */
+  /* Paper (surfaces) */
+  --paper-0: #FFFFFF;
+  --paper-50: #FAF8F5;
+  --paper-100: #F3EFE9;
+  --paper-200: #E9E3DA;
+  /* Ink (text, actions) */
+  --ink-1000: #000000;            /* pressed primary only */
+  --ink-900: #1C1915;
+  --ink-800: #34302A;             /* primary hover */
+  --ink-700: #3B352E;
+  --ink-500: #655D53;
+  --ink-400: #8A8175;             /* control borders, icons; not text */
+  /* Hairlines: warm ink at fixed alpha */
+  --line-10: rgba(60, 42, 24, 0.10);
+  --line-18: rgba(60, 42, 24, 0.18);
+  /* Status pairs (text 700 on fill 50) */
+  --green-700: #2E6A4C; --green-50: #EAF2EC;
+  --amber-700: #8A5410; --amber-50: #F7EEDF;
+  --red-700:   #A3392A; --red-50:   #F8E9E5;
+  --blue-700:  #2C5878; --blue-50:  #E7EFF4;
+  /* Glass (only over gradients) */
+  --glass-fill: rgba(255, 255, 255, 0.55);
+  --glass-edge: rgba(255, 255, 255, 0.70);
+  --glass-fill-solid: rgba(255, 255, 255, 0.72); /* over the animated hero: no backdrop blur (perf) */
+
+  /* ── 2. SEMANTIC ──────────────────────────────────────────────────────── */
+  --color-surface-page: var(--paper-50);
+  --color-surface-card: var(--paper-0);
+  --color-surface-subtle: var(--paper-100);
+  --color-surface-sunken: var(--paper-200);
+  --color-text-primary: var(--ink-900);
+  --color-text-secondary: var(--ink-500);
+  --color-text-strong-secondary: var(--ink-700);
+  --color-text-on-gradient: var(--ink-900);       /* ALL text on gradients, incl. metadata */
+  --color-text-inverse: var(--paper-0);
+  --color-text-disabled: var(--ink-400);          /* WCAG-exempt disabled state only */
+  --color-icon-decorative: var(--ink-400);
+  --color-border-subtle: var(--line-10);           /* dividers, card edges (decorative) */
+  --color-border-strong: var(--line-18);           /* secondary button edge (label carries identity) */
+  --color-border-control: var(--ink-400);          /* inputs, checkboxes, radios: ≥3:1 (WCAG 1.4.11) */
+  --color-action-primary: var(--ink-900);
+  --color-action-primary-hover: var(--ink-800);
+  --color-action-primary-pressed: var(--ink-1000);
+  --color-focus-ring: var(--blue-700);
+  --color-status-info-text: var(--blue-700);   --color-status-info-surface: var(--blue-50);
+  --color-status-success-text: var(--green-700); --color-status-success-surface: var(--green-50);
+  --color-status-warning-text: var(--amber-700); --color-status-warning-surface: var(--amber-50);
+  --color-status-error-text: var(--red-700);   --color-status-error-surface: var(--red-50);
+
+  /* ── Typography ───────────────────────────────────────────────────────── */
+  /* next/font supplies the hashed family name; these stacks are the documented fallbacks */
+  --font-ta-display: "Anek Tamil", "Noto Sans Tamil", "Tamil Sangam MN", "Nirmala UI", "Latha", sans-serif;
+  --font-ta-body: "Noto Sans Tamil", "Tamil Sangam MN", "Nirmala UI", "Latha", sans-serif;
+  --font-ta-scripture: "Noto Serif Tamil", "Tamil Sangam MN", "Nirmala UI", serif;
+  --font-en-display: "Inter Tight", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-en-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-en-scripture: "Newsreader", "Iowan Old Style", Georgia, "Times New Roman", serif;
+
+  --font-weight-display-ta-large: 300;   /* display-xl, display-l (≥ 32px) */
+  --font-weight-display-ta-small: 400;   /* h1–h3 (< 32px): 300 thins out */
+  --font-weight-display-en: 300;
+  --font-weight-body: 400;
+  --font-weight-medium: 500;
+
+  --text-display-xl: clamp(2.5rem, 1.6rem + 3.6vw, 4.5rem);      /* 40 → 72 */
+  --text-display-xl-ta: clamp(2.125rem, 1.4rem + 2.8vw, 3.75rem); /* 34 → 60 */
+  --text-display-l: clamp(2rem, 1.5rem + 2vw, 3.25rem);           /* 32 → 52 */
+  --text-display-l-ta: clamp(1.75rem, 1.35rem + 1.6vw, 2.75rem);  /* 28 → 44 */
+  --text-h1: clamp(1.75rem, 1.4rem + 1.4vw, 2.5rem);              /* 28 → 40 */
+  --text-h2: clamp(1.375rem, 1.2rem + 0.7vw, 1.75rem);            /* 22 → 28 */
+  --text-h3: 1.25rem;
+  --text-body-l: 1.125rem;
+  --text-body: 1rem;
+  --text-body-ta: 1.0625rem;
+  --text-small: 0.875rem;
+  --text-caption: 0.8125rem;                                       /* floor */
+
+  --leading-display-en: 1.06;  --tracking-display-en: -0.025em;
+  --leading-heading-en: 1.2;   --tracking-heading-en: -0.01em;
+  --leading-body-en: 1.6;      --tracking-body-en: 0.005em;
+  --leading-display-ta: 1.28;
+  --leading-heading-ta: 1.45;
+  --leading-body-ta: 1.8;
+  --tracking-ta: 0;            /* Tamil: never negative, never uppercase spacing */
+  --measure-en: 64ch;
+  --measure-ta: 60ch;
+
+  /* ── Space (4px base) ─────────────────────────────────────────────────── */
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
+  --space-5: 1.5rem;  --space-6: 2rem;   --space-7: 3rem;    --space-8: 4rem;
+  --space-9: 6rem;    --space-10: 8rem;
+
+  /* ── Layout ───────────────────────────────────────────────────────────── */
+  --bp-sm: 480px; --bp-md: 768px; --bp-lg: 1024px; --bp-xl: 1280px; /* reference only; media queries use literals */
+  --layout-content: 1200px;
+  --layout-wide: 1360px;
+  --layout-gutter: clamp(1rem, 0.5rem + 2vw, 2rem);
+  --grid-columns: 12;
+  --grid-gap: 1rem;            /* 1.5rem from lg */
+  --target-min: 44px;          /* all interactive targets */
+
+  /* ── Radius ───────────────────────────────────────────────────────────── */
+  --radius-sm: 8px;      /* inner elements, swatches */
+  --radius-md: 12px;     /* inputs */
+  --radius-lg: 20px;     /* cards, panels */
+  --radius-xl: 28px;     /* hero, Bible verse card */
+  --radius-pill: 9999px; /* buttons, chips, switches */
+
+  /* ── Elevation (always paired with a hairline) ────────────────────────── */
+  --shadow-1: 0 1px 2px rgba(78, 50, 23, 0.04), 0 0 0 1px var(--line-10);
+  --shadow-2: 0 6px 16px rgba(78, 50, 23, 0.05), 0 0 0 1px var(--line-10);
+  --shadow-3: 0 18px 48px rgba(78, 50, 23, 0.10), 0 0 0 1px var(--line-10);
+
+  /* ── Gradient presets (STATIC; hero excepted) ─────────────────────────── */
+  --gradient-vaigarai: radial-gradient(120% 90% at 12% 8%, #FBF1E6 0%, transparent 55%), radial-gradient(90% 80% at 88% 22%, #EBC3C8 0%, transparent 60%), radial-gradient(110% 100% at 70% 100%, #EDB89A 0%, transparent 65%), #F6D7C3;
+  --gradient-manal: radial-gradient(120% 90% at 10% 0%, #F6EEE2 0%, transparent 55%), radial-gradient(90% 90% at 92% 30%, #E2C9A6 0%, transparent 60%), radial-gradient(100% 90% at 30% 100%, #D9BC93 0%, transparent 65%), #EFE2CC;
+  --gradient-kadal: radial-gradient(120% 90% at 85% 5%, #F2F1EA 0%, transparent 55%), radial-gradient(90% 90% at 10% 40%, #DCE7DE 0%, transparent 60%), radial-gradient(110% 100% at 75% 100%, #A7C6CB 0%, transparent 65%), #CFE1E3;
+  --gradient-andhi: radial-gradient(120% 90% at 15% 10%, #F3E9E4 0%, transparent 55%), radial-gradient(90% 90% at 90% 15%, #EBC9B8 0%, transparent 60%), radial-gradient(110% 100% at 40% 100%, #C2B3D4 0%, transparent 65%), #D9C6DE;
+  --gradient-thalir: radial-gradient(120% 90% at 85% 10%, #F5F1E4 0%, transparent 55%), radial-gradient(90% 90% at 10% 25%, #EEF0DE 0%, transparent 60%), radial-gradient(110% 100% at 60% 100%, #C2D2AC 0%, transparent 65%), #DDE5CC;
+  /* Iravu removed at Gate 1 (light-only launch). */
+
+  /* Grain: deterministic (seed 7), pre-rendered tile, multiply blend */
+  --texture-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.24 0 0 0 0 0.17 0 0 0 0 0.10 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --texture-grain-opacity: 0.32;
+  --texture-grain-blend: multiply;
+
+  /* Hero field colours (animated surface only) */
+  --hero-base: #F7EADF;
+  --hero-field-1: #F2C3A4;
+  --hero-field-2: #E7C7D0;
+  --hero-field-3: #D3DEC0;
+  --hero-field-4: #FBEFE2;
+
+  /* ── Motion ───────────────────────────────────────────────────────────── */
+  --motion-duration-instant: 80ms;   /* press scale */
+  --motion-duration-fast: 140ms;     /* colour, border */
+  --motion-duration-standard: 220ms; /* hover lift, row tint */
+  --motion-duration-emphasis: 360ms; /* reveals, dialogs in */
+  --motion-duration-slow: 560ms;     /* rare: large panels */
+  --motion-hero-cycle: 48s;
+  --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-ease-enter: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --motion-ease-exit: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --motion-ease-ambient: cubic-bezier(0.45, 0, 0.55, 1);
+  --motion-distance-subtle: 8px;
+  --motion-distance-standard: 16px;
+  --motion-lift-hover: -2px;
+  --motion-scale-press: 0.98;
+  --motion-stagger: 60ms;            /* max 4 items */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration-instant: 0ms; --motion-duration-fast: 0ms; --motion-duration-standard: 0ms;
+    --motion-duration-emphasis: 0ms; --motion-duration-slow: 0ms;
+    --motion-distance-subtle: 0px; --motion-distance-standard: 0px;
+    --motion-lift-hover: 0px; --motion-scale-press: 1; --motion-stagger: 0ms;
+  }
+}

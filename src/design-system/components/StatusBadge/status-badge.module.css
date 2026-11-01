@@ -1,0 +1,20 @@
+/* Status badge (§6): pill, 13px/500, dot + word, 700 text on 50 fill. Never colour alone. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--badge-padding-block) var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-caption);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--leading-small-en);
+  white-space: nowrap;
+}
+.badge:lang(ta) { line-height: var(--leading-small-ta); }
+.dot { width: var(--badge-dot-size); height: var(--badge-dot-size); border-radius: var(--radius-pill); background: currentColor; flex: none; }
+
+.neutral { color: var(--color-text-strong-secondary); background: var(--color-surface-subtle); }
+.info { color: var(--color-status-info-text); background: var(--color-status-info-surface); }
+.success { color: var(--color-status-success-text); background: var(--color-status-success-surface); }
+.warning { color: var(--color-status-warning-text); background: var(--color-status-warning-surface); }
+.error { color: var(--color-status-error-text); background: var(--color-status-error-surface); }

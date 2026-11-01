@@ -1,0 +1,10 @@
+/* Deliberate violations: the audit must fail on every line below. */
+.a { color: #1C1915; }
+.b { padding: 12px; }
+.c { transition: opacity 200ms ease; }
+.d { z-index: 5; }
+.e { border-radius: 10px; }
+.f { color: var(--ink-900); }
+.g { color: var(--color-does-not-exist); }
+.h { font-weight: 600; }
+.i { box-shadow: 0 2px 4px black; }

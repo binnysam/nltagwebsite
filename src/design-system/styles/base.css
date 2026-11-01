@@ -1,0 +1,83 @@
+/* NLTAG base layer: reset, page defaults, language-aware body type, focus, utilities.
+   Uses semantic and component tokens only (enforced by scripts/token-audit.mjs). */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-top: var(--header-height);
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--color-surface-page);
+  color: var(--color-text-primary);
+  font-family: var(--font-stack-en-body);
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-body);
+  line-height: var(--leading-body-en);
+  letter-spacing: var(--tracking-body-en);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tamil: own size, line height, never English tracking (§4.3) */
+:lang(ta) {
+  font-family: var(--font-stack-ta-body);
+  letter-spacing: var(--tracking-ta);
+}
+body:lang(ta) {
+  font-size: var(--text-body-ta);
+  line-height: var(--leading-body-ta);
+}
+:lang(en) {
+  font-family: var(--font-stack-en-body);
+}
+
+img, svg, video { display: block; max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; letter-spacing: inherit; }
+h1, h2, h3, h4, p, ul, ol, figure, blockquote { margin: 0; }
+ul[role="list"], ol[role="list"] { list-style: none; padding: 0; }
+a { color: inherit; }
+
+/* Focus: 2px blue-700, 3px offset, everywhere (§6) */
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+:focus:not(:focus-visible) { outline: none; }
+
+/* Utilities */
+.ds-visually-hidden {
+  position: absolute !important;
+  width: var(--border-width-hairline);
+  height: var(--border-width-hairline);
+  margin: calc(var(--border-width-hairline) * -1);
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ds-skip-link {
+  position: absolute;
+  inset-inline-start: var(--space-4);
+  top: var(--space-2);
+  z-index: var(--z-skip-link);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-card);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-2);
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-medium);
+  transform: translateY(calc(-100% - var(--space-4)));
+}
+.ds-skip-link:focus { transform: none; }
+
+.ds-tabular { font-variant-numeric: tabular-nums; }
+
+.ds-icon { width: var(--icon-size); height: var(--icon-size); flex: none; }
+.ds-icon[data-size="small"] { width: var(--icon-size-small); height: var(--icon-size-small); }

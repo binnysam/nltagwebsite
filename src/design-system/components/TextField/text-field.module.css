@@ -1,0 +1,62 @@
+/* Form field (§6): label 14px/500 above, 48px input, radius 12, ink-400 edge,
+   hover ink-700, focus ring + ink-900 edge, error 2px red-700 edge + message in words,
+   disabled paper-100 fill, hint 13px ink-500. */
+
+.field { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.label {
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--leading-small-en);
+  color: var(--color-text-primary);
+}
+.label:lang(ta) { line-height: var(--leading-small-ta); }
+.requirement { font-weight: var(--font-weight-body); color: var(--color-text-secondary); }
+
+.control {
+  width: 100%;
+  min-height: var(--control-height-input);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width-hairline) solid var(--color-border-control);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-card);
+  color: var(--color-text-primary);
+  font-size: var(--text-body);
+  line-height: var(--leading-control);
+  transition: border-color var(--motion-duration-fast) var(--motion-ease-standard);
+}
+.control:lang(ta) { font-size: var(--text-body-ta); }
+input.control { height: var(--control-height-input); padding-block: 0; }
+textarea.control { min-height: calc(var(--control-height-input) * 3); resize: vertical; line-height: var(--leading-body-en); }
+textarea.control:lang(ta) { line-height: var(--leading-body-ta); }
+.control::placeholder { color: var(--color-text-secondary); }
+
+.control:hover { border-color: var(--color-border-control-hover); }
+.control:focus-visible { border-color: var(--color-text-primary); }
+
+/* Error: 2px red-700 edge, inset so the field does not shift */
+.control[aria-invalid="true"] {
+  border-color: var(--color-status-error-text);
+  box-shadow: inset 0 0 0 var(--border-width-hairline) var(--color-status-error-text);
+}
+
+.control:disabled {
+  background: var(--color-surface-subtle);
+  color: var(--color-text-disabled);
+  border-color: var(--color-border-strong);
+  cursor: not-allowed;
+}
+.control:read-only:not(:disabled) { background: var(--color-surface-subtle); }
+
+.hint { font-size: var(--text-caption); line-height: var(--leading-small-en); color: var(--color-text-secondary); }
+.hint:lang(ta) { line-height: var(--leading-small-ta); }
+
+.error {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-size: var(--text-small);
+  line-height: var(--leading-small-en);
+  color: var(--color-status-error-text);
+}
+.error:lang(ta) { line-height: var(--leading-small-ta); }

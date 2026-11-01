@@ -1,0 +1,49 @@
+/* Special meeting card (§6): caption-anchored. Preset gradient art (16:10) with grain and a
+   glass type pill, then a body with date, Tamil title, English title and announcement. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-card);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--motion-duration-standard) var(--motion-ease-standard),
+    box-shadow var(--motion-duration-standard) var(--motion-ease-standard);
+}
+/* Hover lift only when the whole card is a link (focus-within keeps keyboard parity) */
+.interactive:hover, .interactive:focus-within {
+  transform: translateY(var(--motion-lift-hover));
+  box-shadow: var(--shadow-2);
+}
+
+.art { aspect-ratio: var(--meeting-art-ratio); max-width: 100%; display: flex; align-items: flex-end; padding: var(--space-4); }
+.pill {
+  padding: var(--badge-padding-block) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-glass-fill);
+  border: var(--border-width-hairline) solid var(--color-glass-edge);
+  /* Backdrop blur is allowed over static gradients only (§8.2) */
+  backdrop-filter: blur(var(--space-3));
+  font-size: var(--text-caption);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--leading-small-ta);
+  color: var(--color-text-on-gradient);
+}
+
+.body { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-5); }
+.date { font-size: var(--text-small); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.titleTa {
+  font-family: var(--font-stack-ta-display);
+  font-weight: var(--font-weight-display-ta-small);
+  font-size: var(--text-h3);
+  line-height: var(--leading-h3-ta);
+}
+.titleEn { font-family: var(--font-stack-en-body); font-size: var(--text-small); color: var(--color-text-secondary); line-height: var(--leading-small-en); }
+.announcement { margin-top: var(--space-2); color: var(--color-text-strong-secondary); }
+.link { color: inherit; text-decoration: none; }
+/* Whole-card click target without nesting interactive content */
+.link::after { content: ""; position: absolute; inset: 0; }
+.interactive { position: relative; }
+.link:focus-visible { outline: none; }
+.interactive:has(.link:focus-visible) { outline: var(--focus-ring); outline-offset: var(--focus-ring-offset); }

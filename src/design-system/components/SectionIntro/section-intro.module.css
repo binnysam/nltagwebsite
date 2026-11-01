@@ -1,0 +1,6 @@
+/* Section micro-hero (§6): eyebrow (14px ink-500), display-l heading,
+   lead (18px ink-500, 64ch), one pill CTA, then content. Left-aligned. */
+.intro { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-6); }
+.lead { font-size: var(--text-body-l); color: var(--color-text-secondary); max-width: var(--measure-en); margin-top: var(--space-1); }
+.lead:lang(ta) { max-width: var(--measure-ta); line-height: var(--leading-body-ta); }
+.action { margin-top: var(--space-3); }
