@@ -58,6 +58,8 @@ async function makeUser(tag: string, roles: ("CHURCH_ADMIN" | "CONTENT_EDITOR")[
 }
 
 async function checkPage(page: Page) {
+  // After a client-side navigation the title arrives with streamed metadata; wait for it.
+  await expect(page).toHaveTitle(/\S/);
   const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   expect(axe.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).slice(0, 3).join(" | ")}`)).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
