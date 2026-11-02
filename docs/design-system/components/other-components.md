@@ -10,6 +10,7 @@ All implemented in Phase 2 under `src/design-system/components/`. Visual rules c
 **API:** `locale`, `navItems?: {href,label}[]` (only routes that exist), `currentPath?` (sets `aria-current="page"`), `cta?: {href,label}`. With no nav items and no CTA the menu button is omitted.
 **States:** resting (white, no shadow) · scrolled (`data-stuck="true"`, shadow-1) · menu open/closed · nav link hover (paper-100 pill) and current.
 **Keyboard:** Tab order follows reading order. Menu button has `aria-expanded` and `aria-controls`; Escape closes the panel and returns focus to the button; following a link closes it. The panel is a disclosure, not a modal, so focus is not trapped.
+**Public site (Phase 5):** four links — About, Worship times, Sermons, Contact; the wordmark is the home link and "Home" is in the footer. Measured: five Tamil links + switch + the Tamil CTA overflowed by 72px at 1280px; four fit.
 **Responsive:** the inline nav appears from **1280px** (not 1024): with the Phase 2 draft Tamil labels the four links, switch and CTA wrapped at 1024–1279px. Tamil wording was approved on 1 Nov 2026; re-measure the breakpoint with the approved labels in Phase 3.
 **Tokens:** `--header-height`, `--z-header`, `--tracking-wordmark`, `--shadow-1`, `--color-surface-card`, `--color-border-subtle`.
 
@@ -48,14 +49,31 @@ Eyebrow (14px ink-500) → display-l heading with `id` (for `aria-labelledby`) �
 ## SpecialMeetingCard
 **Use:** CMS special meetings only. No sample content on public pages.
 **Anatomy:** `<article>` → 16:10 gradient art with grain and a glass type pill (backdrop blur allowed: static gradient) → body: `<time>` date, Tamil title (heading, Anek Tamil 400), English title (14px ink-500), announcement.
-**API:** `preset`, `typeLabel`, `dateLabel`, `dateTime`, `titleTa`, `titleEn`, `announcement?`, `href?`, `headingLevel?`.
+**API:** `preset`, `typeLabel`, `dateLabel`, `dateTime`, `titleTa`, `titleEn`, `primary?` (`"ta"` default — which title is the heading; pass the page language), `location?` (public venue line: NECK, members' homes or a named place, never an address), `announcement?`, `href?`, `headingLevel?`.
+**Phase 5:** the heading is the page-language title with the other language beneath (page-composition "Bilingual blocks"); if the page language has no title, the other becomes the heading and no empty line is drawn. The type pill takes the page language.
 **States:** with `href` the whole card is clickable through the title link's `::after`; hover and focus-within lift −2px with shadow-2; focus ring drawn on the card.
 
 ## Primitives
 `Container`, `Section`, `Stack`, `Cluster`, `Grid`, `Divider`, `Surface`, `Heading`, `Text`, `VisuallyHidden`, `Spinner`, `Skeleton`, `Icon` (`src/design-system/primitives`). Gap and padding props accept only space-scale steps. `Skeleton` is static (no shimmer). `Spinner` is a static ring (no rotation); it is decorative and must sit next to a visible label.
 
 ## Not yet built (later phases, by plan)
-Toasts, tabs, accordion, radio, custom date picker (native date inputs are used), styled file upload (built when a feature needs them); footer and breadcrumbs (Phase 5). Dialog (ConfirmButton), checkbox and select were added in Phase 4c (below).
+Toasts, tabs, accordion, radio, custom date picker (native date inputs are used), styled file upload (built when a feature needs them); breadcrumbs. Footer: built in Phase 5 (below).
+
+## Phase 5 additions (public website)
+Built from existing tokens only; in the gallery ("Entry list", footer at the bottom of the page).
+
+### EntryList (`EntryList/`)
+- **When:** lists of CMS records on the public site — announcements, sermons, ministries, testimonies. Not for the schedule (ScheduleList) or special meetings (SpecialMeetingCard).
+- **Anatomy:** `<ul role="list" aria-label>` with hairline top and row dividers (same rhythm as ScheduleList, padding 24px) → each row: meta line (14px secondary, tabular numerals) → title (`h3` by default; Anek Tamil 400 / Inter Tight 400, h3 size) → body (reading measure 64ch / 60ch) → at most one action.
+- **API:** `entries: { id, title, titleLang?, meta?, children?, action? }[]`, `headingLevel?` (2 | 3), `label?`.
+- **States:** static; no hover tint (rows are not links). Links inside keep 44px targets.
+- **A11y:** list named by its section; titles are headings in the page outline; Markdown headings inside a body start at h4 (`<Markdown headingLevel={4}>`).
+
+### SiteFooter (`SiteFooter/`)
+- **When:** once per public page, after `<main>`.
+- **Anatomy:** `<footer>` on `surface-subtle` with a hairline top edge, padding 64 / 48 → wordmark (as the header) → church name in the page language (h3 size) with the other language beneath (14px secondary, own `lang`) → `<nav aria-label>` of links (14px/500 `text-strong-secondary`, 44px rows, wrap) → one secondary note. Two columns (5fr / 7fr) from 1024px.
+- **API:** `locale`, `name` (confirmed name in both languages), `navItems`, `note?`.
+- **Rules:** confirmed information only — no address, phone, social accounts or copyright claims unless the church supplies them. Dialog (ConfirmButton), checkbox and select were added in Phase 4c (below).
 
 ## Phase 4c additions (admin and forms; usable anywhere)
 Built for the CMS admin from existing tokens only; listed in the gallery (`/[locale]/design-system`, "Form fields and status").

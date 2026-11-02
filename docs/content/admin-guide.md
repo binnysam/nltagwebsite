@@ -29,7 +29,7 @@ Use **Preview** to see both languages as they will read. Previews are visible on
 If someone else saved the same item while you were editing, your save is refused: reload, then make your change again.
 
 ## Modules
-- **Pages** — each has an address (slug), e.g. `about-us` → `/ta/about-us` and `/en/about-us`; SEO title and description; *Unlisted* pages are left out of menus.
+- **Pages** — each has an address (slug), e.g. `about-us` → `/ta/about-us` and `/en/about-us`; SEO title and description; *Unlisted* pages are left out of menus. Three addresses are special on the website: **`welcome`** (its summary is the line under the church name at the top of the homepage — make it *Unlisted*), **`about`** (the homepage introduction and the About page) and **`contact`** (shown under "Visit us" on the homepage and on the Contact page: phone, email or directions exactly as the church wants them public — never a member's address).
 - **Announcements** — can be featured, scheduled and set to expire.
 - **Special meetings** — date and time in **Kuwait time**; place: NECK, church members' homes (no address is ever shown), another named place, or to be announced. The regular weekly schedule is fixed (Gate 0) and shown for reference only; changes need the website owner.
 - **Sermons** — speaker, Bible reference (no verse text), date, a https link to the church's own video (never downloaded or re-hosted), optional thumbnail.

@@ -1,6 +1,6 @@
 # CMS and admin (Phase 4c)
 
-Status: built and tested on branch `phase4c/cms-admin` (2 Nov 2026). Not merged, not deployed. Production migration `0001_cms_content` not applied.
+Status: Phase 4c merged and deployed (2 Nov 2026); migrations `0001` and `0002` applied to production the same day with the owner's approval. Phase 5 public website: see "Public website" below.
 Builds on Phase 4b (`docs/backend/data-and-auth.md`): same MariaDB, Drizzle, Better Auth, roles, permission matrix and audit log. No new service, dependency or environment variable.
 
 ## Architecture
@@ -74,12 +74,26 @@ Special rules: a testimony cannot be published without Granted permission, and r
 - Concurrency: every save names the version it edited; a stale save is refused with a message.
 - `/admin/*` sends `Cache-Control: private, no-store` and `X-Robots-Tag: noindex`; the admin follows the accounts gate (404 while accounts are off).
 
-## Public integration (for later phases)
-`listPublished(type, locale)`, `getPublishedPage(slug, locale)`, `listUpcomingSpecialMeetings`, `listPublishedSermons`, `listPublishedMinistries`, `listPublishedTestimonies`, `getDailyVerse(now)`. DTOs carry public fields only. Cached under `cms:published` (5 min) and expired immediately by any write that touches published content. No public page uses them yet; the homepage is unchanged.
+## Public website (Phase 5, 2 Nov 2026)
+Read-only. Pages never select content tables: they call the loaders in `src/server/cms/public-site.ts`, which call `src/server/cms/public.ts`.
+
+| Layer | Does |
+|---|---|
+| `public.ts` | `listPublished(type, locale)`, `getPublishedPage(slug, locale)`, `listUpcomingSpecialMeetings`, `listPublishedSermons`, `listPublishedMinistries`, `listPublishedTestimonies`, `getDailyVerse(now)`. Published + not deleted in SQL; publish/expiry window, testimony permission and language title checked on every read; DTOs carry public fields only (no author ids, permission records, unapproved contacts, anonymous names, unverified verse text). |
+| Cache | Every query (rows, event/sermon/ministry/testimony details, verse candidates and cards) is in the Next.js data cache under `cms:published`, 5 min, **expired at once** by any CMS write that can change public output (publish, unpublish, edits to published items, permissions, verse schedule). The time window is applied *after* the cache, so scheduled and expiring items switch at the right minute. Unverified verse text is removed *before* it enters the cache. |
+| `public-site.ts` | `connection()` makes public pages render per request (never prerendered at build, so no stale or build-time data). Each section degrades to its designed empty state if the database is unreachable or not configured, logging `public.content_unavailable` once per section (error name only). Merges Tamil and English special meetings for the cards. |
+
+**Routes** (`src/app/[locale]/`): `/` (homepage), `/about`, `/worship-times`, `/sermons`, `/ministries`, `/testimonies`, `/contact`, and `/{slug}` for any other published page. All `noindex` until the launch gate, with canonical and hreflang (ta, en, x-default → ta) on `https://nltagkuwait.com`.
+
+**Reserved page slugs:** `welcome` — its summary is the homepage hero lead (until published, the approved "website is being prepared" notice); usually *Unlisted*. `about` — the homepage introduction and `/about`. `contact` — under the Gate 0 visit facts (NECK, Friday main worship; never an address) on the homepage and `/contact`.
+
+**What appears where:** homepage = welcome lead → introduction → Gate 0 schedule → up to 3 upcoming special meetings → announcements (hidden when none) → 3 ministries → 3 sermons → 3 testimonies → today's verse → visit and contact → footer. Dedicated pages list everything published. Special meetings leave the site at their end time (start time when no end). Images (ministry, sermon thumbnail) are **not** shown publicly yet: media is served only to staff; a public image route is a separate security decision.
+
+**Bible verse:** no published verse → designed fallback ("Today's verse will be published soon"); published but permission not verified → the approved placeholder text with the published reference; verified → the text and exact credit line of the verified translation only.
 
 ## Migrations
 - Local / CI: `npm run db:migrate` (CI applies it to MariaDB 11.8.9 on every run).
-- Production: **not applied.** `0001_cms_content` and `0002_media_file_storage` run together, once, after the owner's explicit approval: backup, exact steps, checks and rollback in `docs/operations/production-migration-cms.md`. They only create the CMS tables and insert the two `bible_translation` rows; identity, access and audit tables are untouched.
+- Production: **applied 2 Nov 2026** (owner-approved, verified backup first). `0001_cms_content` and `0002_media_file_storage` ran together, once: backup, exact steps, checks and rollback in `docs/operations/production-migration-cms.md`. They only create the CMS tables and insert the two `bible_translation` rows; identity, access and audit tables are untouched.
 
 ## Testing
 | Command | Covers |
@@ -88,5 +102,8 @@ Special rules: a testimony cannot be published without Granted permission, and r
 | `npm run test:integration` (`tests/integration/cms.test.ts`) | migration and collation, role isolation, editor/admin boundaries, concurrency, draft/published/deleted/scheduled visibility, testimony permission, ministry contact approval, Bible permission gating, Tamil round trip and search, audit contents, media sniffing, dashboard |
 | `E2E_AUTH=1 npx playwright test admin` | real Chrome at 390 and 1280: access (anonymous, member, editor, admin), bilingual editor, server validation, preview, publish/unpublish with dialog, editor submission, every module page with axe WCAG 2.2 AA, 44px targets, no sideways scroll; screenshots in `test-results/admin-screens` |
 | `npx playwright test accounts-gate` (accounts off) | `/admin`, previews and media return 404 |
+| `tests/integration/public-site.test.ts` (MariaDB) | Phase 5 public reads: announcements never draft/in-review/archived/deleted/future/expired; language titles; meeting order, end-time removal, venues without addresses, bilingual merge; sermon order and fields; unapproved contacts; testimony permission and anonymity; unlisted pages; cache cleared by writes; no private DTO fields |
+| `tests/unit/public-site.test.tsx` | EntryList, SiteFooter, SpecialMeetingCard options, empty states, verse permission mapping, formatters, metadata |
+| `npx playwright test public-site` | every public route × ta/en at 390 and 1280: axe WCAG 2.2 AA, 44px, no sideways scroll, one h1, noindex, hreflang, only the hero animates, empty states (no database); with `PUBLIC_E2E_SEEDED=1` after `npm run db:seed:public` (CI job `public-browser`): fixtures visible, every hidden fixture absent; screenshots at 390/768/1280 in `test-results/public-screens` |
 
 Local browser setup: `.env.local` with `NLTAG_ACCOUNTS_ENABLED=1`, `BETTER_AUTH_URL=http://localhost:3100` and placeholder `SMTP_*` values pointing at nothing (production builds keep accounts off without them); then `npm run db:migrate && npm run db:seed && npm run db:seed:content && scripts/serve-gallery.sh`.

@@ -6,7 +6,7 @@ description: Use for NLTAG content models, bilingual editorial workflow, CMS rol
 # NLTAG CMS and content
 
 ## Status
-Phase 4c built (branch `phase4c/cms-admin`, 2 Nov 2026). Read `docs/backend/cms.md` (architecture, tables, authorization, workflow) and `docs/content/admin-guide.md` (how staff use it).
+Phase 4c merged (2 Nov 2026); Phase 5 public pages read published content (`src/server/cms/public-site.ts` → `public.ts`; reserved page slugs `welcome`, `about`, `contact`). Read `docs/backend/cms.md` (architecture, tables, authorization, workflow) and `docs/content/admin-guide.md` (how staff use it).
 
 ## Patterns to reuse
 - New content type: add it to `CONTENT_TYPES` and a `*_detail` table (new reviewed migration), a `MODULES` entry in `src/server/cms/registry.ts`, a detail schema in `schemas.ts`, `loadDetail`/`writeDetail` cases in `service.ts`, a `TypeDetails` case in the admin form, a public query in `public.ts`, and tests in `tests/unit/cms.test.tsx` and `tests/integration/cms.test.ts`.
