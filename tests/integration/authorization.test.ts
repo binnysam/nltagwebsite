@@ -150,8 +150,13 @@ describe("role management", () => {
     await expect(bootstrapFirstAdmin(MEMBER)).rejects.toMatchObject({ code: "NO_TWO_FACTOR" });
     expect(await rolesOf(await idOf(MEMBER))).toEqual([]);
     await getDb().update(user).set({ twoFactorEnabled: true }).where(eq(user.email, MEMBER));
-    await bootstrapFirstAdmin(MEMBER);
-    expect(await rolesOf(await idOf(MEMBER))).toEqual(["CHURCH_ADMIN"]);
-    await expect(bootstrapFirstAdmin(EDITOR)).rejects.toMatchObject({ code: "ALREADY_BOOTSTRAPPED" });
+    try {
+      await bootstrapFirstAdmin(MEMBER);
+      expect(await rolesOf(await idOf(MEMBER))).toEqual(["CHURCH_ADMIN"]);
+      await expect(bootstrapFirstAdmin(EDITOR)).rejects.toMatchObject({ code: "ALREADY_BOOTSTRAPPED" });
+    } finally {
+      // Later test files sign this seeded member in with a password only.
+      await getDb().update(user).set({ twoFactorEnabled: false }).where(eq(user.email, MEMBER));
+    }
   });
 });
