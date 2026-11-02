@@ -1,12 +1,14 @@
 // Hostinger build entry point (build script "build:hostinger").
-// Runs `next build`. Only when NLTAG_APPROVED_PRODUCTION_MIGRATION=1 is set in the Hostinger
-// environment (owner-approved, for one build, then removed) does it first apply the reviewed
-// SQL migrations in drizzle/ to DATABASE_URL, which on Hostinger is MariaDB on 127.0.0.1.
-// This exists because the deployment has no SSH step. It never prints values from the environment.
+// The deployment has no SSH step, so owner-approved one-off server tasks run here, each only when
+// its variable is set in the Hostinger environment for one build and removed straight after:
 //
-// TEMPORARY (SMTP Stage A, remove with docs/operations/smtp-delivery-test.md "Removal"):
-// only when NLTAG_APPROVED_SMTP_TEST=1 is set, after a successful `next build`, it sends ONE
-// owner-approved bilingual test email to a church address (scripts/email/smtp-delivery-test.ts).
+//   NLTAG_APPROVED_PRODUCTION_MIGRATION=1   apply the reviewed SQL migrations in drizzle/ to
+//                                           DATABASE_URL (MariaDB on 127.0.0.1) before `next build`.
+//   NLTAG_BOOTSTRAP_ADMIN_EMAIL=<address>   after a successful `next build`, grant the first Church
+//                                           Admin (scripts/db/bootstrap-admin-from-env.ts). Prints
+//                                           "granted" or "not done: <reason>"; never the address.
+//
+// The two are refused in the same build. This script never prints values from the environment.
 import { spawnSync } from "node:child_process";
 
 function run(cmd, args, env = process.env) {
@@ -14,12 +16,15 @@ function run(cmd, args, env = process.env) {
   if (r.status !== 0) process.exit(r.status ?? 1);
 }
 
-if (process.env.NLTAG_APPROVED_PRODUCTION_MIGRATION === "1" && process.env.NLTAG_APPROVED_SMTP_TEST === "1") {
-  console.error("Refused: a production migration and the SMTP delivery test cannot run in the same build. Nothing was done.");
+const migration = process.env.NLTAG_APPROVED_PRODUCTION_MIGRATION === "1";
+const bootstrap = (process.env.NLTAG_BOOTSTRAP_ADMIN_EMAIL ?? "").trim() !== "";
+
+if (migration && bootstrap) {
+  console.error("Refused: a production migration and the admin bootstrap cannot run in the same build. Nothing was done.");
   process.exit(1);
 }
 
-if (process.env.NLTAG_APPROVED_PRODUCTION_MIGRATION === "1") {
+if (migration) {
   console.info("Owner-approved production migration requested for this build.");
   run("npm", ["run", "db:migrate"], { ...process.env, NODE_ENV: "production" });
 } else {
@@ -27,9 +32,9 @@ if (process.env.NLTAG_APPROVED_PRODUCTION_MIGRATION === "1") {
 }
 run("npx", ["next", "build"]);
 
-if (process.env.NLTAG_APPROVED_SMTP_TEST === "1") {
-  console.info("Owner-approved SMTP delivery test requested for this build.");
-  run("npm", ["run", "email:smtp-test"], { ...process.env, NODE_ENV: "production" });
+if (bootstrap) {
+  console.info("Owner-approved first Church Admin bootstrap requested for this build.");
+  run("npm", ["run", "admin:bootstrap:env"], { ...process.env, NODE_ENV: "production" });
 } else {
-  console.info("No SMTP delivery test requested (NLTAG_APPROVED_SMTP_TEST not set).");
+  console.info("No admin bootstrap requested (NLTAG_BOOTSTRAP_ADMIN_EMAIL not set).");
 }

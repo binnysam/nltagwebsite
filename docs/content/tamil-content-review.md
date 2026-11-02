@@ -1,7 +1,7 @@
 # Tamil content approval record
 
 **Generated from** `src/content/ui-strings.ts`, `src/content/schedule.ts` and `src/content/tamil-approvals.ts` by `node scripts/tamil-review.ts`. Do not edit by hand; `npm run verify` fails if this file is out of date.
-**Approved by the owner on 2026-11-01** (22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings). 63 of 106 items approved; 43 still awaiting review. Times, days and NECK were confirmed at Gate 0.
+**Approved by the owner on 2026-11-01** (22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings). 63 of 103 items approved; 40 still awaiting review. Times, days and NECK were confirmed at Gate 0.
 
 Owner-supplied Tamil is approved content and is reproduced exactly as supplied. Do not rephrase, re-spell or "correct" it; a unit test compares every character. Any change needs new owner approval. The language names தமிழ் and English were confirmed at Gate 0 and are not listed.
 
@@ -112,9 +112,6 @@ Owner-supplied Tamil is approved content and is reproduced exactly as supplied. 
 | email.reset.body | Open the link below to choose a new password. It works for 1 hour. | புதிய கடவுச்சொல்லைத் தேர்ந்தெடுக்க கீழே உள்ள இணைப்பைத் திறக்கவும். அது 1 மணி நேரம் செல்லுபடியாகும். | — | — |  | Awaiting church review (`draft-review`) |
 | email.ignore | If you did not ask for this, you can ignore this email. | நீங்கள் இதைக் கோரவில்லை என்றால், இந்த மின்னஞ்சலைப் புறக்கணிக்கலாம். | — | — |  | Awaiting church review (`draft-review`) |
 | email.footer | This message was sent automatically by the {church} website. | இந்தச் செய்தி {church} இணையதளத்தால் தானாக அனுப்பப்பட்டது. | — | — |  | Awaiting church review (`draft-review`) |
-| email.smtpTest.subject | NLTAG website email delivery test | NLTAG இணையதளம் — மின்னஞ்சல் விநியோகச் சோதனை | — | — | Temporary: subject of the one-time SMTP delivery test sent to the church mailbox. | Awaiting church review (`draft-review`) |
-| email.smtpTest.body | This is a test message to confirm that emails sent by the {church} website are delivered. No action is needed. | {church} இணையதளம் அனுப்பும் மின்னஞ்சல்கள் சென்று சேருகின்றனவா என்பதை உறுதிசெய்வதற்கான சோதனைச் செய்தி இது. நீங்கள் எதுவும் செய்ய வேண்டியதில்லை. | — | — | Temporary: body of the one-time SMTP delivery test. {church} is the confirmed church name. | Awaiting church review (`draft-review`) |
-| email.smtpTest.websiteLabel | Website | இணையதளம் | — | — | Temporary: label before the homepage link in the SMTP delivery test. | Awaiting church review (`draft-review`) |
 
 ## Not yet in the record
 

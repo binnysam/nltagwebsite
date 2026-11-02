@@ -8,18 +8,21 @@ import "server-only";
  * configured and a real delivery test has succeeded. Without working email, sign-up shows
  * "check your email" and nothing arrives, so the flow must not be reachable.
  *
- * To enable later (server-side only, no code change):
- *   1. Set SMTP_HOST, SMTP_USER, SMTP_PASS and SMTP_FROM in the Hostinger environment.
- *   2. Run the end-to-end email delivery test (docs/backend/data-and-auth.md, "Enabling accounts").
+ * To enable (server-side only, no code change; owner runbook: docs/operations/admin-activation.md):
+ *   1. SMTP_HOST, SMTP_USER, SMTP_PASS and SMTP_FROM set in the Hostinger environment (done, tested).
+ *   2. AUTH_RATE_LIMIT=on and NLTAG_SIGNUP_ALLOWLIST=<staff addresses> set explicitly.
  *   3. Set NLTAG_ACCOUNTS_ENABLED=1 and redeploy/restart.
  *
- * In production the flag is ignored unless all four SMTP variables are present, so the pages
- * cannot be switched on by the flag alone. Read at request time, never baked into the build.
- * Reads variable presence only; never logs or returns values.
+ * In production the flag is ignored unless all four SMTP variables are present AND
+ * AUTH_RATE_LIMIT is explicitly "on" (Phase 6a). The rate limiter also defaults to on, but the
+ * gate does not rely on a default: anyone opening accounts must have set it on purpose.
+ * Read at request time, never baked into the build. Reads variable presence only; never logs or
+ * returns values.
  */
 export function accountsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   if (env.NLTAG_ACCOUNTS_ENABLED?.trim() !== "1") return false;
   if (env.NODE_ENV !== "production") return true;
   const smtp = [env.SMTP_HOST, env.SMTP_USER, env.SMTP_PASS, env.SMTP_FROM];
-  return smtp.every((v) => typeof v === "string" && v.trim() !== "");
+  if (!smtp.every((v) => typeof v === "string" && v.trim() !== "")) return false;
+  return env.AUTH_RATE_LIMIT?.trim() === "on";
 }

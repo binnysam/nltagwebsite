@@ -7,7 +7,10 @@ import mysql from "mysql2/promise";
 /**
  * Phase 4b account pages in a real browser. Needs the app running on :3100 with a migrated
  * local MariaDB and no SMTP (emails land in .data/mail/):
- *   (.env.local: BETTER_AUTH_URL=http://localhost:3100, NLTAG_LOCAL_MAIL_OUTBOX=1, NLTAG_ACCOUNTS_ENABLED=1)
+ *   (.env.local: BETTER_AUTH_URL=http://localhost:3100, NLTAG_LOCAL_MAIL_OUTBOX=1, NLTAG_ACCOUNTS_ENABLED=1,
+ *    AUTH_RATE_LIMIT=on, NLTAG_SIGNUP_ALLOWLIST=e2e.phone-390@nltag.test,e2e.desktop-1280@nltag.test)
+ * `next start` runs in production mode, so the Phase 6a staff-only allowlist applies: the two
+ * listed addresses can sign up (their old rows are removed first); any other address cannot.
  *   scripts/serve-gallery.sh && E2E_AUTH=1 npm run test:e2e -- auth
  * Skipped otherwise, so the design-system run does not need a database.
  */
@@ -23,6 +26,8 @@ test.beforeEach(async () => {
   const conn = await mysql.createConnection({ uri: url });
   await conn.query("DELETE FROM rate_limit");
   await conn.query("DELETE FROM rate_limit_bucket");
+  // Listed sign-up addresses are fixed (they must be on NLTAG_SIGNUP_ALLOWLIST); start each run fresh.
+  await conn.query("DELETE FROM user WHERE email LIKE 'e2e.%@nltag.test'");
   await conn.end();
 });
 
@@ -67,7 +72,7 @@ for (const locale of ["ta", "en"] as const) {
 }
 
 test("sign up, verify by email link, see the account, sign out", async ({ page }, info) => {
-  const email = `e2e.${info.project.name}.${Date.now()}@nltag.test`;
+  const email = `e2e.${info.project.name}@nltag.test`;
   await page.goto("/en/sign-up");
   await page.getByLabel(/Full name/).fill("Test Person E2E");
   await page.getByLabel(/Email address/).fill(email);
@@ -92,6 +97,19 @@ test("sign up, verify by email link, see the account, sign out", async ({ page }
   await page.waitForURL("**/en/sign-in");
   await page.goto("/en/account");
   await page.waitForURL("**/en/sign-in");
+});
+
+test("an address that is not on the allowlist gets the same message, and no email", async ({ page }, info) => {
+  const email = `unlisted.${info.project.name}.${Date.now()}@nltag.test`;
+  await page.goto("/en/sign-up");
+  await page.getByLabel(/Full name/).fill("Not Staff");
+  await page.getByLabel(/Email address/).fill(email);
+  await page.getByLabel(/^Password/).fill("e2e-password-long");
+  await page.waitForTimeout(1600);
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByRole("status")).toContainText("Check your email");
+  await page.waitForTimeout(1000);
+  expect(() => latestLinkFor(email)).toThrow(/no mail/);
 });
 
 test("forgot password shows the same message for any address", async ({ page }) => {
