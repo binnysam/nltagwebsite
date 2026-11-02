@@ -11,7 +11,7 @@ New Life Tamil AG Church (NLTAG), Kuwait. Bilingual (Tamil default `/ta`, Englis
 Report conflicts; never resolve them silently.
 
 ## Current phase
-Phase 2 (design system) integrated. Phase 3 (motion system, homepage hero) approved by the owner on 1 Nov 2026 (120s preset cycle, 0.35 hero field opacity, Tamil font preload on both locales). Phase 4a (Hostinger check) done: MariaDB 11.8.9. Phase 4b (database, auth, roles, audit, rate limits, account emails) approved and merged on 2 Nov 2026, with the **accounts gate**: account pages and `/api/auth` return 404 until SMTP is configured, tested and `NLTAG_ACCOUNTS_ENABLED=1` is set (`docs/backend/data-and-auth.md`). The owner approved replacing the old trial site on nltagkuwait.com with this site. Phase 4c CMS, 4d membership interface and the rest of the homepage (Phase 5): **not authorised**.
+Phase 2 (design system) integrated. Phase 3 (motion system, homepage hero) approved by the owner on 1 Nov 2026 (120s preset cycle, 0.35 hero field opacity, Tamil font preload on both locales). Phase 4a (Hostinger check) done: MariaDB 11.8.9. Phase 4b (database, auth, roles, audit, rate limits, account emails) approved and merged on 2 Nov 2026, with the **accounts gate**: account pages and `/api/auth` return 404 until SMTP is configured, tested and `NLTAG_ACCOUNTS_ENABLED=1` is set (`docs/backend/data-and-auth.md`). The owner approved replacing the old trial site on nltagkuwait.com with this site. Phase 4c (CMS and admin dashboard) authorised by the owner on 2 Nov 2026 and built on branch `phase4c/cms-admin` (PR, not merged; migration `0001_cms_content` not applied to production) — see `docs/backend/cms.md` and `docs/content/admin-guide.md`. 4d membership interface and the rest of the homepage (Phase 5): **not authorised**.
 
 ## Skills — use the matching one
 | Task | Skill |
@@ -37,10 +37,11 @@ Read: `docs/design-system/foundations/foundations.md` → `docs/design-system/to
 - Only the homepage hero (`Hero` component) animates a gradient. Everything else is static.
 - All text on gradients is `--color-text-on-gradient`. 44px minimum targets. Tamil never gets negative tracking or uppercase.
 - Never invent church content: names, history, beliefs, times, addresses, contacts, events, testimonies, Bible wording, social accounts. Missing → `CONTENT REQUIRED`, unpublished.
+- CMS: all content writes through `src/server/cms/service.ts`; workflow rules in `src/server/cms/rules.ts`; Markdown only (no HTML), rendered with `src/lib/markdown.tsx`. Admin UI reuses design-system components (`Notice`, `DataTable`, `SelectField`, `CheckboxField`, `ConfirmButton`).
 - Schedule facts only from `src/content/schedule.ts` (Gate 0). Sunday School is on **Friday**. Write **NECK** exactly. No address.
 - Bible text: placeholder only until permission is documented.
 - Tamil wording: the 48 reviewed items were approved by the owner on 1 Nov 2026 (`docs/content/tamil-content-review.md`). Owner-supplied Tamil (`src/content/tamil-approvals.ts`) is reproduced exactly; never rephrase or "correct" it. New Tamil strings start as `draft-review` and need owner approval.
 - Ask before changing tokens, membership policy, security, SEO strategy, dependencies with cost, or deployment. Never deploy, push to `main`, change repo visibility or touch DNS without explicit approval.
 
 ## Definition of done
-`npm run verify` (token audit, lint, typecheck, unit tests, build), `npm run test:integration` (MariaDB) and `scripts/serve-gallery.sh && npm run test:e2e` pass (account pages: `E2E_AUTH=1`, see `tests/e2e/auth.spec.ts`); docs/specs updated when behaviour or rules change; report changes, tests and remaining risks.
+`npm run verify` (token audit, lint, typecheck, unit tests, build), `npm run test:integration` (MariaDB) and `scripts/serve-gallery.sh && npm run test:e2e` pass (account pages and admin: `E2E_AUTH=1`, see `tests/e2e/auth.spec.ts` and `tests/e2e/admin.spec.ts`); docs/specs updated when behaviour or rules change; report changes, tests and remaining risks.

@@ -71,6 +71,12 @@ Phase 1 did not specify these values. They were needed to implement the approved
 | `--motion-hero-preset-cycle` (Phase 3) | `calc(var(--motion-hero-cycle) * 2.5)` = 120s | One pass through the five presets in the hero: 24s each (≈17s hold, ≈7s crossfade). Derived from the approved 48s cycle. **Approved by owner, 1 Nov 2026** |
 | `--home-hero-field-opacity` (Phase 3) | 0.35 | The approved hero fields drift over the presets at this strength; at full strength they muddied Kadal and Andhi (review screenshots in the Phase 3 report). **Approved by owner, 1 Nov 2026** |
 
+## Pending proposal (Phase 4c)
+
+| Proposed token | Value | Why |
+|---|---|---|
+| `--color-scrim` | `color-mix(in srgb, var(--color-text-primary) 40%, transparent)` | Backdrop behind the confirmation dialog. Used inline in `confirm-dialog.module.css` until approved; no new primitive value. |
+
 ## Rules
 
 - Components use layers 2–3 only. `npm run audit:tokens` enforces this.

@@ -2,7 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { AuthzError, getCurrentUser, type CurrentUser } from "@/server/auth/session";
 import { closeDb, getDb } from "@/server/db/client";
-import { auditLog, bibleTranslation, contentItem, contentTranslation, user } from "@/server/db/schema";
+import { auditLog, bibleTranslation, contentItem, contentTranslation, staffRole, user } from "@/server/db/schema";
 import { parseContentForm, type ContentInput } from "@/server/cms/schemas";
 import {
   CmsError, createItem, dashboard, getItemForEdit, getMediaForStaff, grantRoleByEmail, listAudit, listItems, listStaff,
@@ -30,6 +30,12 @@ function input(type: Parameters<typeof parseContentForm>[0], fields: Record<stri
 beforeAll(async () => {
   await seed();
   await clearRateLimits();
+  // Other test files change roles; start from the seed's roles regardless of file order.
+  for (const u of SEED_USERS) {
+    const [row] = await getDb().select({ id: user.id }).from(user).where(eq(user.email, u.email));
+    await getDb().delete(staffRole).where(eq(staffRole.userId, row!.id));
+    for (const role of u.roles) await getDb().insert(staffRole).values({ userId: row!.id, role, grantedByUserId: null, grantedAt: new Date() });
+  }
   for (const email of [ADMIN, EDITOR, MEMBER]) {
     const { res, cookie } = await signIn(email, SEED_PASSWORD);
     expect(res.status).toBe(200);
