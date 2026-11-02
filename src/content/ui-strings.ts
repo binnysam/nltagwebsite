@@ -194,6 +194,20 @@ export const uiStrings = {
     "This message was sent automatically by the {church} website.",
     "இந்தச் செய்தி {church} இணையதளத்தால் தானாக அனுப்பப்பட்டது.",
   ),
+
+  // TEMPORARY — SMTP Stage A delivery test email (src/server/email/smtp-delivery-test.ts).
+  // Sent only to the church mailbox. Remove with that module (docs/operations/smtp-delivery-test.md).
+  "email.smtpTest.subject": s("NLTAG website email delivery test", "NLTAG இணையதளம் — மின்னஞ்சல் விநியோகச் சோதனை", {
+    note: "Temporary: subject of the one-time SMTP delivery test sent to the church mailbox.",
+  }),
+  "email.smtpTest.body": s(
+    "This is a test message to confirm that emails sent by the {church} website are delivered. No action is needed.",
+    "{church} இணையதளம் அனுப்பும் மின்னஞ்சல்கள் சென்று சேருகின்றனவா என்பதை உறுதிசெய்வதற்கான சோதனைச் செய்தி இது. நீங்கள் எதுவும் செய்ய வேண்டியதில்லை.",
+    { note: "Temporary: body of the one-time SMTP delivery test. {church} is the confirmed church name." },
+  ),
+  "email.smtpTest.websiteLabel": s("Website", "இணையதளம்", {
+    note: "Temporary: label before the homepage link in the SMTP delivery test.",
+  }),
 } as const satisfies Record<string, UiString>;
 
 export type UiStringKey = keyof typeof uiStrings;

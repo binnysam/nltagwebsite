@@ -23,6 +23,7 @@
     "db:seed": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db/seed.ts",
     "db:seed:content": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db/seed-content.ts",
     "admin:bootstrap": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db/create-first-admin.ts",
+    "email:smtp-test": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/email/smtp-delivery-test.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {

@@ -3,11 +3,20 @@
 // environment (owner-approved, for one build, then removed) does it first apply the reviewed
 // SQL migrations in drizzle/ to DATABASE_URL, which on Hostinger is MariaDB on 127.0.0.1.
 // This exists because the deployment has no SSH step. It never prints values from the environment.
+//
+// TEMPORARY (SMTP Stage A, remove with docs/operations/smtp-delivery-test.md "Removal"):
+// only when NLTAG_APPROVED_SMTP_TEST=1 is set, after a successful `next build`, it sends ONE
+// owner-approved bilingual test email to a church address (scripts/email/smtp-delivery-test.ts).
 import { spawnSync } from "node:child_process";
 
 function run(cmd, args, env = process.env) {
   const r = spawnSync(cmd, args, { stdio: "inherit", env });
   if (r.status !== 0) process.exit(r.status ?? 1);
+}
+
+if (process.env.NLTAG_APPROVED_PRODUCTION_MIGRATION === "1" && process.env.NLTAG_APPROVED_SMTP_TEST === "1") {
+  console.error("Refused: a production migration and the SMTP delivery test cannot run in the same build. Nothing was done.");
+  process.exit(1);
 }
 
 if (process.env.NLTAG_APPROVED_PRODUCTION_MIGRATION === "1") {
@@ -17,3 +26,10 @@ if (process.env.NLTAG_APPROVED_PRODUCTION_MIGRATION === "1") {
   console.info("No migration requested (NLTAG_APPROVED_PRODUCTION_MIGRATION not set).");
 }
 run("npx", ["next", "build"]);
+
+if (process.env.NLTAG_APPROVED_SMTP_TEST === "1") {
+  console.info("Owner-approved SMTP delivery test requested for this build.");
+  run("npm", ["run", "email:smtp-test"], { ...process.env, NODE_ENV: "production" });
+} else {
+  console.info("No SMTP delivery test requested (NLTAG_APPROVED_SMTP_TEST not set).");
+}
