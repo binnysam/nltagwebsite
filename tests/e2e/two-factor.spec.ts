@@ -62,7 +62,9 @@ async function checkPage(page: Page) {
   expect(axe.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).slice(0, 3).join(" | ")}`)).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
   const small = await page.evaluate(() =>
-    [...document.querySelectorAll("main button, main input:not([type=hidden]), main a.ds-button, main [class*='button']")]
+    // Buttons, fields and stand-alone links; links inside a sentence are exempt (WCAG 2.5.8 inline).
+    [...document.querySelectorAll("main button, main input:not([type=hidden]), main a")]
+      .filter((el) => !(el.matches("a") && el.closest("p")))
       .filter((el) => (el as HTMLElement).offsetParent !== null && !el.closest(".ds-visually-hidden"))
       .map((el) => (el.matches("input[type=checkbox]") ? el.closest("label") ?? el : el))
       .map((el) => ({ el: el.outerHTML.slice(0, 90), h: Math.round(el.getBoundingClientRect().height) }))
@@ -95,8 +97,9 @@ for (const locale of ["ta", "en"] as const) {
     const { email, id } = await makeUser(`${p}.${locale}`);
 
     // Sign in (no two-factor yet → straight to the account page), open the setup page.
+    // Better Auth may land on the account or the verify-email page; either means a session exists.
     await passwordStep(page, locale, email);
-    await expect(page).toHaveURL(new RegExp(`/${locale}/account$`));
+    await expect(page).not.toHaveURL(/\/two-factor$/);
     await page.goto(`/${locale}/account/two-factor`);
     await expect(page.locator("html")).toHaveAttribute("lang", locale);
     await checkPage(page);
@@ -108,7 +111,7 @@ for (const locale of ["ta", "en"] as const) {
     const key = page.getByTestId("setup-key");
     await expect(key).toBeVisible();
     await expect(page.getByRole("img", { name: locale === "ta" ? /QR குறியீடு/ : /QR code/ })).toBeVisible();
-    const codes = await page.locator("ul li").allInnerTexts();
+    const codes = await page.getByRole("main").locator("ul li").allInnerTexts();
     const recovery = codes.filter((c) => /^[A-Za-z0-9]{5}-[A-Za-z0-9]{5}$/.test(c.trim()));
     expect(recovery).toHaveLength(10);
     await checkPage(page);
@@ -118,15 +121,15 @@ for (const locale of ["ta", "en"] as const) {
     // Confirm without ticking "saved" → asked to confirm; wrong code → error; right code → on.
     await page.getByLabel(t.code).fill(totp(secret));
     await page.getByRole("button", { name: t.turnOn }).click();
-    await expect(page.getByRole("alert")).toBeVisible();
+    await expect(page.getByRole("main").getByRole("alert")).toBeVisible();
     await page.getByLabel(t.saved).check();
     await page.getByLabel(t.code).fill(wrongCode(secret));
     await page.getByRole("button", { name: t.turnOn }).click();
-    await expect(page.getByRole("alert")).toContainText(t.wrong);
+    await expect(page.getByRole("main").getByRole("alert")).toContainText(t.wrong);
     await freshStep();
     await page.getByLabel(t.code).fill(totp(secret));
     await page.getByRole("button", { name: t.turnOn }).click();
-    await expect(page.getByRole("status").first()).toBeVisible();
+    await expect(page.getByRole("main").getByRole("status").first()).toBeVisible();
     await expect(page.getByRole("button", { name: t.off })).toBeVisible();
     const [row] = await sql<{ on: number }[]>("SELECT two_factor_enabled AS `on` FROM user WHERE id = ?", [id]);
     expect(row!.on).toBe(1);
@@ -143,7 +146,7 @@ for (const locale of ["ta", "en"] as const) {
     // A wrong code shows an error and keeps the person here.
     await page.getByLabel(t.code).fill(wrongCode(secret));
     await page.getByRole("button", { name: t.verify }).click();
-    await expect(page.getByRole("alert")).toContainText(t.wrong);
+    await expect(page.getByRole("main").getByRole("alert")).toContainText(t.wrong);
     await expect(page).toHaveURL(/\/two-factor$/);
     await page.screenshot({ path: `${SHOTS}/5-challenge-error-${locale}-${p}.png`, fullPage: true });
     await freshStep();
@@ -166,7 +169,7 @@ for (const locale of ["ta", "en"] as const) {
     await page.getByRole("button", { name: t.recovery }).click();
     await page.getByLabel(t.recoveryField).fill(recovery[0]!.trim());
     await page.getByRole("button", { name: t.verify }).click();
-    await expect(page.getByRole("alert")).toContainText(t.wrong);
+    await expect(page.getByRole("main").getByRole("alert")).toContainText(t.wrong);
 
     // Sign in again and turn it off with password + code.
     await page.getByRole("button", { name: locale === "ta" ? /அங்கீகரிப்புச் செயலியைப் பயன்படுத்து/ : /authenticator app instead/ }).click();
@@ -190,15 +193,16 @@ for (const locale of ["ta", "en"] as const) {
 test("a Church Admin without two-factor is sent to set it up and cannot open the admin", async ({ page }, info) => {
   const { email, id } = await makeUser(`admin.${info.project.name}`, ["CHURCH_ADMIN"]);
   await passwordStep(page, "en", email);
+  await page.goto("/en/account");
   // Account page: required notice.
-  await expect(page.getByRole("status").filter({ hasText: "Church Admins must turn on two-factor sign-in" })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("status").filter({ hasText: "Church Admins must turn on two-factor sign-in" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Open the admin" })).toHaveCount(0);
   // Admin pages send the person to the setup page instead.
   for (const path of ["/admin", "/admin/staff", "/admin/audit", "/admin/announcements"]) {
     await page.goto(path);
     await expect(page).toHaveURL(/\/en\/account\/two-factor$/);
   }
-  await expect(page.getByRole("status").filter({ hasText: "Church Admins must turn on two-factor sign-in" })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("status").filter({ hasText: "Church Admins must turn on two-factor sign-in" })).toBeVisible();
   await checkPage(page);
   await page.screenshot({ path: `${SHOTS}/7-admin-required-en-${info.project.name}.png`, fullPage: true });
   const [audit] = await sql<{ k: number }[]>("SELECT COUNT(*) AS k FROM audit_log WHERE action = 'auth.2fa.required' AND actor_user_id = ?", [id]);

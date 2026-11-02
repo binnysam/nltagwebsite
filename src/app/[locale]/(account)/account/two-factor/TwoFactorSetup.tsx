@@ -244,8 +244,8 @@ export function TwoFactorSetup({ locale, enabled, remaining }: Props) {
               <Text>{L("twoFactor.step2.help")}</Text>
               <QrCode value={enrollment.uri} label={L("twoFactor.qr.label")} />
               <Stack gap={1}>
-                <Text variant="small" tone="secondary" id={`${uid}-key-label`}>{L("twoFactor.setupKey")}</Text>
-                <Text medium className={styles.setupKey} aria-labelledby={`${uid}-key-label`} lang="en" translate="no" data-testid="setup-key">
+                <Text variant="small" tone="secondary">{L("twoFactor.setupKey")}</Text>
+                <Text medium className={styles.setupKey} lang="en" translate="no" data-testid="setup-key">
                   {enrollment.setupKey}
                 </Text>
               </Stack>
