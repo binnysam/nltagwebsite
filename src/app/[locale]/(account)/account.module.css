@@ -16,8 +16,9 @@
 }
 /* Phase 6b: one-time codes. A short field (6 digits / 11 characters), digits easy to tell apart:
    slashed zero, and Inter's open l / serifed I so recovery codes are not misread. */
-.codeField {
-  max-width: calc(var(--space-10) + var(--space-8)); /* 12rem: 6 digits or an 11-character code */
+/* Only the input is short (12rem: 6 digits or an 11-character code); the label keeps full width. */
+.codeField input {
+  max-width: calc(var(--space-10) + var(--space-8));
 }
 .codeField input,
 .codeList {
