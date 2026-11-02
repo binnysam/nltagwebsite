@@ -55,6 +55,9 @@
   /* ── Header ── */
   --header-height: var(--space-8);                 /* 64px */
 
+  /* ── Overlay (Phase 4c, approved by owner 2 Nov 2026) ── */
+  --color-scrim: color-mix(in srgb, var(--color-text-primary) 40%, transparent); /* [ADDITION] modal dialog backdrop */
+
   /* ── Layering [ADDITION] ── */
   --z-behind: -1;                                  /* decorative layers under content */
   --z-base: 0;

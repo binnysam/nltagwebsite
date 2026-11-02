@@ -46,7 +46,7 @@ textarea.control:lang(ta) { line-height: var(--leading-body-ta); }
   border-color: var(--color-border-strong);
   cursor: not-allowed;
 }
-.control:read-only:not(:disabled) { background: var(--color-surface-subtle); }
+input.control:read-only:not(:disabled), textarea.control:read-only:not(:disabled) { background: var(--color-surface-subtle); } /* selects are never "read-only" fills */
 
 .hint { font-size: var(--text-caption); line-height: var(--leading-small-en); color: var(--color-text-secondary); }
 .hint:lang(ta) { line-height: var(--leading-small-ta); }
@@ -60,3 +60,30 @@ textarea.control:lang(ta) { line-height: var(--leading-body-ta); }
   color: var(--color-status-error-text);
 }
 .error:lang(ta) { line-height: var(--leading-small-ta); }
+
+/* Select (Phase 4c): same edge, radius and height as the input; native arrow kept for clarity. */
+select.control { height: var(--control-height-input); padding-block: 0; cursor: pointer; }
+
+/* Checkbox (Phase 4c): the whole label row is the 44px target. */
+.checkField { display: flex; flex-direction: column; gap: var(--space-1); }
+.checkLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--control-height);
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--leading-small-en);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.checkLabel:lang(ta) { line-height: var(--leading-small-ta); }
+.checkbox {
+  flex: none;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  margin: 0;
+  accent-color: var(--color-action-primary);
+  cursor: pointer;
+}
+.checkbox:disabled, .checkbox:disabled + span { cursor: not-allowed; color: var(--color-text-disabled); }

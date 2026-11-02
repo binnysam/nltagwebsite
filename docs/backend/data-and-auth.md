@@ -34,6 +34,8 @@ src/server/                 server-only (import "server-only"); never reaches th
   security/log.ts           redacting JSON logger
 src/app/api/auth/[...all]   Better Auth HTTP handler
 src/app/[locale]/(account)  sign-in, sign-up, forgot/reset password, verify-email, account
+src/server/cms/             CMS rules, validation, services, public queries (Phase 4c, docs/backend/cms.md)
+src/app/admin/              CMS admin (English-first, staff only, follows the accounts gate)
 scripts/db/                 migrate, seed (fictional), create-first-admin
 drizzle/                    versioned SQL migrations + meta
 ```
@@ -50,7 +52,9 @@ drizzle/                    versioned SQL migrations + meta
 | `audit_log` | append-only trail | ids, action, outcome, HMAC'd IP; no names/emails/tokens |
 | `rate_limit_bucket` | our counters | email per address, 24-hour mail cap |
 
-Database default and every table: `utf8mb4` / `utf8mb4_uca1400_ai_ci` (Tamil). Ids, tokens and hashes: `ascii_bin` (case-sensitive). Membership and content tables arrive with their own migrations in 4c and 4d.
+Database default and every table: `utf8mb4` / `utf8mb4_uca1400_ai_ci` (Tamil). Ids, tokens and hashes: `ascii_bin` (case-sensitive).
+
+**Content tables (Phase 4c, migration `0001_cms_content`):** `content_item`, `content_translation`, `event_detail`, `sermon_detail`, `ministry_detail`, `testimony_detail`, `bible_translation`, `verse_detail`, `verse_text`, `verse_schedule`, `media_asset`. Details, workflow and the CMS authorization table: `docs/backend/cms.md`. Membership tables arrive with their own migration in 4d.
 
 ## Rules for every protected action
 1. `const me = await requirePermission(await headers(), "<permission>")` first. 401 if signed out, 403 if not allowed (or 404 with `hideAs404` where existence must not leak). Denials are audited.
@@ -58,6 +62,7 @@ Database default and every table: `utf8mb4` / `utf8mb4_uca1400_ai_ci` (Tamil). I
 3. Ids from the client are lookup keys only; re-check ownership against `me.userId`.
 4. Write an `audit()` row for anything an admin would need to account for. Never put personal data in it.
 5. New permissions are denied to everyone until added to `src/server/policy/permissions.ts` (and its test).
+6. CMS writes go through `src/server/cms/service.ts`, which checks permissions itself and applies the workflow rules in `src/server/cms/rules.ts` (Phase 4c used the existing permissions; the matrix is unchanged).
 
 ## Permissions
 | Permission | Visitor | Member | Content Editor | Church Admin |
@@ -110,6 +115,7 @@ All account pages (`/ta|en/sign-in`, `sign-up`, `forgot-password`, `reset-passwo
 ```
 npm run db:migrate              apply drizzle/*.sql to DATABASE_URL (.env.local)
 npm run db:seed                 fictional @nltag.test accounts (refuses production / non-local DB)
+npm run db:seed:content         fictional, bracketed sample CMS content (same refusals)
 npm run admin:bootstrap -- <email>   first Church Admin only (verified account, once)
 npm run db:generate -- --name <change>   new migration from schema changes; review the SQL
 npm run test:integration        MariaDB-backed tests (TEST_DATABASE_URL, *_test database)

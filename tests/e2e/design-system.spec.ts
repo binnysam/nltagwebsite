@@ -47,7 +47,9 @@ for (const locale of ["ta", "en"] as const) {
         [...document.querySelectorAll<HTMLElement>("main a, main button, main input, main textarea, header a, header button")]
           .filter((el) => el.offsetParent !== null && !el.classList.contains("ds-skip-link"))
           .map((el) => {
-            const r = el.getBoundingClientRect();
+            // A checkbox wrapped in its <label> (CheckboxField, Phase 4c): the whole label row toggles it.
+            const box = el.matches("input[type=checkbox]") && el.closest("label") ? el.closest("label")! : el;
+            const r = box.getBoundingClientRect();
             // Segments of the language switch extend their hit area with ::after
             const after = getComputedStyle(el, "::after");
             const extra = after.content !== "none" && after.position === "absolute" ? -2 * parseFloat(after.top || "0") : 0;

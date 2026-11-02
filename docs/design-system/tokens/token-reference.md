@@ -70,6 +70,7 @@ Phase 1 did not specify these values. They were needed to implement the approved
 | `--verse-landscape-text-ta/en` | 3 / 2.4 cqi, clamped to h3…h1 and body-l…h2 | Fluid sizing for the landscape feature card |
 | `--motion-hero-preset-cycle` (Phase 3) | `calc(var(--motion-hero-cycle) * 2.5)` = 120s | One pass through the five presets in the hero: 24s each (≈17s hold, ≈7s crossfade). Derived from the approved 48s cycle. **Approved by owner, 1 Nov 2026** |
 | `--home-hero-field-opacity` (Phase 3) | 0.35 | The approved hero fields drift over the presets at this strength; at full strength they muddied Kadal and Andhi (review screenshots in the Phase 3 report). **Approved by owner, 1 Nov 2026** |
+| `--color-scrim` (Phase 4c) | `color-mix(in srgb, var(--color-text-primary) 40%, transparent)` | Backdrop behind modal dialogs (`ConfirmDialog`). Ink at 40%; no new primitive value. Static, light mode only. **Approved by owner, 2 Nov 2026** |
 
 ## Rules
 

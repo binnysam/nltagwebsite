@@ -22,3 +22,34 @@ export function kuwaitDateKey(date: Date): string {
   }).format(date);
   return parts;
 }
+
+/**
+ * Kuwait does not observe daylight saving time: Asia/Kuwait is UTC+03:00 all year (IANA tz data).
+ * The admin enters times as Kuwait wall-clock time; the database stores UTC.
+ */
+const KUWAIT_OFFSET_MINUTES = 180;
+
+/** "2026-11-06T19:30" (Kuwait wall clock, from <input type="datetime-local">) → UTC Date. Null if malformed. */
+export function kuwaitLocalToUtc(value: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value.trim());
+  if (!m) return null;
+  const [, y, mo, d, h, mi] = m.map(Number) as [number, number, number, number, number, number];
+  if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || mi > 59) return null;
+  const utc = Date.UTC(y, mo - 1, d, h, mi) - KUWAIT_OFFSET_MINUTES * 60_000;
+  const back = new Date(utc + KUWAIT_OFFSET_MINUTES * 60_000);
+  if (back.getUTCDate() !== d || back.getUTCMonth() !== mo - 1) return null; // e.g. 31 February
+  return new Date(utc);
+}
+
+/** UTC Date → "YYYY-MM-DDTHH:mm" in Kuwait time, for datetime-local inputs. */
+export function utcToKuwaitLocal(date: Date | null | undefined): string {
+  if (!date) return "";
+  return new Date(date.getTime() + KUWAIT_OFFSET_MINUTES * 60_000).toISOString().slice(0, 16);
+}
+
+/** "Fri 6 Nov 2026, 19:30" in Kuwait time (admin interface, English). */
+export function formatKuwaitDateTime(date: Date): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: CHURCH_TIME_ZONE, weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).format(date);
+}

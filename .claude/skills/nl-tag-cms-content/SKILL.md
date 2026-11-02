@@ -6,13 +6,21 @@ description: Use for NLTAG content models, bilingual editorial workflow, CMS rol
 # NLTAG CMS and content
 
 ## Status
-Not implemented (Phase 4c). Foundation ready (Phase 4b): MariaDB 11.8, Better Auth, the two roles in `staff_role`, and `content.*`/`media.upload` permissions in `src/server/policy/permissions.ts` — see `nl-tag-data-and-auth`.
+Phase 4c built (branch `phase4c/cms-admin`, 2 Nov 2026). Read `docs/backend/cms.md` (architecture, tables, authorization, workflow) and `docs/content/admin-guide.md` (how staff use it).
+
+## Patterns to reuse
+- New content type: add it to `CONTENT_TYPES` and a `*_detail` table (new reviewed migration), a `MODULES` entry in `src/server/cms/registry.ts`, a detail schema in `schemas.ts`, `loadDetail`/`writeDetail` cases in `service.ts`, a `TypeDetails` case in the admin form, a public query in `public.ts`, and tests in `tests/unit/cms.test.tsx` and `tests/integration/cms.test.ts`.
+- Every write: `parseContentForm` (Zod) → service (permission + `canPerform` + transaction + `audit()`), never direct table writes from routes.
+- Public reads only through `src/server/cms/public.ts` (published, in window, language has a title, public DTO fields). Never select content tables in a page.
+- Text is Markdown; render with `<Markdown>`; never `dangerouslySetInnerHTML`.
+- Admin UI: `requireStaffPage(permission)` first in every page, `actionCtx()` in every action; redirect results use fixed keys (`ResultNotice`); destructive actions use `ConfirmButton`; client forms submit with `keepValues` so errors never wipe input.
 
 ## Roles (server-enforced)
 | Capability | Church Admin | Content Editor |
 |---|---|---|
 | Create/edit drafts | Yes | Yes |
 | Submit for review | — | Yes |
+| Edit published items, delete/restore, record testimony/Bible permissions | Yes | No |
 | Publish/unpublish | Yes | No |
 | Membership records | Yes | No access |
 | Users and roles | Yes | No |

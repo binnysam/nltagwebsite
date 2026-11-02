@@ -10,6 +10,8 @@ const securityHeaders = [
 const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Media uploads are limited to 2 MB in the service; allow the multipart overhead (Phase 4c).
+  experimental: { serverActions: { bodySizeLimit: "3mb" } },
   // Hostinger Business runs `next start` on Node.js; no static export (CMS/auth come later).
   async redirects() {
     // Tamil is the default locale (Gate 0). Temporary redirect so the default can change later.
@@ -26,6 +28,9 @@ const config: NextConfig = {
       { source: "/:locale(ta|en)/:page(sign-in|sign-up|forgot-password|reset-password|verify-email|account)", headers: privateHeaders },
       { source: "/:locale(ta|en)/account/:rest*", headers: privateHeaders },
       { source: "/api/auth/:rest*", headers: privateHeaders },
+      // CMS admin and previews (Phase 4c): per-user, never cached or indexed.
+      { source: "/admin", headers: privateHeaders },
+      { source: "/admin/:rest*", headers: privateHeaders },
     ];
   },
 };

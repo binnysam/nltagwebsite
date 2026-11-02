@@ -55,4 +55,28 @@ Eyebrow (14px ink-500) → display-l heading with `id` (for `aria-labelledby`) �
 `Container`, `Section`, `Stack`, `Cluster`, `Grid`, `Divider`, `Surface`, `Heading`, `Text`, `VisuallyHidden`, `Spinner`, `Skeleton`, `Icon` (`src/design-system/primitives`). Gap and padding props accept only space-scale steps. `Skeleton` is static (no shimmer). `Spinner` is a static ring (no rotation); it is decorative and must sit next to a visible label.
 
 ## Not yet built (later phases, by plan)
-Dialogs, toasts, tabs, accordion, checkbox, radio, select, date picker, file upload (built when a feature needs them, Phases 4–5); footer and breadcrumbs (Phase 5).
+Toasts, tabs, accordion, radio, custom date picker (native date inputs are used), styled file upload (built when a feature needs them); footer and breadcrumbs (Phase 5). Dialog (ConfirmButton), checkbox and select were added in Phase 4c (below).
+
+## Phase 4c additions (admin and forms; usable anywhere)
+Built for the CMS admin from existing tokens only; listed in the gallery (`/[locale]/design-system`, "Form fields and status").
+
+### SelectField / CheckboxField (`TextField/SelectField.tsx`)
+- **When:** choosing one option from a short fixed list; a single yes/no setting.
+- **Anatomy:** SelectField = TextField anatomy (label 14/500 above, hint, 48px control, radius 12, `border-control`, error in words). CheckboxField = native checkbox (20px, `accent-color: --color-action-primary`) inside its label; the label row is the 44px target.
+- **A11y:** visible label is the accessible name; hint and error via `aria-describedby`; `aria-invalid` on error.
+
+### Notice (`Notice/`)
+- **When:** result of an action, page-level warnings, error summaries.
+- **Anatomy:** status surface + status text tokens (same pairs as StatusBadge), radius 12, hairline edge, title in words + optional body. Links in an error-summary list keep 44px.
+- **A11y:** `error` → `role="alert"`; other tones → `role="status"`. Never colour alone. Static (no timer).
+
+### DataTable (`DataTable/`)
+- **When:** lists staff compare across columns (content lists, audit log). Not for public schedules (use ScheduleList).
+- **Anatomy:** card surface (radius 20, shadow-1), hairline row dividers, header 14/500 `text-strong-secondary`, row hover `surface-page`.
+- **A11y:** `<caption>` (optionally visually hidden) names the table; the wrapper is a focusable, labelled region that scrolls sideways on narrow screens so the page never does.
+
+### ConfirmButton (`ConfirmDialog/ConfirmDialog.client.tsx`)
+- **When:** unpublish, archive, delete, remove a role, record a permission — anything that changes public output or is hard to undo.
+- **Anatomy:** trigger Button; native modal `<dialog>`: card surface, radius 20, shadow-3, title (h3 style), message saying what happens and whether it can be undone, Cancel (secondary, focused) + confirm (primary).
+- **A11y:** `showModal()` traps focus; Escape/Cancel close and return focus to the trigger; named by its title, described by its message.
+- **Backdrop:** `--color-scrim` (ink at 40%; approved by owner 2 Nov 2026). Use it for every modal backdrop; never a new overlay colour.
