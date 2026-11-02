@@ -79,4 +79,4 @@ Built for the CMS admin from existing tokens only; listed in the gallery (`/[loc
 - **When:** unpublish, archive, delete, remove a role, record a permission — anything that changes public output or is hard to undo.
 - **Anatomy:** trigger Button; native modal `<dialog>`: card surface, radius 20, shadow-3, title (h3 style), message saying what happens and whether it can be undone, Cancel (secondary, focused) + confirm (primary).
 - **A11y:** `showModal()` traps focus; Escape/Cancel close and return focus to the trigger; named by its title, described by its message.
-- **Deviation note:** the backdrop is `color-mix(in srgb, var(--color-text-primary) 40%, transparent)`; there is no scrim token yet. Proposed for owner sign-off as `--color-scrim`.
+- **Backdrop:** `--color-scrim` (ink at 40%; approved by owner 2 Nov 2026). Use it for every modal backdrop; never a new overlay colour.

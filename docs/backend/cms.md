@@ -38,7 +38,7 @@ All text columns use `utf8mb4_uca1400_ai_ci` (Tamil); ids, slugs and hashes are 
 
 **Not in the database:** the regular weekly schedule. It stays the Gate 0 record in `src/content/schedule.ts`; the admin shows it read-only. Only individually announced special meetings are CMS events.
 
-**Why images are in the database:** Hostinger's Git deployment replaces the application folder on every deploy, so uploaded files there would be lost; the database is the only persistent storage already provisioned and is covered by its backups. Owner decision requested (see the PR).
+**Media storage — owner decision (2 Nov 2026):** uploaded images move to persistent storage outside the deployment, `/home/u339364475/nltag-data/media` (`<home>/nltag-data/media`, or `NLTAG_MEDIA_DIR`), never in Git, the app folder or `public_html`. The switch is made only after a production check proves the folder is writable by the Node.js app and survives a fresh Hostinger deployment: `src/instrumentation.ts` runs the probe in `src/server/storage/media-dir.ts` at every server start and logs one `[nltag-media-storage]` line (writable, read-back, folder mode, and whether the marker from an earlier deployment is still there). Until that check passes the `media_asset` table keeps the `MEDIUMBLOB` design above; no image can be uploaded in production meanwhile (the admin is behind the accounts gate and `0001_cms_content` is not applied).
 
 ## Authorization (enforced in `rules.ts` + `service.ts`; the permission matrix is unchanged)
 | Action | Content Editor | Church Admin | Permission used |
