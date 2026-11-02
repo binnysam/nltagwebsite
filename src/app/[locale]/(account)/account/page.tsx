@@ -5,6 +5,8 @@ import { Divider, Heading, Stack, Text } from "@/design-system/primitives";
 import { t, type Locale } from "@/content/ui-strings";
 import { getAuth } from "@/server/auth/auth";
 import { requirePermission, AuthzError } from "@/server/auth/session";
+import { can } from "@/server/policy/permissions";
+import { ButtonLink } from "@/design-system/components";
 import { AccountPage } from "../page-parts";
 import { SessionActions } from "./SessionActions";
 import styles from "../account.module.css";
@@ -35,6 +37,12 @@ export default async function AccountHome({ params }: { params: Promise<{ locale
 
   return (
     <AccountPage locale={locale} title={L("account.title")} lead={`${current.name} · ${current.email}`}>
+      {/* Staff only. The admin is English-first, so the link is English on both locales (Phase 4c). */}
+      {can(current.principal, "admin.access") ? (
+        <div>
+          <ButtonLink href="/admin" variant="secondary" lang="en">Open the admin</ButtonLink>
+        </div>
+      ) : null}
       <Stack gap={4}>
         <Heading level={2} styleAs="h3">{L("account.sessions")}</Heading>
         <ul className={styles.sessionList}>

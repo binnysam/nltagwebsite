@@ -38,3 +38,10 @@ test("homepage does not link to account pages", async ({ page }) => {
     await expect(page.locator('a[href*="sign-in"], a[href*="sign-up"], a[href*="/account"]')).toHaveCount(0);
   }
 });
+
+test("CMS admin, previews and media are 404 while accounts are off (Phase 4c)", async ({ request }) => {
+  for (const path of ["/admin", "/admin/pages", "/admin/pages/new", "/admin/staff", "/admin/audit", "/admin/preview/00000000-0000-0000-0000-000000000000", "/admin/media/00000000-0000-0000-0000-000000000000"]) {
+    const res = await request.get(path, { maxRedirects: 0 });
+    expect(res.status(), path).toBe(404);
+  }
+});

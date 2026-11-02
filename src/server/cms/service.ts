@@ -368,7 +368,7 @@ export interface DashboardData {
   totals: { published: number; draft: number; inReview: number; scheduled: number };
   recentContent: ListRow[];
   upcomingSpecial: ListRow[];
-  adminActivity: { id: number; action: string; outcome: string; entity: string | null; entityId: string | null; actorName: string | null; createdAt: Date }[] | null;
+  adminActivity: { id: number; action: string; outcome: string; entity: string | null; entityId: string | null; reason: string | null; actorName: string | null; createdAt: Date }[] | null;
 }
 
 export async function dashboard(ctx: Ctx, now = new Date()): Promise<DashboardData> {
@@ -406,7 +406,7 @@ export async function dashboard(ctx: Ctx, now = new Date()): Promise<DashboardDa
 async function recentAudit(limit: number, actionPrefix?: string) {
   const db = getDb();
   return db
-    .select({ id: auditLog.id, action: auditLog.action, outcome: auditLog.outcome, entity: auditLog.entity, entityId: auditLog.entityId, actorName: user.name, createdAt: auditLog.createdAt })
+    .select({ id: auditLog.id, action: auditLog.action, outcome: auditLog.outcome, entity: auditLog.entity, entityId: auditLog.entityId, reason: auditLog.reason, actorName: user.name, createdAt: auditLog.createdAt })
     .from(auditLog)
     .leftJoin(user, eq(user.id, auditLog.actorUserId))
     .where(actionPrefix ? like(auditLog.action, `${actionPrefix.replace(/[\\%_]/g, (c) => `\\${c}`)}%`) : undefined)
