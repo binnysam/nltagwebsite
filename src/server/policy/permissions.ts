@@ -1,4 +1,5 @@
 import type { StaffRole } from "../db/schema/access";
+import { roleRequiresTwoFactor } from "../auth/two-factor-policy";
 
 /**
  * Permission matrix (architecture §5). Pure data, no I/O, so it is unit-tested exhaustively and
@@ -32,7 +33,14 @@ export type Permission = (typeof PERMISSIONS)[number];
 
 export type Principal =
   | { kind: "visitor" }
-  | { kind: "user"; userId: string; emailVerified: boolean; roles: readonly StaffRole[] };
+  | {
+      kind: "user";
+      userId: string;
+      emailVerified: boolean;
+      roles: readonly StaffRole[];
+      /** A verified authenticator app is set up (Phase 6b). Read from the database per request. */
+      twoFactorEnabled: boolean;
+    };
 
 const VISITOR: readonly Permission[] = ["content.read_published"];
 const MEMBER: readonly Permission[] = [...VISITOR, "account.manage_own", "membership.own"];
@@ -60,7 +68,12 @@ const NEEDS_VERIFIED_EMAIL = new Set<Permission>(PERMISSIONS.filter((p) => p !==
 export function permissionsFor(principal: Principal): ReadonlySet<Permission> {
   if (principal.kind === "visitor") return new Set(VISITOR);
   const granted = new Set<Permission>(MEMBER);
-  for (const role of principal.roles) for (const p of ROLE_GRANTS[role] ?? []) granted.add(p);
+  for (const role of principal.roles) {
+    // Phase 6b: a role that requires two-factor grants nothing until it is set up, everywhere
+    // (pages, server actions and services all ask `can()`).
+    if (roleRequiresTwoFactor(role) && !principal.twoFactorEnabled) continue;
+    for (const p of ROLE_GRANTS[role] ?? []) granted.add(p);
+  }
   if (!principal.emailVerified) for (const p of [...granted]) if (NEEDS_VERIFIED_EMAIL.has(p)) granted.delete(p);
   return granted;
 }

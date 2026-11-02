@@ -6,6 +6,7 @@ import { can, SESSION_MAX_AGE_SECONDS, type Permission, type Principal } from ".
 import { audit } from "../services/audit";
 import { rolesOf } from "../services/roles";
 import { getAuth } from "./auth";
+import { needsTwoFactorEnrollment } from "./two-factor-policy";
 
 export interface CurrentUser {
   principal: Extract<Principal, { kind: "user" }>;
@@ -43,12 +44,23 @@ export async function getCurrentUser(headers: Headers): Promise<CurrentUser | nu
     }
   }
   return {
-    principal: { kind: "user", userId: result.user.id, emailVerified: result.user.emailVerified, roles },
+    principal: {
+      kind: "user",
+      userId: result.user.id,
+      emailVerified: result.user.emailVerified,
+      roles,
+      twoFactorEnabled: (result.user as { twoFactorEnabled?: boolean | null }).twoFactorEnabled === true,
+    },
     userId: result.user.id,
     sessionId: result.session.id,
     email: result.user.email,
     name: result.user.name,
   };
+}
+
+/** Holds a role that requires two-factor (Church Admin) but has not set it up yet. */
+export function mustEnrollTwoFactor(current: CurrentUser): boolean {
+  return needsTwoFactorEnrollment(current.principal.roles, current.principal.twoFactorEnabled);
 }
 
 export async function getPrincipal(headers: Headers): Promise<Principal> {

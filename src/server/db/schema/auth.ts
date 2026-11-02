@@ -16,6 +16,9 @@ export const user = mysqlTable(
     email: varchar("email", { length: 254 }).notNull(),
     emailVerified: boolean("email_verified").notNull().default(false),
     image: varchar("image", { length: 2048 }),
+    // Phase 6b (migration 0003): set by Better Auth's two-factor plugin once an authenticator app
+    // has been verified; cleared when two-factor is turned off.
+    twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
     createdAt: timestamp3("created_at").notNull(),
     updatedAt: timestamp3("updated_at").notNull(),
   },
@@ -75,6 +78,31 @@ export const verification = mysqlTable(
     updatedAt: timestamp3("updated_at").notNull(),
   },
   (t) => [index("verification_identifier_idx").on(t.identifier), index("verification_expires_idx").on(t.expiresAt)],
+);
+
+/**
+ * Authenticator-app (TOTP) secret and recovery codes, one row per user (Phase 6b, migration 0003).
+ * Better Auth's two-factor plugin owns this table; property names follow
+ * node_modules/better-auth/dist/plugins/two-factor/schema.mjs.
+ * - `secret` and `backupCodes` are encrypted by Better Auth with BETTER_AUTH_SECRET before
+ *   storage (XChaCha20-Poly1305); never select them outside the plugin and never log them.
+ * - `verified` stays false until the first six-digit code is confirmed during enrollment.
+ * - `failedVerificationCount` / `lockedUntil`: account lockout after repeated wrong codes.
+ */
+export const twoFactor = mysqlTable(
+  "two_factor",
+  {
+    id: idColumn("id").primaryKey(),
+    secret: text("secret").notNull(),
+    backupCodes: text("backup_codes").notNull(),
+    userId: idColumn("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    verified: boolean("verified").notNull().default(false),
+    failedVerificationCount: int("failed_verification_count").notNull().default(0),
+    lockedUntil: timestamp3("locked_until"),
+  },
+  (t) => [uniqueIndex("two_factor_user_uq").on(t.userId)],
 );
 
 /** Better Auth's own rate-limit counters (rateLimit.storage = "database"). */
