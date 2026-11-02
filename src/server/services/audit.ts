@@ -23,6 +23,21 @@ export const AUDIT_ACTIONS = [
   "role.revoke",
   "role.bootstrap",
   "policy.deny",
+  // CMS (Phase 4c). Entity = content type; reason = status change. Never titles or text.
+  "content.create",
+  "content.update",
+  "content.submit",
+  "content.publish",
+  "content.unpublish",
+  "content.archive",
+  "content.return_to_draft",
+  "content.delete",
+  "content.restore",
+  "testimony.permission",
+  "bible.permission",
+  "verse.schedule",
+  "media.upload",
+  "media.delete",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
