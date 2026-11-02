@@ -82,6 +82,19 @@ An unverified email removes every permission except reading published content an
 | Account emails to one address | 3 / hour per kind | `email/send.ts` |
 | All outgoing mail | 300 per rolling 24 h (`EMAIL_DAILY_CAP`) | `email/send.ts` |
 
+## Accounts gate (owner decision, 2 Nov 2026)
+All account pages (`/ta|en/sign-in`, `sign-up`, `forgot-password`, `reset-password`, `verify-email`, `account`) and `/api/auth/*` return **404** until email delivery works. Code: `src/server/accounts-gate.ts`, used by `src/app/[locale]/(account)/layout.tsx` and `src/app/api/auth/[...all]/route.ts`. Read per request (no rebuild baked in). Nothing on the site links to these pages.
+
+- Off by default everywhere. On only when `NLTAG_ACCOUNTS_ENABLED=1` (exact value).
+- In production the flag is ignored unless `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` and `SMTP_FROM` are all set.
+- Tests: `tests/unit/accounts-gate.test.ts`, `tests/e2e/accounts-gate.spec.ts` (every page in both languages, the auth API, no links from the homepage).
+
+### Enabling accounts (later, needs owner approval)
+1. Owner creates the Gmail App Password for the church account and sets the four `SMTP_*` variables in Hostinger (never in chat or the repository).
+2. With the flag still off, run a real delivery test from the server to an owner-controlled inbox and confirm arrival, sender, SPF/DKIM pass and both languages.
+3. Set `NLTAG_ACCOUNTS_ENABLED=1`, redeploy, then sign up with a test address, verify, reset the password and sign out on the live site.
+4. If any step fails, set the flag back to `0`.
+
 ## Security behaviour (all covered by tests)
 - Same response for registered and unregistered addresses (sign-up and reset); emails are sent in the background so timing does not reveal accounts.
 - Origin and CSRF checks forced on in every environment (Better Auth disables them under `NODE_ENV=test` by default).

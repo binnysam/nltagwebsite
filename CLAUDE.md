@@ -11,7 +11,7 @@ New Life Tamil AG Church (NLTAG), Kuwait. Bilingual (Tamil default `/ta`, Englis
 Report conflicts; never resolve them silently.
 
 ## Current phase
-Phase 2 (design system) integrated. Phase 3 (motion system, homepage hero) approved by the owner on 1 Nov 2026 (120s preset cycle, 0.35 hero field opacity, Tamil font preload on both locales). Phase 4 architecture approved with adjustments; Phase 4a (Hostinger check) done: MariaDB 11.8.9. Phase 4b (database, auth, roles, audit, rate limits, account emails) built locally on branch `phase4b/data-auth-foundation`, awaiting owner review. Phase 4c CMS, 4d membership interface, rest of the homepage (Phase 5), production database and deployment: **not authorised**.
+Phase 2 (design system) integrated. Phase 3 (motion system, homepage hero) approved by the owner on 1 Nov 2026 (120s preset cycle, 0.35 hero field opacity, Tamil font preload on both locales). Phase 4a (Hostinger check) done: MariaDB 11.8.9. Phase 4b (database, auth, roles, audit, rate limits, account emails) approved and merged on 2 Nov 2026, with the **accounts gate**: account pages and `/api/auth` return 404 until SMTP is configured, tested and `NLTAG_ACCOUNTS_ENABLED=1` is set (`docs/backend/data-and-auth.md`). The owner approved replacing the old trial site on nltagkuwait.com with this site. Phase 4c CMS, 4d membership interface and the rest of the homepage (Phase 5): **not authorised**.
 
 ## Skills — use the matching one
 | Task | Skill |

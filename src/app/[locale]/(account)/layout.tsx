@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { SiteHeader } from "@/design-system/components";
 import { Container, Section } from "@/design-system/primitives";
 import type { Locale } from "@/content/ui-strings";
+import { accountsEnabled } from "@/server/accounts-gate";
 
 /** Account pages are never indexed or cached (architecture §4). Headers are also set in next.config.ts. */
 export const metadata: Metadata = { robots: { index: false, follow: false, nocache: true } };
@@ -12,6 +15,9 @@ export const metadata: Metadata = { robots: { index: false, follow: false, nocac
  * can get back to the site and change language from any account page. No CTA here.
  */
 export default async function AccountLayout({ children, params }: { children: ReactNode; params: Promise<{ locale: string }> }) {
+  // Decided per request, so enabling accounts later needs only an environment change.
+  await connection();
+  if (!accountsEnabled()) notFound();
   const { locale } = await params;
   return (
     <>

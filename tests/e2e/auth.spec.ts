@@ -7,7 +7,7 @@ import mysql from "mysql2/promise";
 /**
  * Phase 4b account pages in a real browser. Needs the app running on :3100 with a migrated
  * local MariaDB and no SMTP (emails land in .data/mail/):
- *   (.env.local: BETTER_AUTH_URL=http://localhost:3100, NLTAG_LOCAL_MAIL_OUTBOX=1)
+ *   (.env.local: BETTER_AUTH_URL=http://localhost:3100, NLTAG_LOCAL_MAIL_OUTBOX=1, NLTAG_ACCOUNTS_ENABLED=1)
  *   scripts/serve-gallery.sh && E2E_AUTH=1 npm run test:e2e -- auth
  * Skipped otherwise, so the design-system run does not need a database.
  */
