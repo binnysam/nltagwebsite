@@ -17,7 +17,8 @@ Read `docs/backend/data-and-auth.md` first. It holds the code map, tables, permi
 - Seed and tests use fictional data on the `@nltag.test` domain only.
 - Accounts gate (`src/server/accounts-gate.ts`): production needs `NLTAG_ACCOUNTS_ENABLED=1`, all `SMTP_*` and `AUTH_RATE_LIMIT=on`. Never weaken it.
 - New users only through the staff allowlist (`src/server/auth/signup-allowlist.ts`, enforced in the `user.create.before` hook). It fails closed in production; keep the refused response identical to a real sign-up.
-- First Church Admin only via `bootstrapFirstAdmin` (`admin:bootstrap` locally, `NLTAG_BOOTSTRAP_ADMIN_EMAIL` in one Hostinger build); owner runbook `docs/operations/admin-activation.md`.
+- Two-factor (Phase 6b): Church Admin permissions require `twoFactorEnabled` (`two-factor-policy.ts` → `permissionsFor`). Never add a path to `SESSION_PATHS_WITH_SECOND_FACTOR` that can create a session without a code; never offer trusted devices or re-show the secret; disable/new codes need password + current code. Never change `BETTER_AUTH_SECRET` after enrollment.
+- First Church Admin only via `bootstrapFirstAdmin` (requires verified email and two-factor) (`admin:bootstrap` locally, `NLTAG_BOOTSTRAP_ADMIN_EMAIL` in one Hostinger build); owner runbook `docs/operations/admin-activation.md`.
 
 ## Never without owner approval
-Production database creation or migration, setting SMTP or Google credentials, enabling accounts, changing the allowlist or bootstrapping an admin, two-factor (migration `0003`), changing session lengths, roles or the permission matrix, adding a paid service, deploying.
+Production database creation or migration (including applying `0003_two_factor`), setting SMTP or Google credentials, enabling accounts, changing the allowlist or bootstrapping an admin, changing which roles require two-factor, changing session lengths, roles or the permission matrix, adding a paid service, deploying.
