@@ -34,8 +34,17 @@ const OWNER_SUPPLIED: Record<string, string> = {
   "verse.placeholderChip": "மாதிரி",
 };
 
-/** Phase 4b account and email wording (1 Nov 2026), Tamil awaiting owner review. */
-const PENDING_PREFIXES = /^(auth|account|email)\./;
+/**
+ * Tamil awaiting owner review: Phase 4b account and email wording (1 Nov 2026) and the Phase 5
+ * public-site wording (2 Nov 2026, listed exactly so nothing else can slip in). The Phase 5 PR
+ * must not merge until the owner approves or replaces these (docs/content/tamil-content-review.md).
+ */
+const PHASE5_PENDING = [
+  "nav.ministries", "nav.testimonies", "footer.nav", "section.announcements", "section.specialMeetings", "section.visit",
+  "section.comingSoon", "action.viewAll", "action.readMore", "sermon.watch", "testimony.anonymous", "ministry.contact",
+  "special.location.tba", "visit.where", "visit.when",
+];
+const PENDING_PREFIXES = new RegExp(`^((auth|account|email)\\.|(${PHASE5_PENDING.map((k) => k.replace(".", "\\.")).join("|")})$)`);
 
 /** The 26 recommended drafts the owner approved unchanged ("rest all is fine"). */
 const APPROVED_AS_RECOMMENDED: [string, string][] = [

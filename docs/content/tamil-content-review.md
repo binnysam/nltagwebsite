@@ -1,7 +1,7 @@
 # Tamil content approval record
 
 **Generated from** `src/content/ui-strings.ts`, `src/content/schedule.ts` and `src/content/tamil-approvals.ts` by `node scripts/tamil-review.ts`. Do not edit by hand; `npm run verify` fails if this file is out of date.
-**Approved by the owner on 2026-11-01.** 48 of 91 items approved (22 owner-supplied, 26 recommended drafts approved); 43 still awaiting review. Times, days and NECK were confirmed at Gate 0.
+**Approved by the owner on 2026-11-01.** 48 of 106 items approved (22 owner-supplied, 26 recommended drafts approved); 58 still awaiting review. Times, days and NECK were confirmed at Gate 0.
 
 Owner-supplied Tamil is approved content and is reproduced exactly as supplied. Do not rephrase, re-spell or "correct" it; a unit test compares every character. Any change needs new owner approval. The language names தமிழ் and English were confirmed at Gate 0 and are not listed.
 
@@ -57,6 +57,21 @@ Owner-supplied Tamil is approved content and is reproduced exactly as supplied. 
 | site.inPreparation | This website is being prepared. | இந்த இணையதளம் தயாராகி வருகிறது. | Recommended draft approved | — |  | Approved (`confirmed`) |
 | special.typeLabel | Special meeting | சிறப்புக் கூட்டம் | Recommended draft approved | — |  | Approved (`confirmed`) |
 | special.empty | Special meetings are announced individually. | சிறப்புக் கூட்டங்கள் தனித்தனியாக அறிவிக்கப்படும். | Recommended draft approved | — |  | Approved (`confirmed`) |
+| nav.ministries | Ministries | ஊழியங்கள் | — | — |  | Awaiting church review (`draft-review`) |
+| nav.testimonies | Testimonies | சாட்சிகள் | — | — |  | Awaiting church review (`draft-review`) |
+| footer.nav | Site links | இணையதள இணைப்புகள் | — | — |  | Awaiting church review (`draft-review`) |
+| section.announcements | Announcements | அறிவிப்புகள் | — | — |  | Awaiting church review (`draft-review`) |
+| section.specialMeetings | Upcoming special meetings | வரவிருக்கும் சிறப்புக் கூட்டங்கள் | — | — |  | Awaiting church review (`draft-review`) |
+| section.visit | Visit us | எங்களைச் சந்திக்க வாருங்கள் | — | — |  | Awaiting church review (`draft-review`) |
+| section.comingSoon | This section will be updated soon. | இந்தப் பகுதி விரைவில் புதுப்பிக்கப்படும். | — | — | Shown wherever the church has not published content for a section yet. | Awaiting church review (`draft-review`) |
+| action.viewAll | View all | அனைத்தையும் காண்க | — | — |  | Awaiting church review (`draft-review`) |
+| action.readMore | Read more | மேலும் வாசிக்க | — | — |  | Awaiting church review (`draft-review`) |
+| sermon.watch | Watch the sermon | செய்தியைப் பார்க்க | — | — |  | Awaiting church review (`draft-review`) |
+| testimony.anonymous | Name withheld | பெயர் குறிப்பிடப்படவில்லை | — | — |  | Awaiting church review (`draft-review`) |
+| ministry.contact | Contact | தொடர்புக்கு | — | — |  | Awaiting church review (`draft-review`) |
+| special.location.tba | Venue to be announced | இடம் பின்னர் அறிவிக்கப்படும் | — | — |  | Awaiting church review (`draft-review`) |
+| visit.where | Where we meet | நாங்கள் கூடும் இடம் | — | — |  | Awaiting church review (`draft-review`) |
+| visit.when | Main worship | சபை ஆராதனை நேரம் | — | — |  | Awaiting church review (`draft-review`) |
 | auth.signIn.title | Sign in | உள்நுழைக | — | — |  | Awaiting church review (`draft-review`) |
 | auth.signUp.title | Create an account | கணக்கை உருவாக்குக | — | — |  | Awaiting church review (`draft-review`) |
 | auth.field.name | Full name | முழுப் பெயர் | — | — |  | Awaiting church review (`draft-review`) |

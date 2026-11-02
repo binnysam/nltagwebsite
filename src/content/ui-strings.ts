@@ -125,6 +125,27 @@ export const uiStrings = {
     "சிறப்புக் கூட்டங்கள் தனித்தனியாக அறிவிக்கப்படும்.",
   ),
 
+  // Public website (Phase 5, 2 Nov 2026). Tamil is draft-review until the owner approves it.
+  "nav.ministries": s("Ministries", "ஊழியங்கள்"),
+  "nav.testimonies": s("Testimonies", "சாட்சிகள்"),
+  "footer.nav": s("Site links", "இணையதள இணைப்புகள்"),
+  "section.announcements": s("Announcements", "அறிவிப்புகள்"),
+  "section.specialMeetings": s("Upcoming special meetings", "வரவிருக்கும் சிறப்புக் கூட்டங்கள்"),
+  "section.visit": s("Visit us", "எங்களைச் சந்திக்க வாருங்கள்"),
+  "section.comingSoon": s(
+    "This section will be updated soon.",
+    "இந்தப் பகுதி விரைவில் புதுப்பிக்கப்படும்.",
+    { note: "Shown wherever the church has not published content for a section yet." },
+  ),
+  "action.viewAll": s("View all", "அனைத்தையும் காண்க"),
+  "action.readMore": s("Read more", "மேலும் வாசிக்க"),
+  "sermon.watch": s("Watch the sermon", "செய்தியைப் பார்க்க"),
+  "testimony.anonymous": s("Name withheld", "பெயர் குறிப்பிடப்படவில்லை"),
+  "ministry.contact": s("Contact", "தொடர்புக்கு"),
+  "special.location.tba": s("Venue to be announced", "இடம் பின்னர் அறிவிக்கப்படும்"),
+  "visit.where": s("Where we meet", "நாங்கள் கூடும் இடம்"),
+  "visit.when": s("Main worship", "சபை ஆராதனை நேரம்"),
+
   // Accounts and sign-in (Phase 4b). Tamil is draft-review until the owner approves it.
   "auth.signIn.title": s("Sign in", "உள்நுழைக"),
   "auth.signUp.title": s("Create an account", "கணக்கை உருவாக்குக"),
