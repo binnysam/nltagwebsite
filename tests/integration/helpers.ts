@@ -3,6 +3,8 @@ import { getAuth } from "@/server/auth/auth";
 import { getDb } from "@/server/db/client";
 import { flushEmailQueueForTests } from "@/server/email/send";
 import { memoryOutbox } from "@/server/email/transport";
+import { SEED_TOTP_SECRET, SEED_USERS } from "../../scripts/db/seed";
+import { base32Decode, freshStep, totp } from "../support/totp";
 
 export const ORIGIN = "http://localhost:3000";
 let ipCounter = 10;
@@ -69,9 +71,34 @@ export async function verifiedUser(email: string, password = "correct-horse-batt
   return cookie;
 }
 
-export async function signIn(email: string, password: string, ip = freshIp()) {
+/**
+ * Password sign-in. For a seeded account with two-factor on (the Church Admin) the challenge is
+ * completed with the seed's test authenticator, so callers get a normal session as before;
+ * pass `{ secondFactor: false }` to stop at the challenge, or `totpSecret` for other accounts.
+ */
+export async function signIn(email: string, password: string, ip = freshIp(), opts: { secondFactor?: boolean; totpSecret?: string | Uint8Array } = {}) {
   const res = await call("/sign-in/email", { body: { email, password }, ip });
-  return { res, cookie: cookiesFrom(res) };
+  const cookie = cookiesFrom(res);
+  const seeded = SEED_USERS.find((u) => u.email === email)?.twoFactor ? SEED_TOTP_SECRET : undefined;
+  const secret = opts.totpSecret ?? seeded;
+  if (opts.secondFactor === false || !secret || res.status !== 200) return { res, cookie };
+  const body = (await res.clone().json()) as { twoFactorRedirect?: boolean };
+  if (!body.twoFactorRedirect) return { res, cookie };
+  await freshStep();
+  const verified = await call("/two-factor/verify-totp", { body: { code: totp(secret) }, ip, cookie });
+  return { res: verified, cookie: cookiesFrom(verified, cookie) };
+}
+
+/** Enrolls an authenticator for a signed-in account over HTTP; returns the new session and secret. */
+export async function enrollTwoFactor(cookie: string, password = "correct-horse-battery", ip = freshIp()) {
+  const enable = await call("/two-factor/enable", { body: { password }, ip, cookie });
+  if (enable.status !== 200) throw new Error(`enable failed (${enable.status})`);
+  const { totpURI, backupCodes } = (await enable.json()) as { totpURI: string; backupCodes: string[] };
+  const secret = base32Decode(new URL(totpURI).searchParams.get("secret")!);
+  await freshStep();
+  const verify = await call("/two-factor/verify-totp", { body: { code: totp(secret) }, ip, cookie });
+  if (verify.status !== 200) throw new Error(`verify failed (${verify.status})`);
+  return { cookie: cookiesFrom(verify, cookie), secret, backupCodes, totpURI };
 }
 
 export async function clearRateLimits() {

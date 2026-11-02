@@ -14,6 +14,8 @@ const reasonOf = (error: unknown) =>
         ? "no account with that address yet. Sign up and verify the email first."
         : error.code === "UNVERIFIED"
           ? "the account's email is not verified yet."
+          : error.code === "NO_TWO_FACTOR"
+            ? "the account has not set up its authenticator app yet (Account → Two-factor sign-in)."
           : "refused by the role rules."
     : "unexpected error (database unreachable?).";
 

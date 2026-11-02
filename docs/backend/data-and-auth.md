@@ -22,7 +22,8 @@ src/server/                 server-only (import "server-only"); never reaches th
   db/schema/access.ts       staff_role, audit_log, rate_limit_bucket
   db/client.ts              pool + Drizzle
   auth/auth.ts              Better Auth configuration (getAuth())
-  auth/session.ts           getCurrentUser, requireUser, requirePermission, AuthzError
+  auth/session.ts           getCurrentUser, requireUser, requirePermission, AuthzError, mustEnrollTwoFactor
+  auth/two-factor-policy.ts two-factor rules: required roles, session paths, code parsing, limits (pure)
   policy/permissions.ts     permission matrix (pure data), can(), session lengths
   services/roles.ts         bootstrapFirstAdmin, grantRole, revokeRole
   services/audit.ts         audit(), action names
@@ -33,7 +34,8 @@ src/server/                 server-only (import "server-only"); never reaches th
   security/hash.ts          HMAC of IPs and emails
   security/log.ts           redacting JSON logger
 src/app/api/auth/[...all]   Better Auth HTTP handler
-src/app/[locale]/(account)  sign-in, sign-up, forgot/reset password, verify-email, account
+src/app/[locale]/(account)  sign-in, sign-up, forgot/reset password, verify-email, account,
+                            two-factor (sign-in code), account/two-factor (setup, recovery codes, turn off)
 src/server/cms/             CMS rules, validation, services, public queries (Phase 4c, docs/backend/cms.md)
 src/app/admin/              CMS admin (English-first, staff only, follows the accounts gate)
 scripts/db/                 migrate, seed (fictional), create-first-admin
@@ -53,6 +55,8 @@ drizzle/                    versioned SQL migrations + meta
 | `rate_limit_bucket` | our counters | email per address, 24-hour mail cap |
 
 Database default and every table: `utf8mb4` / `utf8mb4_uca1400_ai_ci` (Tamil). Ids, tokens and hashes: `ascii_bin` (case-sensitive).
+
+**Two-factor (Phase 6b, migration `0003_two_factor`):** `two_factor` (one row per user: encrypted authenticator secret, encrypted recovery codes, `verified`, failed-code counter, `locked_until`; cascades with the user) and `user.two_factor_enabled` (default off). Additive.
 
 **Content tables (Phase 4c, migration `0001_cms_content`):** `content_item`, `content_translation`, `event_detail`, `sermon_detail`, `ministry_detail`, `testimony_detail`, `bible_translation`, `verse_detail`, `verse_text`, `verse_schedule`, `media_asset`. Details, workflow and the CMS authorization table: `docs/backend/cms.md`. Membership tables arrive with their own migration in 4d.
 
@@ -76,6 +80,7 @@ Database default and every table: `utf8mb4` / `utf8mb4_uca1400_ai_ci` (Tamil). I
 | staff.manage, audit.read | | | | ✓ |
 
 An unverified email removes every permission except reading published content and managing one's own account.
+**Two-factor (Phase 6b):** the Church Admin role grants nothing until the person has a verified authenticator app (`TWO_FACTOR_REQUIRED_ROLES` in `two-factor-policy.ts`, applied in `permissionsFor`). Content Editors are not required to (owner decision; one-line change to require it).
 
 ## Limits
 | What | Limit | Where |
@@ -86,6 +91,9 @@ An unverified email removes every permission except reading published content an
 | Password reset request | 3 / hour per client | Better Auth |
 | Account emails to one address | 3 / hour per kind | `email/send.ts` |
 | All outgoing mail | 300 per rolling 24 h (`EMAIL_DAILY_CAP`) | `email/send.ts` |
+| Two-factor code at sign-in (authenticator) | 10 / 15 min per client; 5 tries per challenge; account locked 15 min after 5 wrong codes in a row | Better Auth + plugin |
+| Two-factor recovery code at sign-in | 5 / 15 min per client (same per-challenge and account lockout) | Better Auth + plugin |
+| Enable / disable / new recovery codes | 5 / hour per client (HTTP) and 5 / 15 min per account (all callers) | Better Auth + `auth.ts`, server actions |
 
 ## Production migrations on Hostinger
 There is no SSH step in the deployment, so Hostinger builds use `npm run build:hostinger` (`scripts/hostinger-build.mjs`). It runs `next build`, and only when `NLTAG_APPROVED_PRODUCTION_MIGRATION=1` is set in the Hostinger environment it first applies the reviewed `drizzle/*.sql` to `DATABASE_URL` (127.0.0.1). Set that variable for one owner-approved build, then remove it. Migrations already applied are skipped (drizzle journal). The same script runs the one-time first-admin bootstrap (`NLTAG_BOOTSTRAP_ADMIN_EMAIL`, below); the two are refused in one build.
@@ -108,6 +116,30 @@ All account pages (`/ta|en/sign-in`, `sign-up`, `forgot-password`, `reset-passwo
 
 ### Enabling accounts (owner-approved activation window)
 Step-by-step runbook: `docs/operations/admin-activation.md`. SMTP delivery was tested on 2 Nov 2026 (Stage A, since removed).
+
+## Two-factor (Phase 6b)
+**Owner decisions (2 Nov 2026):** Church Admin — two-factor mandatory; Content Editor — optional; Google sign-in unconfigured; no trusted devices; single-use recovery codes, regenerating voids all old ones; disabling needs password and a second factor; phone and recovery codes both lost → owner-approved database reset (runbook § 11 D) with its own audit row, never an automatic bypass.
+
+Better Auth's two-factor plugin (`better-auth/plugins/two-factor`) with authenticator apps (TOTP: 6 digits, 30 s) and 10 single-use recovery codes. Configured in `auth.ts`; rules in `two-factor-policy.ts`; screens in `src/app/[locale]/(account)/two-factor` (sign-in code) and `…/account/two-factor` (setup and management, server actions in `actions.ts`); owner runbook `docs/operations/admin-activation.md`.
+
+| Rule | How |
+|---|---|
+| Enrollment needs the password and is off until the first code is confirmed | plugin `skipVerificationOnEnable: false`, `allowPasswordless: false` |
+| Secret and recovery codes stored encrypted (BETTER_AUTH_SECRET) | plugin; recovery codes `storeBackupCodes: "encrypted"`; a used code is removed with a compare-and-set |
+| Secret shown once only | `/two-factor/get-totp-uri` refused (404) in the before hook |
+| Authenticator apps only | `/two-factor/send-otp`, `/verify-otp` refused; `enable` with `method` other than `totp` refused |
+| Correct password alone gives no session | plugin replaces the session with a 5-minute signed HttpOnly challenge cookie |
+| No "remember this device" | `trustDevice: true` refused (400) |
+| Turning off and new recovery codes need password **and** a current code (app or recovery code) | before hook `requireCurrentSecondFactor` for `/two-factor/disable` and `/generate-backup-codes` |
+| Enrolled accounts get sessions only through the challenge | `session.create.before` allows only the paths in `SESSION_PATHS_WITH_SECOND_FACTOR`; e.g. the automatic sign-in after an email link is refused and audited (`auth.2fa.bypass_blocked`) |
+| Turning it on ends every other session | `user.update.after` on `/two-factor/verify-totp` |
+| Church Admin must have it | `permissionsFor`; admin pages redirect to setup (`auth.2fa.required` audited); bootstrap refuses `NO_TWO_FACTOR` |
+| QR code never leaves the browser | drawn locally as SVG with `uqr` (MIT, no dependencies) |
+| Audit | `auth.2fa.enroll_start`, `.enable`, `.disable`, `.verify_fail`, `.recovery_code.use`, `.recovery_codes.regenerate`, `.manage_fail`, `.bypass_blocked`, `.required`, and `auth.2fa.reset_by_owner` written by the runbook § 11 D SQL itself; sign-in rows carry `reason=two-factor/verify-totp`. Never codes or secrets. |
+
+Known limits: a code stays valid for its 30-second step and one step either side (plugin default), so a code seen over someone's shoulder could be reused within about a minute; `BETTER_AUTH_SECRET` must never change once anyone has enrolled; there is no in-app reset when phone and recovery codes are both lost (runbook § 11 D, by owner decision).
+
+Tests: `tests/unit/two-factor.test.tsx`, `tests/integration/two-factor.test.ts` and `two-factor-owner-reset.test.ts` (MariaDB; the latter runs the runbook § 11 D SQL exactly as written), `tests/e2e/two-factor.spec.ts` (Tamil and English; screenshots mask the QR code, setup key and recovery codes). The seeded Church Admin has a fictional test authenticator (`scripts/db/seed-constants.ts`).
 
 ## Security behaviour (all covered by tests)
 - Same response for registered and unregistered addresses (sign-up and reset); emails are sent in the background so timing does not reveal accounts.
@@ -134,7 +166,7 @@ npm run test:integration        MariaDB-backed tests (TEST_DATABASE_URL, *_test 
 3. `npm run db:migrate && npm run db:seed`, then `npm run dev`. Emails appear in `.data/mail/`.
 
 ## Open items
-- Two-factor authentication for Church Admin: owner decision deferred (would add migration `0003_two_factor`).
+- Two-factor: built in Phase 6b (above); migration `0003_two_factor` not yet applied to production.
 - Google OAuth client (D3): church-owned Google Cloud project; until then the button is hidden.
 - `TRUSTED_PROXIES`: confirm Hostinger's proxy chain on staging so rate limits key on the real client IP.
-- Tamil wording for the 39 new account/email strings is `draft-review`.
+- Tamil: the 38 Phase 4b account/email strings and 45 Phase 6b two-factor strings were approved by the owner on 2 Nov 2026. `auth.google` and `auth.or` stay `draft-review` (shown only once Google sign-in is configured).

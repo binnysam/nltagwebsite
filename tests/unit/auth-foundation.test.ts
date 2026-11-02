@@ -8,10 +8,10 @@ import { can, PERMISSIONS, permissionsFor, type Permission, type Principal } fro
 import { redact } from "@/server/security/log";
 
 const visitor: Principal = { kind: "visitor" };
-const member: Principal = { kind: "user", userId: "m", emailVerified: true, roles: [] };
-const editor: Principal = { kind: "user", userId: "e", emailVerified: true, roles: ["CONTENT_EDITOR"] };
-const admin: Principal = { kind: "user", userId: "a", emailVerified: true, roles: ["CHURCH_ADMIN"] };
-const unverifiedAdmin: Principal = { kind: "user", userId: "u", emailVerified: false, roles: ["CHURCH_ADMIN"] };
+const member: Principal = { kind: "user", userId: "m", emailVerified: true, roles: [], twoFactorEnabled: true };
+const editor: Principal = { kind: "user", userId: "e", emailVerified: true, roles: ["CONTENT_EDITOR"], twoFactorEnabled: true };
+const admin: Principal = { kind: "user", userId: "a", emailVerified: true, roles: ["CHURCH_ADMIN"], twoFactorEnabled: true };
+const unverifiedAdmin: Principal = { kind: "user", userId: "u", emailVerified: false, roles: ["CHURCH_ADMIN"], twoFactorEnabled: true };
 
 /** Architecture §5, written out independently of the implementation. */
 const EXPECTED: Record<"visitor" | "member" | "editor" | "admin", readonly Permission[]> = {

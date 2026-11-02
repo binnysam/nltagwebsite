@@ -7,10 +7,10 @@ import type { Principal } from "@/server/policy/permissions";
 import { canPerform, displayStatus, isPubliclyVisible, pickDailyVerse, type ContentAction, type ItemState } from "@/server/cms/rules";
 import { parseContentForm, slugSchema, translationPermissionSchema } from "@/server/cms/schemas";
 
-const admin: Principal = { kind: "user", userId: "a", emailVerified: true, roles: ["CHURCH_ADMIN"] };
-const editor: Principal = { kind: "user", userId: "e", emailVerified: true, roles: ["CONTENT_EDITOR"] };
-const member: Principal = { kind: "user", userId: "m", emailVerified: true, roles: [] };
-const unverifiedAdmin: Principal = { kind: "user", userId: "u", emailVerified: false, roles: ["CHURCH_ADMIN"] };
+const admin: Principal = { kind: "user", userId: "a", emailVerified: true, roles: ["CHURCH_ADMIN"], twoFactorEnabled: true };
+const editor: Principal = { kind: "user", userId: "e", emailVerified: true, roles: ["CONTENT_EDITOR"], twoFactorEnabled: true };
+const member: Principal = { kind: "user", userId: "m", emailVerified: true, roles: [], twoFactorEnabled: true };
+const unverifiedAdmin: Principal = { kind: "user", userId: "u", emailVerified: false, roles: ["CHURCH_ADMIN"], twoFactorEnabled: true };
 const visitor: Principal = { kind: "visitor" };
 
 const item = (status: ItemState["status"], extra: Partial<ItemState> = {}): ItemState => ({ type: "ANNOUNCEMENT", status, deleted: false, ...extra });

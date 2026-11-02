@@ -8,15 +8,18 @@ import { schedule } from "../src/content/schedule.ts";
 import {
   gate0ConfirmedTamil,
   ownerSuppliedTamil,
+  phase4bApprovedTamil,
   phase5ApprovedTamil,
+  phase6bApprovedTamil,
   PHASE5_APPROVAL_DATE,
+  PHASE6_APPROVAL_DATE,
   TAMIL_APPROVAL_DATE,
   type OwnerSuppliedTamil,
 } from "../src/content/tamil-approvals.ts";
 
 export const REVIEW_SHEET = fileURLToPath(new URL("../docs/content/tamil-content-review.md", import.meta.url));
 
-export type ApprovalSource = "owner-supplied" | "recommended" | "phase5-approved";
+export type ApprovalSource = "owner-supplied" | "recommended" | "phase5-approved" | "phase4b-approved" | "phase6b-approved";
 
 export interface ReviewItem {
   id: string;
@@ -32,7 +35,17 @@ export interface ReviewItem {
 
 const owner = ownerSuppliedTamil as Record<string, OwnerSuppliedTamil>;
 const sourceOf = (id: string, status: ReviewStatus): ApprovalSource | undefined =>
-  status !== "confirmed" ? undefined : id in owner ? "owner-supplied" : id in phase5ApprovedTamil ? "phase5-approved" : "recommended";
+  status !== "confirmed"
+    ? undefined
+    : id in owner
+      ? "owner-supplied"
+      : id in phase5ApprovedTamil
+        ? "phase5-approved"
+        : id in phase4bApprovedTamil
+          ? "phase4b-approved"
+          : id in phase6bApprovedTamil
+            ? "phase6b-approved"
+            : "recommended";
 const previousOf = (id: string, ta: string) => {
   const p = owner[id]?.previousDraft;
   return p && p !== ta ? p : undefined;
@@ -85,7 +98,11 @@ const sourceLabel = (s?: ApprovalSource) =>
       ? "Recommended draft approved"
       : s === "phase5-approved"
         ? `Approved ${PHASE5_APPROVAL_DATE} (Phase 5)`
-        : "—";
+        : s === "phase4b-approved"
+          ? `Approved ${PHASE6_APPROVAL_DATE} (Phase 4b accounts and emails)`
+          : s === "phase6b-approved"
+            ? `Approved ${PHASE6_APPROVAL_DATE} (Phase 6b two-factor)`
+            : "—";
 
 export function buildTamilReview(): { md: string; count: number } {
   const items = reviewItems();
@@ -93,6 +110,8 @@ export function buildTamilReview(): { md: string; count: number } {
   const ownerCount = items.filter((i) => i.source === "owner-supplied").length;
   const recommendedCount = items.filter((i) => i.source === "recommended").length;
   const phase5Count = items.filter((i) => i.source === "phase5-approved").length;
+  const phase4bCount = items.filter((i) => i.source === "phase4b-approved").length;
+  const phase6bCount = items.filter((i) => i.source === "phase6b-approved").length;
   const pending = items.length - confirmed.length;
   const rows = items.map(
     (i) => `| ${i.id} | ${esc(i.en)} | ${esc(i.ta)} | ${sourceLabel(i.source)} | ${i.previousDraft ? esc(i.previousDraft) : "—"} | ${esc(i.note)} | ${statusLabel(i.status)} |`,
@@ -100,7 +119,7 @@ export function buildTamilReview(): { md: string; count: number } {
   const md = `# Tamil content approval record
 
 **Generated from** \`src/content/ui-strings.ts\`, \`src/content/schedule.ts\` and \`src/content/tamil-approvals.ts\` by \`node scripts/tamil-review.ts\`. Do not edit by hand; \`npm run verify\` fails if this file is out of date.
-**Approved by the owner on ${TAMIL_APPROVAL_DATE}** (${ownerCount} owner-supplied, ${recommendedCount} recommended drafts approved) **and on ${PHASE5_APPROVAL_DATE}** (${phase5Count} Phase 5 public-site strings). ${confirmed.length} of ${items.length} items approved${pending ? `; ${pending} still awaiting review` : "; none awaiting review"}. Times, days and NECK were confirmed at Gate 0.
+**Approved by the owner on ${TAMIL_APPROVAL_DATE}** (${ownerCount} owner-supplied, ${recommendedCount} recommended drafts approved) **and on ${PHASE5_APPROVAL_DATE}** (${phase5Count} Phase 5 public-site strings; ${phase4bCount} Phase 4b account and email strings and ${phase6bCount} Phase 6b two-factor strings, ${PHASE6_APPROVAL_DATE}). ${confirmed.length} of ${items.length} items approved${pending ? `; ${pending} still awaiting review` : "; none awaiting review"}. Times, days and NECK were confirmed at Gate 0.
 
 Owner-supplied Tamil is approved content and is reproduced exactly as supplied. Do not rephrase, re-spell or "correct" it; a unit test compares every character. Any change needs new owner approval. The language names தமிழ் and English were confirmed at Gate 0 and are not listed.
 

@@ -15,7 +15,7 @@ import { assertSeedAllowed, SEED_USERS } from "./seed";
 async function ctxFor(email: string, roles: ("CHURCH_ADMIN" | "CONTENT_EDITOR")[]): Promise<Ctx> {
   const [u] = await getDb().select().from(user).where(eq(user.email, email));
   if (!u) throw new Error(`Run npm run db:seed first (${email} missing)`);
-  return { actor: { principal: { kind: "user", userId: u.id, emailVerified: true, roles }, userId: u.id, sessionId: "seed", email: u.email, name: u.name } };
+  return { actor: { principal: { kind: "user", userId: u.id, emailVerified: true, roles, twoFactorEnabled: u.twoFactorEnabled }, userId: u.id, sessionId: "seed", email: u.email, name: u.name } };
 }
 
 function data(type: ContentType, fields: Record<string, string>) {

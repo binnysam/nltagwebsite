@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { accountsEnabled } from "@/server/accounts-gate";
-import { AuthzError, clientIp, getCurrentUser, type CurrentUser } from "@/server/auth/session";
+import { AuthzError, clientIp, getCurrentUser, mustEnrollTwoFactor, type CurrentUser } from "@/server/auth/session";
 import { CmsError, type Ctx } from "@/server/cms/service";
 import { RoleError } from "@/server/services/roles";
 import { can, type Permission } from "@/server/policy/permissions";
@@ -14,6 +14,8 @@ import { log } from "@/server/security/log";
  * Gate for every admin page. The admin follows the accounts gate: while account pages are hidden
  * (no SMTP yet) nobody can sign in, so /admin returns 404 too. Signed out → sign-in page.
  * Signed in without a staff role → 404 (the admin's existence is not advertised to members).
+ * Church Admin without a verified authenticator app (Phase 6b) → the two-factor setup page; the
+ * role grants no permission until then (permissions.ts), so services refuse as well.
  * This is a convenience for pages; every service call checks permissions again.
  */
 export async function requireStaffPage(permission: Permission = "admin.access"): Promise<Ctx> {
@@ -22,6 +24,10 @@ export async function requireStaffPage(permission: Permission = "admin.access"):
   const h = await headers();
   const me = await getCurrentUser(h);
   if (!me) redirect("/en/sign-in");
+  if (mustEnrollTwoFactor(me)) {
+    await audit({ actorUserId: me.userId, action: "auth.2fa.required", outcome: "DENIED", entity: "permission", reason: permission, ip: clientIp(h) });
+    redirect("/en/account/two-factor");
+  }
   if (!can(me.principal, "admin.access") || !can(me.principal, permission)) {
     await audit({ actorUserId: me.userId, action: "policy.deny", outcome: "DENIED", entity: "permission", reason: permission, ip: clientIp(h) });
     notFound();

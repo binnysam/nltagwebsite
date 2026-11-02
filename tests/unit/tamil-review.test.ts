@@ -3,7 +3,13 @@ import { readFileSync } from "node:fs";
 import { buildTamilReview, reviewItems, REVIEW_SHEET } from "../../scripts/tamil-review.ts";
 import { uiStrings } from "@/content/ui-strings";
 import { schedule } from "@/content/schedule";
-import { ownerSuppliedTamil, gate0ConfirmedTamil, phase5ApprovedTamil } from "@/content/tamil-approvals";
+import {
+  ownerSuppliedTamil,
+  gate0ConfirmedTamil,
+  phase5ApprovedTamil,
+  phase4bApprovedTamil,
+  phase6bApprovedTamil,
+} from "@/content/tamil-approvals";
 
 /**
  * Owner sign-off of 1 Nov 2026. The 22 owner-supplied strings are written out again here,
@@ -56,8 +62,102 @@ const PHASE5_APPROVED: Record<string, string> = {
   "visit.when": "சபை ஆராதனை",
 };
 
-/** Tamil still awaiting owner review: only the Phase 4b account and email wording. */
-const PENDING_PREFIXES = /^(auth|account|email)\./;
+/**
+ * Phase 4b account/email (38) and Phase 6b two-factor (45) wording, approved by the owner on 2 Nov 2026
+ * exactly as shown in the Phase 6b report for PR #10. Written out again here, character for character,
+ * so a change in either place fails the test.
+ */
+const PHASE4B_APPROVED: Record<string, string> = {
+  "auth.signIn.title": "உள்நுழைக",
+  "auth.signUp.title": "கணக்கை உருவாக்குக",
+  "auth.field.name": "முழுப் பெயர்",
+  "auth.field.email": "மின்னஞ்சல் முகவரி",
+  "auth.field.password": "கடவுச்சொல்",
+  "auth.field.newPassword": "புதிய கடவுச்சொல்",
+  "auth.passwordHint": "குறைந்தது 10 எழுத்துகள்.",
+  "auth.submit.signIn": "உள்நுழைக",
+  "auth.submit.signUp": "கணக்கை உருவாக்கு",
+  "auth.forgot.link": "கடவுச்சொல்லை மறந்துவிட்டீர்களா?",
+  "auth.forgot.title": "கடவுச்சொல்லை மீட்டமைக்கவும்",
+  "auth.forgot.submit": "மீட்டமைப்பு இணைப்பை அனுப்பு",
+  "auth.forgot.sent": "அந்த முகவரிக்கு கணக்கு இருந்தால், ஒரு இணைப்பை அனுப்பியுள்ளோம். அது 1 மணி நேரம் செல்லுபடியாகும்.",
+  "auth.signUp.sent": "உங்கள் மின்னஞ்சலைப் பாருங்கள். இந்த முகவரியைப் பதிவு செய்ய முடிந்தால், சரிபார்ப்பு இணைப்பை அனுப்பியுள்ளோம். அது 24 மணி நேரம் செல்லுபடியாகும்.",
+  "auth.reset.title": "புதிய கடவுச்சொல்லைத் தேர்ந்தெடுக்கவும்",
+  "auth.reset.submit": "புதிய கடவுச்சொல்லைச் சேமி",
+  "auth.reset.done": "உங்கள் கடவுச்சொல் மாற்றப்பட்டது. மீண்டும் உள்நுழையவும்.",
+  "auth.reset.invalid": "இந்த இணைப்பு செல்லாதது அல்லது காலாவதியானது. புதிய இணைப்பைக் கோருங்கள்.",
+  "auth.verify.title": "மின்னஞ்சல் சரிபார்ப்பு",
+  "auth.verify.done": "உங்கள் மின்னஞ்சல் முகவரி சரிபார்க்கப்பட்டது.",
+  "auth.verify.pending": "உள்நுழைவதற்கு முன் உங்கள் மின்னஞ்சல் முகவரியைச் சரிபார்க்கவும். புதிய இணைப்பை அனுப்பியுள்ளோம்.",
+  "auth.error.invalid": "மின்னஞ்சல் அல்லது கடவுச்சொல் தவறானது.",
+  "auth.error.rateLimited": "அதிகமான முயற்சிகள். சிறிது நேரம் கழித்து மீண்டும் முயற்சிக்கவும்.",
+  "auth.error.generic": "ஏதோ தவறு நடந்தது. மீண்டும் முயற்சிக்கவும்.",
+  "auth.error.passwordShort": "குறைந்தது 10 எழுத்துகளைப் பயன்படுத்தவும்.",
+  "auth.noAccount": "புதியவரா? கணக்கை உருவாக்குங்கள்",
+  "auth.haveAccount": "ஏற்கனவே கணக்கு உள்ளதா? உள்நுழைக",
+  "account.title": "உங்கள் கணக்கு",
+  "account.sessions": "உள்நுழைந்துள்ள சாதனங்கள்",
+  "account.thisDevice": "இந்தச் சாதனம்",
+  "account.signOut": "வெளியேறு",
+  "account.signOutOthers": "மற்ற சாதனங்களிலிருந்து வெளியேறு",
+  "email.verify.subject": "உங்கள் மின்னஞ்சல் முகவரியைச் சரிபார்க்கவும்",
+  "email.verify.body": "உங்கள் மின்னஞ்சல் முகவரியைச் சரிபார்க்க கீழே உள்ள இணைப்பைத் திறக்கவும். அது 24 மணி நேரம் செல்லுபடியாகும்.",
+  "email.reset.subject": "உங்கள் கடவுச்சொல்லை மீட்டமைக்கவும்",
+  "email.reset.body": "புதிய கடவுச்சொல்லைத் தேர்ந்தெடுக்க கீழே உள்ள இணைப்பைத் திறக்கவும். அது 1 மணி நேரம் செல்லுபடியாகும்.",
+  "email.ignore": "நீங்கள் இதைக் கோரவில்லை என்றால், இந்த மின்னஞ்சலைப் புறக்கணிக்கலாம்.",
+  "email.footer": "இந்தச் செய்தி {church} இணையதளத்தால் தானாக அனுப்பப்பட்டது.",
+};
+
+const PHASE6B_APPROVED: Record<string, string> = {
+  "twoFactor.title": "இரு-படி உள்நுழைவு",
+  "twoFactor.lead": "ஒவ்வொரு முறை உள்நுழையும்போதும், உங்கள் கைப்பேசியிலுள்ள அங்கீகரிப்புச் செயலியிலிருந்து ஒரு குறியீட்டையும் உள்ளிடுவீர்கள்.",
+  "twoFactor.required": "சபை நிர்வாகிகள் நிர்வாகப் பகுதியைப் பயன்படுத்தும் முன் இரு-படி உள்நுழைவை இயக்க வேண்டும்.",
+  "twoFactor.status.on": "இரு-படி உள்நுழைவு இயக்கத்தில் உள்ளது.",
+  "twoFactor.status.off": "இரு-படி உள்நுழைவு இயக்கத்தில் இல்லை.",
+  "twoFactor.step1": "படி 1 / 3: உங்கள் கடவுச்சொல்லை உறுதிப்படுத்தவும்",
+  "twoFactor.continue": "தொடரவும்",
+  "twoFactor.step2": "படி 2 / 3: உங்கள் அங்கீகரிப்புச் செயலியில் NLTAG-ஐச் சேர்க்கவும்",
+  "twoFactor.step2.help": "Google Authenticator அல்லது Microsoft Authenticator போன்ற அங்கீகரிப்புச் செயலியில் இந்த QR குறியீட்டை ஸ்கேன் செய்யவும். ஸ்கேன் செய்ய முடியவில்லை என்றால், அமைப்பு விசையைச் செயலியில் தட்டச்சு செய்யவும்.",
+  "twoFactor.qr.label": "அங்கீகரிப்புச் செயலியில் NLTAG-ஐச் சேர்க்கும் QR குறியீடு",
+  "twoFactor.setupKey": "அமைப்பு விசை",
+  "twoFactor.step3": "படி 3 / 3: உங்கள் மீட்புக் குறியீடுகளைச் சேமித்து உறுதிப்படுத்தவும்",
+  "twoFactor.recovery.help": "உங்கள் கைப்பேசி தொலைந்தால், இந்தக் குறியீடுகள் ஒவ்வொன்றையும் கொண்டு ஒருமுறை உள்நுழையலாம். இவற்றை அச்சிடவும் அல்லது பாதுகாப்பான இடத்தில் வைக்கவும். இவை இப்போது மட்டுமே காட்டப்படும்.",
+  "twoFactor.recovery.listLabel": "உங்கள் மீட்புக் குறியீடுகள்",
+  "twoFactor.recovery.download": "குறியீடுகளை உரைக் கோப்பாகப் பதிவிறக்கு",
+  "twoFactor.recovery.saved": "என் மீட்புக் குறியீடுகளைப் பாதுகாப்பான இடத்தில் சேமித்துவிட்டேன்.",
+  "twoFactor.recovery.savedRequired": "உங்கள் மீட்புக் குறியீடுகளைச் சேமித்ததை உறுதிப்படுத்தவும்.",
+  "twoFactor.field.code": "செயலியிலுள்ள 6 இலக்கக் குறியீடு",
+  "twoFactor.confirm.submit": "இரு-படி உள்நுழைவை இயக்கு",
+  "twoFactor.enabled.done": "இரு-படி உள்நுழைவு இப்போது இயக்கத்தில் உள்ளது. உங்கள் மற்ற சாதனங்களிலிருந்து வெளியேற்றப்பட்டுள்ளீர்கள்.",
+  "twoFactor.recovery.title": "மீட்புக் குறியீடுகள்",
+  "twoFactor.recovery.remaining": "பயன்படுத்தப்படாத மீட்புக் குறியீடுகள்: 10-இல் {n}.",
+  "twoFactor.regenerate.help": "புதிய குறியீடுகளை உருவாக்கினால், உங்கள் பழைய மீட்புக் குறியீடுகள் அனைத்தும் செயலிழக்கும். உங்கள் கடவுச்சொல்லையும் செயலியிலுள்ள தற்போதைய குறியீட்டையும் உள்ளிடவும்.",
+  "twoFactor.regenerate.submit": "புதிய மீட்புக் குறியீடுகளை உருவாக்கு",
+  "twoFactor.regenerate.done": "புதிய மீட்புக் குறியீடுகள் தயார். உங்கள் பழைய குறியீடுகள் இனி செயல்படாது.",
+  "twoFactor.disable.title": "இரு-படி உள்நுழைவை நிறுத்து",
+  "twoFactor.disable.help": "கைப்பேசியை மாற்றும்போது இதைப் பயன்படுத்தவும்: இதை நிறுத்தி, புதிய கைப்பேசியில் மீண்டும் அமைக்கவும். இது நிறுத்தப்பட்டிருக்கும்போது சபை நிர்வாகி நிர்வாகப் பகுதியைப் பயன்படுத்த முடியாது.",
+  "twoFactor.disable.submit": "இரு-படி உள்நுழைவை நிறுத்து",
+  "twoFactor.disable.done": "இரு-படி உள்நுழைவு நிறுத்தப்பட்டது.",
+  "twoFactor.field.currentCode": "செயலியிலுள்ள குறியீடு அல்லது ஒரு மீட்புக் குறியீடு",
+  "twoFactor.challenge.title": "உங்கள் உள்நுழைவுக் குறியீட்டை உள்ளிடவும்",
+  "twoFactor.challenge.lead": "உங்கள் அங்கீகரிப்புச் செயலியைத் திறந்து, NLTAG-க்குக் காட்டப்படும் 6 இலக்கக் குறியீட்டை உள்ளிடவும்.",
+  "twoFactor.field.recoveryCode": "மீட்புக் குறியீடு",
+  "twoFactor.recovery.hint": "ஒவ்வொரு மீட்புக் குறியீடும் ஒருமுறை மட்டுமே செயல்படும்.",
+  "twoFactor.useRecovery": "அதற்குப் பதிலாக மீட்புக் குறியீட்டைப் பயன்படுத்து",
+  "twoFactor.useApp": "அதற்குப் பதிலாக அங்கீகரிப்புச் செயலியைப் பயன்படுத்து",
+  "twoFactor.verify": "சரிபார்",
+  "twoFactor.error.code": "அந்தக் குறியீடு சரியானதல்ல. சரிபார்த்து மீண்டும் முயற்சிக்கவும்.",
+  "twoFactor.error.expired": "இந்த உள்நுழைவு காலாவதியானது அல்லது அதிக முயற்சிகள் செய்யப்பட்டன. மீண்டும் உள்நுழையவும்.",
+  "twoFactor.error.locked": "பல தவறான குறியீடுகள். 15 நிமிடங்கள் காத்திருந்து மீண்டும் முயற்சிக்கவும்.",
+  "twoFactor.error.password": "கடவுச்சொல் சரியானதல்ல.",
+  "twoFactor.error.fresh": "உங்கள் பாதுகாப்பிற்காக, இரு-படி உள்நுழைவை மாற்றும் முன் வெளியேறி மீண்டும் உள்நுழையவும்.",
+  "account.twoFactor.setUp": "இரு-படி உள்நுழைவை அமைக்கவும்",
+  "account.twoFactor.manage": "இரு-படி உள்நுழைவை நிர்வகிக்கவும்",
+  "account.back": "உங்கள் கணக்குக்குத் திரும்பு",
+};
+
+/** Still awaiting owner review: shown only when Google sign-in is configured (it is not). */
+const PENDING = ["auth.google", "auth.or"];
 
 /** The 26 recommended drafts the owner approved unchanged ("rest all is fine"). */
 const APPROVED_AS_RECOMMENDED: [string, string][] = [
@@ -90,17 +190,41 @@ const APPROVED_AS_RECOMMENDED: [string, string][] = [
 ];
 
 describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
-  it("approves 63 items: 22 owner-supplied, 26 recommended (1 Nov) and 15 Phase 5 (2 Nov)", () => {
+  it("approves 146 items: 22 owner-supplied, 26 recommended (1 Nov), 15 Phase 5, 38 Phase 4b and 45 Phase 6b (2 Nov)", () => {
     const items = reviewItems();
-    expect(items.filter((i) => i.status === "confirmed")).toHaveLength(63);
-    // Everything else is Phase 4b account and email wording, awaiting owner review.
-    for (const i of items.filter((x) => x.status !== "confirmed")) {
-      expect(i.id, i.id).toMatch(PENDING_PREFIXES);
-      expect(i.status, i.id).toBe("draft-review");
-    }
+    expect(items.filter((i) => i.status === "confirmed")).toHaveLength(146);
+    // Only the two Google sign-in strings remain under review.
+    expect(items.filter((i) => i.status !== "confirmed").map((i) => i.id).sort()).toEqual([...PENDING].sort());
+    for (const i of items.filter((x) => x.status !== "confirmed")) expect(i.status, i.id).toBe("draft-review");
     expect(items.filter((i) => i.source === "owner-supplied")).toHaveLength(22);
     expect(items.filter((i) => i.source === "recommended")).toHaveLength(26);
     expect(items.filter((i) => i.source === "phase5-approved")).toHaveLength(15);
+    expect(items.filter((i) => i.source === "phase4b-approved")).toHaveLength(38);
+    expect(items.filter((i) => i.source === "phase6b-approved")).toHaveLength(45);
+  });
+
+  it("reproduces every Phase 4b and Phase 6b approved string exactly (owner sign-off, 2 Nov 2026)", () => {
+    expect(Object.keys(PHASE4B_APPROVED)).toHaveLength(38);
+    expect(Object.keys(PHASE6B_APPROVED)).toHaveLength(45);
+    expect(Object.keys(phase4bApprovedTamil).sort()).toEqual(Object.keys(PHASE4B_APPROVED).sort());
+    expect(Object.keys(phase6bApprovedTamil).sort()).toEqual(Object.keys(PHASE6B_APPROVED).sort());
+    const byId = Object.fromEntries(reviewItems().map((i) => [i.id, i]));
+    const record = { ...phase4bApprovedTamil, ...phase6bApprovedTamil } as Record<string, string>;
+    for (const [expected, source] of [
+      [PHASE4B_APPROVED, "phase4b-approved"],
+      [PHASE6B_APPROVED, "phase6b-approved"],
+    ] as const) {
+      for (const [id, ta] of Object.entries(expected)) {
+        expect(record[id], id).toBe(ta);
+        const v = uiStrings[id as keyof typeof uiStrings];
+        expect(v.ta, id).toBe(ta);
+        expect(v.taStatus, id).toBe("confirmed");
+        expect(byId[id]?.source, id).toBe(source);
+        expect(ta, id).toBe(ta.normalize("NFC"));
+        expect(ta, id).toBe(ta.trim());
+      }
+    }
+    for (const id of PENDING) expect(uiStrings[id as keyof typeof uiStrings].taStatus, id).toBe("draft-review");
   });
 
   it("reproduces every Phase 5 approved string exactly (owner sign-off, 2 Nov 2026)", () => {
@@ -138,9 +262,9 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
     }
   });
 
-  it("leaves no draft-review Tamil outside the Phase 4b account and email wording, and no open alternatives", () => {
+  it("leaves no draft-review Tamil outside the two Google sign-in strings, and no open alternatives", () => {
     for (const [key, v] of Object.entries(uiStrings)) {
-      if (v.taStatus !== "confirmed") expect(key).toMatch(PENDING_PREFIXES);
+      if (v.taStatus !== "confirmed") expect(PENDING, key).toContain(key);
       expect((v as { taAlternatives?: unknown }).taAlternatives, key).toBeUndefined();
       expect((v as { taShortAlternative?: unknown }).taShortAlternative, key).toBeUndefined();
     }
@@ -155,10 +279,13 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
     const { md } = buildTamilReview();
     expect(readFileSync(REVIEW_SHEET, "utf8")).toBe(md);
     const pending = reviewItems().filter((i) => i.status !== "confirmed").length;
-    expect(md).toContain("(22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings)");
-    expect(md).toContain(`63 of ${63 + pending} items approved`);
+    expect(md).toContain(
+      "(22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings; 38 Phase 4b account and email strings and 45 Phase 6b two-factor strings, 2026-11-02)",
+    );
+    expect(pending).toBe(2);
+    expect(md).toContain("146 of 148 items approved; 2 still awaiting review");
     for (const line of md.split("\n").filter((l) => l.includes("draft-review") && l.startsWith("| "))) {
-      expect(line.split("|")[1]!.trim()).toMatch(PENDING_PREFIXES);
+      expect(PENDING).toContain(line.split("|")[1]!.trim());
     }
   });
 });

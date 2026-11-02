@@ -4,9 +4,9 @@ import { redirect } from "next/navigation";
 import { Divider, Heading, Stack, Text } from "@/design-system/primitives";
 import { t, type Locale } from "@/content/ui-strings";
 import { getAuth } from "@/server/auth/auth";
-import { requirePermission, AuthzError } from "@/server/auth/session";
+import { requirePermission, AuthzError, mustEnrollTwoFactor } from "@/server/auth/session";
 import { can } from "@/server/policy/permissions";
-import { ButtonLink } from "@/design-system/components";
+import { ButtonLink, Notice } from "@/design-system/components";
 import { AccountPage } from "../page-parts";
 import { SessionActions } from "./SessionActions";
 import styles from "../account.module.css";
@@ -18,8 +18,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 }
 
 /**
- * Minimal signed-in page for Phase 4b: who is signed in and on which devices. The member
- * dashboard (status, ID, household) is Phase 4d.
+ * Minimal signed-in page for Phase 4b: who is signed in and on which devices, and (Phase 6b)
+ * whether two-factor sign-in is on. The member dashboard (status, ID, household) is Phase 4d.
  */
 export default async function AccountHome({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
@@ -43,6 +43,21 @@ export default async function AccountHome({ params }: { params: Promise<{ locale
           <ButtonLink href="/admin" variant="secondary" lang="en">Open the admin</ButtonLink>
         </div>
       ) : null}
+      {/* Phase 6b: Church Admins must set up an authenticator app before the admin opens. */}
+      {mustEnrollTwoFactor(current) ? (
+        <Notice tone="warning" title={L("twoFactor.required")}>
+          <ButtonLink href={`/${locale}/account/two-factor`}>{L("account.twoFactor.setUp")}</ButtonLink>
+        </Notice>
+      ) : null}
+      <Stack gap={4}>
+        <Heading level={2} styleAs="h3">{L("twoFactor.title")}</Heading>
+        <Text>{L(current.principal.twoFactorEnabled ? "twoFactor.status.on" : "twoFactor.status.off")}</Text>
+        <div>
+          <ButtonLink href={`/${locale}/account/two-factor`} variant="secondary">
+            {L(current.principal.twoFactorEnabled ? "account.twoFactor.manage" : "account.twoFactor.setUp")}
+          </ButtonLink>
+        </div>
+      </Stack>
       <Stack gap={4}>
         <Heading level={2} styleAs="h3">{L("account.sessions")}</Heading>
         <ul className={styles.sessionList}>

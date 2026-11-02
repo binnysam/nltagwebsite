@@ -7,8 +7,8 @@
  *   - "draft-review"  → Tamil wording awaiting church review. Must not go live on a public
  *                        page until changed to "confirmed". New strings start here.
  *
- * The reviewed Tamil was approved by the owner on 1 Nov 2026 and the Phase 5 public-site wording on
- * 2 Nov 2026 (src/content/tamil-approvals.ts).
+ * The reviewed Tamil was approved by the owner on 1 Nov 2026; the Phase 5 public-site wording and the
+ * Phase 4b account/email and Phase 6b two-factor wording on 2 Nov 2026 (src/content/tamil-approvals.ts).
  * Owner-supplied Tamil is reproduced exactly; never rephrase it. The approval record lives in
  * docs/content/tamil-content-review.md and is generated from the same entries. Do not add church facts (names, times, addresses) here: those belong in
  * src/content/schedule.ts or the CMS.
@@ -39,7 +39,7 @@ const s = (
   extra: Partial<Pick<UiString, "taAlternatives" | "taShortAlternative" | "note" | "enStatus" | "taStatus">> = {},
 ): UiString => ({ en, ta, enStatus: "proposed", taStatus: "draft-review", ...extra });
 
-/** Tamil approved by the owner (1 Nov 2026; Phase 5 wording 2 Nov 2026). Use `s()` for any new string. */
+/** Tamil approved by the owner (1 Nov 2026; Phase 5, 4b and 6b wording 2 Nov 2026). Use `s()` for any new string. */
 const c = (
   en: string,
   ta: string,
@@ -155,72 +155,159 @@ export const uiStrings = {
     note: "Exactly the owner-approved name of the main worship service (schedule.main-worship). Previous draft: சபை ஆராதனை நேரம்.",
   }),
 
-  // Accounts and sign-in (Phase 4b). Tamil is draft-review until the owner approves it.
-  "auth.signIn.title": s("Sign in", "உள்நுழைக"),
-  "auth.signUp.title": s("Create an account", "கணக்கை உருவாக்குக"),
-  "auth.field.name": s("Full name", "முழுப் பெயர்"),
-  "auth.field.email": s("Email address", "மின்னஞ்சல் முகவரி"),
-  "auth.field.password": s("Password", "கடவுச்சொல்"),
-  "auth.field.newPassword": s("New password", "புதிய கடவுச்சொல்"),
-  "auth.passwordHint": s("At least 10 characters.", "குறைந்தது 10 எழுத்துகள்."),
-  "auth.submit.signIn": s("Sign in", "உள்நுழைக"),
-  "auth.submit.signUp": s("Create account", "கணக்கை உருவாக்கு"),
+  // Accounts and sign-in (Phase 4b). Tamil approved by the owner on 2 Nov 2026 (phase4bApprovedTamil),
+  // except auth.google and auth.or (draft-review; shown only if Google sign-in is configured).
+  "auth.signIn.title": c("Sign in", "உள்நுழைக"),
+  "auth.signUp.title": c("Create an account", "கணக்கை உருவாக்குக"),
+  "auth.field.name": c("Full name", "முழுப் பெயர்"),
+  "auth.field.email": c("Email address", "மின்னஞ்சல் முகவரி"),
+  "auth.field.password": c("Password", "கடவுச்சொல்"),
+  "auth.field.newPassword": c("New password", "புதிய கடவுச்சொல்"),
+  "auth.passwordHint": c("At least 10 characters.", "குறைந்தது 10 எழுத்துகள்."),
+  "auth.submit.signIn": c("Sign in", "உள்நுழைக"),
+  "auth.submit.signUp": c("Create account", "கணக்கை உருவாக்கு"),
   "auth.google": s("Continue with Google", "Google மூலம் தொடரவும்", { note: "Shown only when Google sign-in is configured." }),
   "auth.or": s("or", "அல்லது"),
-  "auth.forgot.link": s("Forgot your password?", "கடவுச்சொல்லை மறந்துவிட்டீர்களா?"),
-  "auth.forgot.title": s("Reset your password", "கடவுச்சொல்லை மீட்டமைக்கவும்"),
-  "auth.forgot.submit": s("Send reset link", "மீட்டமைப்பு இணைப்பை அனுப்பு"),
-  "auth.forgot.sent": s(
+  "auth.forgot.link": c("Forgot your password?", "கடவுச்சொல்லை மறந்துவிட்டீர்களா?"),
+  "auth.forgot.title": c("Reset your password", "கடவுச்சொல்லை மீட்டமைக்கவும்"),
+  "auth.forgot.submit": c("Send reset link", "மீட்டமைப்பு இணைப்பை அனுப்பு"),
+  "auth.forgot.sent": c(
     "If an account exists for that address, we have sent a link. It works for 1 hour.",
     "அந்த முகவரிக்கு கணக்கு இருந்தால், ஒரு இணைப்பை அனுப்பியுள்ளோம். அது 1 மணி நேரம் செல்லுபடியாகும்.",
     { note: "Same message whether or not the address is registered (prevents account discovery)." },
   ),
-  "auth.signUp.sent": s(
+  "auth.signUp.sent": c(
     "Check your email. If this address can be registered, we have sent a verification link. It works for 24 hours.",
     "உங்கள் மின்னஞ்சலைப் பாருங்கள். இந்த முகவரியைப் பதிவு செய்ய முடிந்தால், சரிபார்ப்பு இணைப்பை அனுப்பியுள்ளோம். அது 24 மணி நேரம் செல்லுபடியாகும்.",
     { note: "Same message whether or not the address is already registered." },
   ),
-  "auth.reset.title": s("Choose a new password", "புதிய கடவுச்சொல்லைத் தேர்ந்தெடுக்கவும்"),
-  "auth.reset.submit": s("Save new password", "புதிய கடவுச்சொல்லைச் சேமி"),
-  "auth.reset.done": s("Your password has been changed. Please sign in.", "உங்கள் கடவுச்சொல் மாற்றப்பட்டது. மீண்டும் உள்நுழையவும்."),
-  "auth.reset.invalid": s(
+  "auth.reset.title": c("Choose a new password", "புதிய கடவுச்சொல்லைத் தேர்ந்தெடுக்கவும்"),
+  "auth.reset.submit": c("Save new password", "புதிய கடவுச்சொல்லைச் சேமி"),
+  "auth.reset.done": c("Your password has been changed. Please sign in.", "உங்கள் கடவுச்சொல் மாற்றப்பட்டது. மீண்டும் உள்நுழையவும்."),
+  "auth.reset.invalid": c(
     "This link is invalid or has expired. Please request a new one.",
     "இந்த இணைப்பு செல்லாதது அல்லது காலாவதியானது. புதிய இணைப்பைக் கோருங்கள்.",
   ),
-  "auth.verify.title": s("Email verification", "மின்னஞ்சல் சரிபார்ப்பு"),
-  "auth.verify.done": s("Your email address is verified.", "உங்கள் மின்னஞ்சல் முகவரி சரிபார்க்கப்பட்டது."),
-  "auth.verify.pending": s(
+  "auth.verify.title": c("Email verification", "மின்னஞ்சல் சரிபார்ப்பு"),
+  "auth.verify.done": c("Your email address is verified.", "உங்கள் மின்னஞ்சல் முகவரி சரிபார்க்கப்பட்டது."),
+  "auth.verify.pending": c(
     "Please verify your email address before signing in. We have sent you a new link.",
     "உள்நுழைவதற்கு முன் உங்கள் மின்னஞ்சல் முகவரியைச் சரிபார்க்கவும். புதிய இணைப்பை அனுப்பியுள்ளோம்.",
   ),
-  "auth.error.invalid": s("Email or password is incorrect.", "மின்னஞ்சல் அல்லது கடவுச்சொல் தவறானது."),
-  "auth.error.rateLimited": s("Too many attempts. Please try again later.", "அதிகமான முயற்சிகள். சிறிது நேரம் கழித்து மீண்டும் முயற்சிக்கவும்."),
-  "auth.error.generic": s("Something went wrong. Please try again.", "ஏதோ தவறு நடந்தது. மீண்டும் முயற்சிக்கவும்."),
-  "auth.error.passwordShort": s("Use at least 10 characters.", "குறைந்தது 10 எழுத்துகளைப் பயன்படுத்தவும்."),
-  "auth.noAccount": s("New here? Create an account", "புதியவரா? கணக்கை உருவாக்குங்கள்"),
-  "auth.haveAccount": s("Already have an account? Sign in", "ஏற்கனவே கணக்கு உள்ளதா? உள்நுழைக"),
-  "account.title": s("Your account", "உங்கள் கணக்கு"),
-  "account.sessions": s("Signed-in devices", "உள்நுழைந்துள்ள சாதனங்கள்"),
-  "account.thisDevice": s("This device", "இந்தச் சாதனம்"),
-  "account.signOut": s("Sign out", "வெளியேறு"),
-  "account.signOutOthers": s("Sign out of other devices", "மற்ற சாதனங்களிலிருந்து வெளியேறு"),
+  "auth.error.invalid": c("Email or password is incorrect.", "மின்னஞ்சல் அல்லது கடவுச்சொல் தவறானது."),
+  "auth.error.rateLimited": c("Too many attempts. Please try again later.", "அதிகமான முயற்சிகள். சிறிது நேரம் கழித்து மீண்டும் முயற்சிக்கவும்."),
+  "auth.error.generic": c("Something went wrong. Please try again.", "ஏதோ தவறு நடந்தது. மீண்டும் முயற்சிக்கவும்."),
+  "auth.error.passwordShort": c("Use at least 10 characters.", "குறைந்தது 10 எழுத்துகளைப் பயன்படுத்தவும்."),
+  "auth.noAccount": c("New here? Create an account", "புதியவரா? கணக்கை உருவாக்குங்கள்"),
+  "auth.haveAccount": c("Already have an account? Sign in", "ஏற்கனவே கணக்கு உள்ளதா? உள்நுழைக"),
+  "account.title": c("Your account", "உங்கள் கணக்கு"),
+  "account.sessions": c("Signed-in devices", "உள்நுழைந்துள்ள சாதனங்கள்"),
+  "account.thisDevice": c("This device", "இந்தச் சாதனம்"),
+  "account.signOut": c("Sign out", "வெளியேறு"),
+  "account.signOutOthers": c("Sign out of other devices", "மற்ற சாதனங்களிலிருந்து வெளியேறு"),
 
-  // Account emails (Phase 4b). {church} is replaced with the confirmed church name.
-  "email.verify.subject": s("Verify your email address", "உங்கள் மின்னஞ்சல் முகவரியைச் சரிபார்க்கவும்"),
-  "email.verify.body": s(
+  // Two-factor sign-in (Phase 6b). Tamil approved by the owner on 2 Nov 2026 (phase6bApprovedTamil).
+  // Terms: "two-factor sign-in" = இரு-படி உள்நுழைவு; "authenticator app" = அங்கீகரிப்புச் செயலி.
+  "twoFactor.title": c("Two-factor sign-in", "இரு-படி உள்நுழைவு", {
+    note: "Name of the feature on every two-factor screen. Other possible wording: இரு காரணி உள்நுழைவு, இரண்டு-படி சரிபார்ப்பு.",
+  }),
+  "twoFactor.lead": c(
+    "Each time you sign in, you also enter a code from an authenticator app on your phone.",
+    "ஒவ்வொரு முறை உள்நுழையும்போதும், உங்கள் கைப்பேசியிலுள்ள அங்கீகரிப்புச் செயலியிலிருந்து ஒரு குறியீட்டையும் உள்ளிடுவீர்கள்.",
+    { note: "அங்கீகரிப்புச் செயலி = authenticator app (other possible wording: Authenticator செயலி). App names stay in English." },
+  ),
+  "twoFactor.required": c(
+    "Church Admins must turn on two-factor sign-in before they can use the admin.",
+    "சபை நிர்வாகிகள் நிர்வாகப் பகுதியைப் பயன்படுத்தும் முன் இரு-படி உள்நுழைவை இயக்க வேண்டும்.",
+  ),
+  "twoFactor.status.on": c("Two-factor sign-in is on.", "இரு-படி உள்நுழைவு இயக்கத்தில் உள்ளது."),
+  "twoFactor.status.off": c("Two-factor sign-in is off.", "இரு-படி உள்நுழைவு இயக்கத்தில் இல்லை."),
+  "twoFactor.step1": c("Step 1 of 3: Confirm your password", "படி 1 / 3: உங்கள் கடவுச்சொல்லை உறுதிப்படுத்தவும்"),
+  "twoFactor.continue": c("Continue", "தொடரவும்"),
+  "twoFactor.step2": c("Step 2 of 3: Add NLTAG to your authenticator app", "படி 2 / 3: உங்கள் அங்கீகரிப்புச் செயலியில் NLTAG-ஐச் சேர்க்கவும்"),
+  "twoFactor.step2.help": c(
+    "Scan the QR code with an authenticator app, such as Google Authenticator or Microsoft Authenticator. If you cannot scan it, type the setup key into the app instead.",
+    "Google Authenticator அல்லது Microsoft Authenticator போன்ற அங்கீகரிப்புச் செயலியில் இந்த QR குறியீட்டை ஸ்கேன் செய்யவும். ஸ்கேன் செய்ய முடியவில்லை என்றால், அமைப்பு விசையைச் செயலியில் தட்டச்சு செய்யவும்.",
+  ),
+  "twoFactor.qr.label": c("QR code that adds NLTAG to an authenticator app", "அங்கீகரிப்புச் செயலியில் NLTAG-ஐச் சேர்க்கும் QR குறியீடு"),
+  "twoFactor.setupKey": c("Setup key", "அமைப்பு விசை"),
+  "twoFactor.step3": c("Step 3 of 3: Save your recovery codes and confirm", "படி 3 / 3: உங்கள் மீட்புக் குறியீடுகளைச் சேமித்து உறுதிப்படுத்தவும்"),
+  "twoFactor.recovery.help": c(
+    "If you lose your phone, each of these codes lets you sign in once. Print them or keep them somewhere safe. They are shown only now.",
+    "உங்கள் கைப்பேசி தொலைந்தால், இந்தக் குறியீடுகள் ஒவ்வொன்றையும் கொண்டு ஒருமுறை உள்நுழையலாம். இவற்றை அச்சிடவும் அல்லது பாதுகாப்பான இடத்தில் வைக்கவும். இவை இப்போது மட்டுமே காட்டப்படும்.",
+  ),
+  "twoFactor.recovery.listLabel": c("Your recovery codes", "உங்கள் மீட்புக் குறியீடுகள்"),
+  "twoFactor.recovery.download": c("Download the codes as a text file", "குறியீடுகளை உரைக் கோப்பாகப் பதிவிறக்கு"),
+  "twoFactor.recovery.saved": c("I have saved my recovery codes in a safe place.", "என் மீட்புக் குறியீடுகளைப் பாதுகாப்பான இடத்தில் சேமித்துவிட்டேன்."),
+  "twoFactor.recovery.savedRequired": c("Please confirm that you have saved your recovery codes.", "உங்கள் மீட்புக் குறியீடுகளைச் சேமித்ததை உறுதிப்படுத்தவும்."),
+  "twoFactor.field.code": c("6-digit code from the app", "செயலியிலுள்ள 6 இலக்கக் குறியீடு"),
+  "twoFactor.confirm.submit": c("Turn on two-factor sign-in", "இரு-படி உள்நுழைவை இயக்கு"),
+  "twoFactor.enabled.done": c(
+    "Two-factor sign-in is now on. You have been signed out of your other devices.",
+    "இரு-படி உள்நுழைவு இப்போது இயக்கத்தில் உள்ளது. உங்கள் மற்ற சாதனங்களிலிருந்து வெளியேற்றப்பட்டுள்ளீர்கள்.",
+  ),
+  "twoFactor.recovery.title": c("Recovery codes", "மீட்புக் குறியீடுகள்"),
+  "twoFactor.recovery.remaining": c("Unused recovery codes: {n} of 10.", "பயன்படுத்தப்படாத மீட்புக் குறியீடுகள்: 10-இல் {n}.", {
+    note: "{n} is replaced with a number.",
+  }),
+  "twoFactor.regenerate.help": c(
+    "Making new codes stops all your old recovery codes from working. Enter your password and a current code from the app.",
+    "புதிய குறியீடுகளை உருவாக்கினால், உங்கள் பழைய மீட்புக் குறியீடுகள் அனைத்தும் செயலிழக்கும். உங்கள் கடவுச்சொல்லையும் செயலியிலுள்ள தற்போதைய குறியீட்டையும் உள்ளிடவும்.",
+  ),
+  "twoFactor.regenerate.submit": c("Make new recovery codes", "புதிய மீட்புக் குறியீடுகளை உருவாக்கு"),
+  "twoFactor.regenerate.done": c("New recovery codes are ready. Your old codes no longer work.", "புதிய மீட்புக் குறியீடுகள் தயார். உங்கள் பழைய குறியீடுகள் இனி செயல்படாது."),
+  "twoFactor.disable.title": c("Turn off two-factor sign-in", "இரு-படி உள்நுழைவை நிறுத்து"),
+  "twoFactor.disable.help": c(
+    "Use this when you replace your phone: turn it off, then set it up again on the new phone. While it is off, a Church Admin cannot use the admin.",
+    "கைப்பேசியை மாற்றும்போது இதைப் பயன்படுத்தவும்: இதை நிறுத்தி, புதிய கைப்பேசியில் மீண்டும் அமைக்கவும். இது நிறுத்தப்பட்டிருக்கும்போது சபை நிர்வாகி நிர்வாகப் பகுதியைப் பயன்படுத்த முடியாது.",
+  ),
+  "twoFactor.disable.submit": c("Turn off two-factor sign-in", "இரு-படி உள்நுழைவை நிறுத்து"),
+  "twoFactor.disable.done": c("Two-factor sign-in is off.", "இரு-படி உள்நுழைவு நிறுத்தப்பட்டது."),
+  "twoFactor.field.currentCode": c("Code from the app, or a recovery code", "செயலியிலுள்ள குறியீடு அல்லது ஒரு மீட்புக் குறியீடு"),
+  "twoFactor.challenge.title": c("Enter your sign-in code", "உங்கள் உள்நுழைவுக் குறியீட்டை உள்ளிடவும்"),
+  "twoFactor.challenge.lead": c(
+    "Open your authenticator app and enter the 6-digit code shown for NLTAG.",
+    "உங்கள் அங்கீகரிப்புச் செயலியைத் திறந்து, NLTAG-க்குக் காட்டப்படும் 6 இலக்கக் குறியீட்டை உள்ளிடவும்.",
+  ),
+  "twoFactor.field.recoveryCode": c("Recovery code", "மீட்புக் குறியீடு"),
+  "twoFactor.recovery.hint": c("Each recovery code works only once.", "ஒவ்வொரு மீட்புக் குறியீடும் ஒருமுறை மட்டுமே செயல்படும்."),
+  "twoFactor.useRecovery": c("Use a recovery code instead", "அதற்குப் பதிலாக மீட்புக் குறியீட்டைப் பயன்படுத்து"),
+  "twoFactor.useApp": c("Use the authenticator app instead", "அதற்குப் பதிலாக அங்கீகரிப்புச் செயலியைப் பயன்படுத்து"),
+  "twoFactor.verify": c("Verify", "சரிபார்"),
+  "twoFactor.error.code": c("That code is not correct. Check it and try again.", "அந்தக் குறியீடு சரியானதல்ல. சரிபார்த்து மீண்டும் முயற்சிக்கவும்."),
+  "twoFactor.error.expired": c(
+    "This sign-in has expired or had too many attempts. Please sign in again.",
+    "இந்த உள்நுழைவு காலாவதியானது அல்லது அதிக முயற்சிகள் செய்யப்பட்டன. மீண்டும் உள்நுழையவும்.",
+  ),
+  "twoFactor.error.locked": c(
+    "Too many incorrect codes. Please wait 15 minutes and try again.",
+    "பல தவறான குறியீடுகள். 15 நிமிடங்கள் காத்திருந்து மீண்டும் முயற்சிக்கவும்.",
+  ),
+  "twoFactor.error.password": c("The password is not correct.", "கடவுச்சொல் சரியானதல்ல."),
+  "twoFactor.error.fresh": c(
+    "For your safety, sign out and sign in again before changing two-factor sign-in.",
+    "உங்கள் பாதுகாப்பிற்காக, இரு-படி உள்நுழைவை மாற்றும் முன் வெளியேறி மீண்டும் உள்நுழையவும்.",
+  ),
+  "account.twoFactor.setUp": c("Set up two-factor sign-in", "இரு-படி உள்நுழைவை அமைக்கவும்"),
+  "account.twoFactor.manage": c("Manage two-factor sign-in", "இரு-படி உள்நுழைவை நிர்வகிக்கவும்"),
+  "account.back": c("Back to your account", "உங்கள் கணக்குக்குத் திரும்பு"),
+
+  // Account emails (Phase 4b). {church} is replaced with the confirmed church name. Tamil approved 2 Nov 2026.
+  "email.verify.subject": c("Verify your email address", "உங்கள் மின்னஞ்சல் முகவரியைச் சரிபார்க்கவும்"),
+  "email.verify.body": c(
     "Open the link below to verify your email address. It works for 24 hours.",
     "உங்கள் மின்னஞ்சல் முகவரியைச் சரிபார்க்க கீழே உள்ள இணைப்பைத் திறக்கவும். அது 24 மணி நேரம் செல்லுபடியாகும்.",
   ),
-  "email.reset.subject": s("Reset your password", "உங்கள் கடவுச்சொல்லை மீட்டமைக்கவும்"),
-  "email.reset.body": s(
+  "email.reset.subject": c("Reset your password", "உங்கள் கடவுச்சொல்லை மீட்டமைக்கவும்"),
+  "email.reset.body": c(
     "Open the link below to choose a new password. It works for 1 hour.",
     "புதிய கடவுச்சொல்லைத் தேர்ந்தெடுக்க கீழே உள்ள இணைப்பைத் திறக்கவும். அது 1 மணி நேரம் செல்லுபடியாகும்.",
   ),
-  "email.ignore": s(
+  "email.ignore": c(
     "If you did not ask for this, you can ignore this email.",
     "நீங்கள் இதைக் கோரவில்லை என்றால், இந்த மின்னஞ்சலைப் புறக்கணிக்கலாம்.",
   ),
-  "email.footer": s(
+  "email.footer": c(
     "This message was sent automatically by the {church} website.",
     "இந்தச் செய்தி {church} இணையதளத்தால் தானாக அனுப்பப்பட்டது.",
   ),

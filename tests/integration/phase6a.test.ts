@@ -4,7 +4,7 @@ import { closeDb, getDb } from "@/server/db/client";
 import { account, auditLog, staffRole, user } from "@/server/db/schema";
 import { runEnvBootstrap } from "@/server/services/env-bootstrap";
 import { bootstrapFirstAdmin, RoleError } from "@/server/services/roles";
-import { call, clearRateLimits, freshIp, mailTo, signIn, signUp, verifiedUser } from "./helpers";
+import { call, clearRateLimits, enrollTwoFactor, freshIp, mailTo, signIn, signUp, verifiedUser } from "./helpers";
 
 /**
  * Phase 6a against MariaDB through the real Better Auth handler:
@@ -122,7 +122,16 @@ describe("first Church Admin bootstrap from NLTAG_BOOTSTRAP_ADMIN_EMAIL", () => 
     expect(await admins()).toHaveLength(0);
   });
 
+  it("refuses a verified, listed account that has not set up two-factor (Phase 6b)", async () => {
+    const r = await run({ NLTAG_BOOTSTRAP_ADMIN_EMAIL: ADMIN });
+    expect(r).toEqual({ granted: false, message: "Admin bootstrap not done: NO_TWO_FACTOR" });
+    expect(await admins()).toHaveLength(0);
+  });
+
   it("grants once with an audit row, then is idempotent", async () => {
+    // Phase 6b: the first admin enrolls an authenticator before the bootstrap build.
+    const { cookie } = await signIn(ADMIN, "correct-horse-battery");
+    await enrollTwoFactor(cookie);
     const first = await run({ NLTAG_BOOTSTRAP_ADMIN_EMAIL: " Boot.Admin@NLTAG.test " });
     expect(first.granted).toBe(true);
     const [u] = await usersWith(ADMIN);
