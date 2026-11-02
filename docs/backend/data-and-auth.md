@@ -99,7 +99,7 @@ All account pages (`/ta|en/sign-in`, `sign-up`, `forgot-password`, `reset-passwo
 
 ### Enabling accounts (later, needs owner approval)
 1. Owner creates the Gmail App Password for the church account and sets the four `SMTP_*` variables in Hostinger (never in chat or the repository).
-2. With the flag still off, run a real delivery test from the server to an owner-controlled inbox and confirm arrival, sender, SPF/DKIM pass and both languages.
+2. With the flag still off, run a real delivery test from the server to an owner-controlled inbox and confirm arrival, sender, SPF/DKIM pass and both languages. Mechanism (temporary): `docs/operations/smtp-delivery-test.md`.
 3. Set `NLTAG_ACCOUNTS_ENABLED=1`, redeploy, then sign up with a test address, verify, reset the password and sign out on the live site.
 4. If any step fails, set the flag back to `0`.
 

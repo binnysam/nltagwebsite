@@ -7,6 +7,7 @@ Site: `https://nltagkuwait.com` · Hostinger Business, account `u339364475`, one
 - **Not used:** the generic Git tool in the Websites section (clone + webhook, for static/PHP sites). It runs no build.
 - **Build settings (stored in Hostinger):** Node.js 22 · framework Next.js · package manager npm · root = document root · build script `build:hostinger` · output `.next`.
 - `build:hostinger` (`scripts/hostinger-build.mjs`) runs `next build`. It applies database migrations **only** when `NLTAG_APPROVED_PRODUCTION_MIGRATION=1` is set in the environment for one owner-approved build; the variable is removed afterwards. Normal pushes never migrate.
+- **Temporary (SMTP Stage A):** with `NLTAG_APPROVED_SMTP_TEST=1` (plus recipient and run id) it sends one owner-approved bilingual test email after `next build`; refused in the same build as a migration. Steps and removal: `docs/operations/smtp-delivery-test.md`.
 - A failed build does not replace the running version; the previous version keeps serving.
 
 ## Environment (names only; values live in Hostinger, never in Git or chat)
