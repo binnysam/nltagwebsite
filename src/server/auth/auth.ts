@@ -9,6 +9,7 @@ import { googleConfigured, serverEnv } from "../env";
 import { sendInBackground } from "../email/send";
 import { SESSION_MAX_AGE_SECONDS } from "../policy/permissions";
 import { audit } from "../services/audit";
+import { signupAllowed, signupPolicy, warnIfMisconfigured } from "./signup-allowlist";
 
 /**
  * Better Auth configuration (architecture §2, §8.1; Phase 4a adjustments).
@@ -19,6 +20,10 @@ import { audit } from "../services/audit";
  *   No cookie cache: a revoked session or role takes effect on the next request.
  * - Rate limits stored in MariaDB (single Node process, no Redis).
  * - Google sign-in only when both env vars are set; it never grants membership or staff roles.
+ * - Staff-only sign-up (Phase 6a): every new user, by any sign-up method, must be on
+ *   NLTAG_SIGNUP_ALLOWLIST (signup-allowlist.ts). A refused address gets Better Auth's generic
+ *   "already registered" response (403 from the create hook → identical synthetic user), so
+ *   the response does not reveal whether an address is listed. No row, no email.
  */
 function createAuth() {
   const env = serverEnv();
@@ -133,6 +138,13 @@ function createAuth() {
     databaseHooks: {
       user: {
         create: {
+          before: async (u) => {
+            const policy = signupPolicy();
+            warnIfMisconfigured(policy);
+            // Better Auth turns a 403 here into its generic duplicate-address response.
+            if (!signupAllowed(u.email, policy)) throw new APIError("FORBIDDEN");
+            return { data: u };
+          },
           after: async (u) => {
             await audit({ actorUserId: u.id, action: "auth.user.create", entity: "user", entityId: u.id });
           },

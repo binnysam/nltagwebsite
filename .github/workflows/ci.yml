@@ -87,6 +87,7 @@ jobs:
           BETTER_AUTH_SECRET=ci-only-secret-not-used-anywhere-else-0123456789
           BETTER_AUTH_URL=http://localhost:3100
           NLTAG_ACCOUNTS_ENABLED=1
+          AUTH_RATE_LIMIT=on
           SMTP_HOST=127.0.0.1
           SMTP_PORT=2525
           SMTP_USER=ci
