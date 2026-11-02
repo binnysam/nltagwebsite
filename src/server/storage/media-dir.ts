@@ -135,17 +135,3 @@ export async function probeMediaStorage(
   return result;
 }
 
-/** Read-only: is a marker from an earlier deployment present in `dir`? Used to confirm earlier probe folders persisted. */
-export async function readMarker(dir: string): Promise<{ dir: string; markerExisted: boolean; markerCreatedAt: string | null }> {
-  try {
-    const prev = JSON.parse(await fs.readFile(/* turbopackIgnore: true */ path.join(dir, MARKER_FILE), "utf8")) as { createdAt?: unknown };
-    return { dir, markerExisted: true, markerCreatedAt: typeof prev.createdAt === "string" ? prev.createdAt : null };
-  } catch {
-    return { dir, markerExisted: false, markerCreatedAt: null };
-  }
-}
-
-/** $HOME-based folder used by the first production probe (2 Nov 2026); checked read-only for persistence. */
-export function earlierProbeDir(): string {
-  return path.join(os.homedir(), "nltag-data", "media");
-}

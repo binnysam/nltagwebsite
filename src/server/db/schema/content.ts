@@ -1,4 +1,4 @@
-import { boolean, customType, date, index, int, mediumtext, mysqlEnum, mysqlTable, primaryKey, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { boolean, date, index, int, mediumtext, mysqlEnum, mysqlTable, primaryKey, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { asciiBin, idColumn, timestamp3 } from "../columns";
 import { user } from "./auth";
 
@@ -85,19 +85,14 @@ export const contentTranslation = mysqlTable(
   (t) => [primaryKey({ columns: [t.itemId, t.locale], name: "content_translation_pk" })],
 );
 
-const mediumblob = customType<{ data: Buffer }>({
-  dataType() {
-    return "mediumblob";
-  },
-});
-
 export const MEDIA_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 export type MediaType = (typeof MEDIA_TYPES)[number];
 
 /**
- * Uploaded images (thumbnails, ministry images). Stored in the database because Hostinger's Git
- * deployment replaces the application folder on every deploy, so files written there would be
- * lost. Images only (no SVG), checked by their bytes, 2 MB each. Served only to staff in 4c.
+ * Uploaded images (thumbnails, ministry images). The bytes live as files in the persistent media
+ * folder outside the deployment (`src/server/storage/media-store.ts`, owner decision 2 Nov 2026);
+ * this row holds the metadata, the file's key and its SHA-256. Images only (no SVG), checked by
+ * their bytes, 2 MB each. Served only to staff in 4c.
  */
 export const mediaAsset = mysqlTable(
   "media_asset",
@@ -108,7 +103,7 @@ export const mediaAsset = mysqlTable(
     sha256: asciiBin("sha256", { length: 64 }).notNull(),
     altTa: varchar("alt_ta", { length: 300 }).notNull().default(""),
     altEn: varchar("alt_en", { length: 300 }).notNull().default(""),
-    data: mediumblob("data").notNull(),
+    storageKey: asciiBin("storage_key", { length: 64 }).notNull(),
     createdByUserId: idColumn("created_by_user_id").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp3("created_at").notNull(),
     deletedAt: timestamp3("deleted_at"),

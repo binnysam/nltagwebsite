@@ -1,8 +1,11 @@
 import { and, eq, sql } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthzError, getCurrentUser, type CurrentUser } from "@/server/auth/session";
 import { closeDb, getDb } from "@/server/db/client";
-import { auditLog, bibleTranslation, contentItem, contentTranslation, staffRole, user } from "@/server/db/schema";
+import { auditLog, bibleTranslation, contentItem, contentTranslation, mediaAsset, staffRole, user } from "@/server/db/schema";
 import { parseContentForm, type ContentInput } from "@/server/cms/schemas";
 import {
   CmsError, createItem, dashboard, getItemForEdit, getMediaForStaff, grantRoleByEmail, listAudit, listItems, listStaff,
@@ -261,6 +264,32 @@ describe("media", () => {
     await expect(uploadMedia(ctx(EDITOR), { bytes: svg }, { ta: "", en: "" })).rejects.toMatchObject({ code: "INVALID" });
     await expect(uploadMedia(ctx(EDITOR), { bytes: new Uint8Array(2 * 1024 * 1024 + 1).fill(0xff) }, { ta: "", en: "" })).rejects.toMatchObject({ code: "INVALID" });
     await expect(uploadMedia(ctx(MEMBER), { bytes: png }, { ta: "", en: "" })).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("stores bytes as a private file outside the database and fails closed without storage", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "nltag-media-it-"));
+    vi.stubEnv("NLTAG_MEDIA_DIR", root);
+    try {
+      const { id } = await uploadMedia(ctx(EDITOR), { bytes: png }, { ta: "", en: "File image" });
+      const [row] = await getDb().select().from(mediaAsset).where(eq(mediaAsset.id, id));
+      expect(row?.storageKey).toBe(`${id.slice(0, 2)}/${id}`);
+      expect(Object.keys(row!)).not.toContain("data");
+      const file = path.join(root, id.slice(0, 2), id);
+      expect(statSync(file).mode & 0o777).toBe(0o600);
+      expect(new Uint8Array((await getMediaForStaff(ctx(EDITOR), id))!.data)).toEqual(png);
+
+      writeFileSync(file, "tampered"); // altered on disk → not served
+      expect(await getMediaForStaff(ctx(EDITOR), id)).toBeNull();
+
+      // Unsafe or unusable folder: nothing is saved, no row, no file.
+      const before = (await getDb().select({ id: mediaAsset.id }).from(mediaAsset)).length;
+      vi.stubEnv("NLTAG_MEDIA_DIR", path.join(process.cwd(), "public", "media"));
+      await expect(uploadMedia(ctx(EDITOR), { bytes: png }, { ta: "", en: "" })).rejects.toMatchObject({ code: "UNAVAILABLE" });
+      expect((await getDb().select({ id: mediaAsset.id }).from(mediaAsset)).length).toBe(before);
+    } finally {
+      vi.unstubAllEnvs();
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 
