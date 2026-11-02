@@ -61,17 +61,17 @@ Owner-supplied Tamil is approved content and is reproduced exactly as supplied. 
 | nav.testimonies | Testimonies | சாட்சிகள் | — | — |  | Awaiting church review (`draft-review`) |
 | footer.nav | Site links | இணையதள இணைப்புகள் | — | — |  | Awaiting church review (`draft-review`) |
 | section.announcements | Announcements | அறிவிப்புகள் | — | — |  | Awaiting church review (`draft-review`) |
-| section.specialMeetings | Upcoming special meetings | வரவிருக்கும் சிறப்புக் கூட்டங்கள் | — | — |  | Awaiting church review (`draft-review`) |
+| section.specialMeetings | Upcoming special meetings | வரவிருக்கும் விசேஷ ஆராதனைகள் | — | — | Uses the owner-approved name விசேஷ ஆராதனைகள் (schedule.special-meetings). Previous draft: வரவிருக்கும் சிறப்புக் கூட்டங்கள். | Awaiting church review (`draft-review`) |
 | section.visit | Visit us | எங்களைச் சந்திக்க வாருங்கள் | — | — |  | Awaiting church review (`draft-review`) |
 | section.comingSoon | This section will be updated soon. | இந்தப் பகுதி விரைவில் புதுப்பிக்கப்படும். | — | — | Shown wherever the church has not published content for a section yet. | Awaiting church review (`draft-review`) |
 | action.viewAll | View all | அனைத்தையும் காண்க | — | — |  | Awaiting church review (`draft-review`) |
 | action.readMore | Read more | மேலும் வாசிக்க | — | — |  | Awaiting church review (`draft-review`) |
-| sermon.watch | Watch the sermon | செய்தியைப் பார்க்க | — | — |  | Awaiting church review (`draft-review`) |
+| sermon.watch | Watch the sermon | தேவ செய்தியைப் பார்க்க | — | — | Uses the owner-approved term தேவ செய்தி (nav.sermons); bare செய்தி also means news. Previous draft: செய்தியைப் பார்க்க. | Awaiting church review (`draft-review`) |
 | testimony.anonymous | Name withheld | பெயர் குறிப்பிடப்படவில்லை | — | — |  | Awaiting church review (`draft-review`) |
-| ministry.contact | Contact | தொடர்புக்கு | — | — |  | Awaiting church review (`draft-review`) |
+| ministry.contact | Contact | தொடர்பு கொள்ள | — | — | Same wording as the owner-approved nav.contact. Previous draft: தொடர்புக்கு. | Awaiting church review (`draft-review`) |
 | special.location.tba | Venue to be announced | இடம் பின்னர் அறிவிக்கப்படும் | — | — |  | Awaiting church review (`draft-review`) |
 | visit.where | Where we meet | நாங்கள் கூடும் இடம் | — | — |  | Awaiting church review (`draft-review`) |
-| visit.when | Main worship | சபை ஆராதனை நேரம் | — | — |  | Awaiting church review (`draft-review`) |
+| visit.when | Main worship | சபை ஆராதனை | — | — | Exactly the owner-approved name of the main worship service (schedule.main-worship). Previous draft: சபை ஆராதனை நேரம். | Awaiting church review (`draft-review`) |
 | auth.signIn.title | Sign in | உள்நுழைக | — | — |  | Awaiting church review (`draft-review`) |
 | auth.signUp.title | Create an account | கணக்கை உருவாக்குக | — | — |  | Awaiting church review (`draft-review`) |
 | auth.field.name | Full name | முழுப் பெயர் | — | — |  | Awaiting church review (`draft-review`) |

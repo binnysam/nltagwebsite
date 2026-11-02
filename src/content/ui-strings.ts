@@ -130,7 +130,9 @@ export const uiStrings = {
   "nav.testimonies": s("Testimonies", "சாட்சிகள்"),
   "footer.nav": s("Site links", "இணையதள இணைப்புகள்"),
   "section.announcements": s("Announcements", "அறிவிப்புகள்"),
-  "section.specialMeetings": s("Upcoming special meetings", "வரவிருக்கும் சிறப்புக் கூட்டங்கள்"),
+  "section.specialMeetings": s("Upcoming special meetings", "வரவிருக்கும் விசேஷ ஆராதனைகள்", {
+    note: "Uses the owner-approved name விசேஷ ஆராதனைகள் (schedule.special-meetings). Previous draft: வரவிருக்கும் சிறப்புக் கூட்டங்கள்.",
+  }),
   "section.visit": s("Visit us", "எங்களைச் சந்திக்க வாருங்கள்"),
   "section.comingSoon": s(
     "This section will be updated soon.",
@@ -139,12 +141,18 @@ export const uiStrings = {
   ),
   "action.viewAll": s("View all", "அனைத்தையும் காண்க"),
   "action.readMore": s("Read more", "மேலும் வாசிக்க"),
-  "sermon.watch": s("Watch the sermon", "செய்தியைப் பார்க்க"),
+  "sermon.watch": s("Watch the sermon", "தேவ செய்தியைப் பார்க்க", {
+    note: "Uses the owner-approved term தேவ செய்தி (nav.sermons); bare செய்தி also means news. Previous draft: செய்தியைப் பார்க்க.",
+  }),
   "testimony.anonymous": s("Name withheld", "பெயர் குறிப்பிடப்படவில்லை"),
-  "ministry.contact": s("Contact", "தொடர்புக்கு"),
+  "ministry.contact": s("Contact", "தொடர்பு கொள்ள", {
+    note: "Same wording as the owner-approved nav.contact. Previous draft: தொடர்புக்கு.",
+  }),
   "special.location.tba": s("Venue to be announced", "இடம் பின்னர் அறிவிக்கப்படும்"),
   "visit.where": s("Where we meet", "நாங்கள் கூடும் இடம்"),
-  "visit.when": s("Main worship", "சபை ஆராதனை நேரம்"),
+  "visit.when": s("Main worship", "சபை ஆராதனை", {
+    note: "Exactly the owner-approved name of the main worship service (schedule.main-worship). Previous draft: சபை ஆராதனை நேரம்.",
+  }),
 
   // Accounts and sign-in (Phase 4b). Tamil is draft-review until the owner approves it.
   "auth.signIn.title": s("Sign in", "உள்நுழைக"),
