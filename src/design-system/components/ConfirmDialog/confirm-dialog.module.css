@@ -1,0 +1,23 @@
+/* Confirm dialog (Phase 4c). Card surface, radius 20, shadow-3 (dialogs, §5). Static: no motion.
+   Backdrop: ink at 40% over the page (Deviation note: no scrim token exists yet; derived with
+   color-mix from --color-text-primary; listed for owner sign-off). */
+.dialog {
+  width: min(100% - var(--space-6), calc(var(--layout-content) / 2.5));
+  padding: var(--space-6);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-card);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-3);
+}
+.dialog::backdrop { background: color-mix(in srgb, var(--color-text-primary) 40%, transparent); }
+.title {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-stack-en-display);
+  font-size: var(--text-h3);
+  font-weight: var(--font-weight-body);
+  line-height: var(--leading-h3-en);
+}
+.message { margin-bottom: var(--space-5); color: var(--color-text-strong-secondary); }
+.message p { margin: 0; }
+.actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-3); }

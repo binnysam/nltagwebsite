@@ -5,6 +5,7 @@ import { vi } from "vitest";
 import {
   Button, ButtonLink, IconButton, LanguageSwitch, MembershipStatusBadge, ScheduleList, SectionIntro,
   SiteHeader, SpecialMeetingCard, TextField, VerseCard, VerseCardActions,
+  SelectField, CheckboxField, Notice, DataTable, ConfirmButton,
 } from "@/design-system/components";
 import { Icon } from "@/design-system/primitives";
 import { schedule } from "@/content/schedule";
@@ -225,6 +226,65 @@ describe("SectionIntro and SpecialMeetingCard", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Worship schedule" })).toHaveAttribute("id", "s");
     expect(screen.getByRole("heading", { level: 3 })).toContainElement(screen.getByRole("link", { name: "[தலைப்பு]" }));
     expect(screen.getByText("சிறப்புக் கூட்டம்")).toBeVisible();
+    await expectNoA11yViolations(container);
+  });
+});
+
+describe("Phase 4c form and admin components", () => {
+  it("SelectField and CheckboxField: visible labels, hints and errors linked", async () => {
+    const { container } = render(
+      <>
+        <SelectField id="s" label="Status" hint="Pick one" error="Choose a status" options={[{ value: "a", label: "A" }]} />
+        <CheckboxField id="c" name="c" label="Feature this item" hint="Listed first" />
+      </>,
+    );
+    const select = screen.getByLabelText("Status");
+    expect(select).toHaveAttribute("aria-invalid", "true");
+    expect(select.getAttribute("aria-describedby")).toBe("s-hint s-error");
+    expect(screen.getByRole("checkbox", { name: "Feature this item" })).toHaveAttribute("aria-describedby", "c-hint");
+    await expectNoA11yViolations(container);
+  });
+
+  it("Notice: errors are alerts, other tones are polite status messages, in words", async () => {
+    const { container } = render(
+      <>
+        <Notice tone="error" title="Not saved"><p>Fix the title.</p></Notice>
+        <Notice tone="success" title="Saved" />
+      </>,
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Not saved");
+    expect(screen.getByRole("status")).toHaveTextContent("Saved");
+    await expectNoA11yViolations(container);
+  });
+
+  it("DataTable: named, keyboard-scrollable region with a caption", async () => {
+    const { container } = render(
+      <DataTable caption="Pages" captionHidden>
+        <thead><tr><th scope="col">Title</th></tr></thead>
+        <tbody><tr><th scope="row">[Row]</th></tr></tbody>
+      </DataTable>,
+    );
+    expect(screen.getByRole("region", { name: "Pages" })).toHaveAttribute("tabindex", "0");
+    expect(screen.getByRole("table", { name: "Pages" })).toBeInTheDocument();
+    await expectNoA11yViolations(container);
+  });
+
+  it("ConfirmButton: opens a labelled dialog; nothing submits until confirmed", async () => {
+    // jsdom has no showModal; emulate it.
+    HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) { this.open = true; };
+    HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) { this.open = false; };
+    const onSubmit = vi.fn((e: Event) => e.preventDefault());
+    const { container } = render(
+      <form onSubmit={(e) => onSubmit(e.nativeEvent)}>
+        <ConfirmButton label="Delete" title="Delete this page?" message={<p>It can be restored.</p>} confirmLabel="Delete page" name="action" value="delete" />
+      </form>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    const dialog = screen.getByRole("dialog", { name: "Delete this page?" });
+    expect(dialog).toHaveAccessibleDescription("It can be restored.");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Delete page" }));
+    expect(onSubmit).toHaveBeenCalledOnce();
     await expectNoA11yViolations(container);
   });
 });

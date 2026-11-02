@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import {
   Button, ButtonLink, GradientSurface, IconButton, MembershipStatusBadge, ScheduleList, SectionIntro,
   SiteHeader, SpecialMeetingCard, StatusBadge, TextField, VerseCard, VerseCardActions, gradientPresets,
-  type MembershipStatus,
+  type MembershipStatus, SelectField, CheckboxField, Notice, DataTable, ConfirmButton,
 } from "@/design-system/components";
 import { Container, Heading, Icon, Text } from "@/design-system/primitives";
 import { schedule } from "@/content/schedule";
@@ -164,7 +164,28 @@ export default async function DesignSystemGallery({ params }: { params: Promise<
               <TextField id="f-disabled" label="[Field label]" disabled defaultValue="[Disabled value]" />
               <TextField id="f-readonly" label="[Field label]" readOnly defaultValue="[Read-only value]" />
               <TextField id="f-multi" label="[Message label]" multiline requirementText={L("form.optional")} />
+              <SelectField id="f-select" label="[Select label]" hint="[Hint text]" options={[{ value: "a", label: "[Option A]" }, { value: "b", label: "[Option B]" }]} />
+              <CheckboxField id="f-check" name="f-check" label="[Checkbox label]" hint="[Hint text]" />
             </div>
+            {/* Phase 4c: notices, data table and confirmation (admin patterns, usable anywhere) */}
+            <div className={g.fields} style={{ marginTop: "var(--space-6)" }} data-testid="notices">
+              <Notice tone="success" title="[Saved]"><p>[Result message]</p></Notice>
+              <Notice tone="error" title="[Not saved]"><p>[Error message]</p></Notice>
+              <Notice tone="info" title="[Information]"><p>[Message]</p></Notice>
+              <Notice tone="warning" title="[Warning]"><p>[Message]</p></Notice>
+            </div>
+            <div style={{ marginTop: "var(--space-6)" }} data-testid="data-table">
+              <DataTable caption="[Table caption]">
+                <thead><tr><th scope="col">[Column]</th><th scope="col">[Status]</th></tr></thead>
+                <tbody>
+                  <tr><th scope="row">[Row]</th><td><StatusBadge tone="success">[Published]</StatusBadge></td></tr>
+                  <tr><th scope="row">[Row]</th><td><StatusBadge tone="neutral">[Draft]</StatusBadge></td></tr>
+                </tbody>
+              </DataTable>
+            </div>
+            <form className={g.row} style={{ marginTop: "var(--space-6)" }} data-testid="confirm">
+              <ConfirmButton label="[Delete]" title="[Delete this item?]" message={<p>[What happens, and whether it can be undone.]</p>} confirmLabel="[Delete item]" />
+            </form>
             <div className={g.row} style={{ marginTop: "var(--space-6)" }}>
               {statuses.map((s) => <MembershipStatusBadge key={s} status={s} locale={locale} />)}
             </div>
