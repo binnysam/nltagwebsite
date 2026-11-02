@@ -85,7 +85,9 @@ export function AuthForm({ mode, locale, token, googleEnabled }: Props) {
         else setError(errorKey(result.error.status, result.error.code));
         return;
       }
-      if (mode === "signIn") router.push(`/${locale}/account`);
+      // Password correct, account has two-factor on: no session yet, the code page finishes sign-in.
+      if (mode === "signIn" && (result.data as { twoFactorRedirect?: boolean } | null)?.twoFactorRedirect) router.push(`/${locale}/two-factor`);
+      else if (mode === "signIn") router.push(`/${locale}/account`);
       else if (mode === "signUp") setDone("auth.signUp.sent");
       else if (mode === "forgot") setDone("auth.forgot.sent");
       else setDone("auth.reset.done");

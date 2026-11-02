@@ -205,6 +205,92 @@ export const uiStrings = {
   "account.signOut": s("Sign out", "வெளியேறு"),
   "account.signOutOthers": s("Sign out of other devices", "மற்ற சாதனங்களிலிருந்து வெளியேறு"),
 
+  // Two-factor sign-in (Phase 6b). Tamil is draft-review until the owner approves it.
+  // Terms: "two-factor sign-in" = இரு-படி உள்நுழைவு; "authenticator app" = அங்கீகரிப்புச் செயலி.
+  "twoFactor.title": s("Two-factor sign-in", "இரு-படி உள்நுழைவு", {
+    note: "Name of the feature on every two-factor screen. Other possible wording: இரு காரணி உள்நுழைவு, இரண்டு-படி சரிபார்ப்பு.",
+  }),
+  "twoFactor.lead": s(
+    "Each time you sign in, you also enter a code from an authenticator app on your phone.",
+    "ஒவ்வொரு முறை உள்நுழையும்போதும், உங்கள் கைப்பேசியிலுள்ள அங்கீகரிப்புச் செயலியிலிருந்து ஒரு குறியீட்டையும் உள்ளிடுவீர்கள்.",
+    { note: "அங்கீகரிப்புச் செயலி = authenticator app (other possible wording: Authenticator செயலி). App names stay in English." },
+  ),
+  "twoFactor.required": s(
+    "Church Admins must turn on two-factor sign-in before they can use the admin.",
+    "சபை நிர்வாகிகள் நிர்வாகப் பகுதியைப் பயன்படுத்தும் முன் இரு-படி உள்நுழைவை இயக்க வேண்டும்.",
+  ),
+  "twoFactor.status.on": s("Two-factor sign-in is on.", "இரு-படி உள்நுழைவு இயக்கத்தில் உள்ளது."),
+  "twoFactor.status.off": s("Two-factor sign-in is off.", "இரு-படி உள்நுழைவு இயக்கத்தில் இல்லை."),
+  "twoFactor.step1": s("Step 1 of 3: Confirm your password", "படி 1 / 3: உங்கள் கடவுச்சொல்லை உறுதிப்படுத்தவும்"),
+  "twoFactor.continue": s("Continue", "தொடரவும்"),
+  "twoFactor.step2": s("Step 2 of 3: Add NLTAG to your authenticator app", "படி 2 / 3: உங்கள் அங்கீகரிப்புச் செயலியில் NLTAG-ஐச் சேர்க்கவும்"),
+  "twoFactor.step2.help": s(
+    "Scan the QR code with an authenticator app, such as Google Authenticator or Microsoft Authenticator. If you cannot scan it, type the setup key into the app instead.",
+    "Google Authenticator அல்லது Microsoft Authenticator போன்ற அங்கீகரிப்புச் செயலியில் இந்த QR குறியீட்டை ஸ்கேன் செய்யவும். ஸ்கேன் செய்ய முடியவில்லை என்றால், அமைப்பு விசையைச் செயலியில் தட்டச்சு செய்யவும்.",
+  ),
+  "twoFactor.qr.label": s("QR code that adds NLTAG to an authenticator app", "அங்கீகரிப்புச் செயலியில் NLTAG-ஐச் சேர்க்கும் QR குறியீடு"),
+  "twoFactor.setupKey": s("Setup key", "அமைப்பு விசை"),
+  "twoFactor.step3": s("Step 3 of 3: Save your recovery codes and confirm", "படி 3 / 3: உங்கள் மீட்புக் குறியீடுகளைச் சேமித்து உறுதிப்படுத்தவும்"),
+  "twoFactor.recovery.help": s(
+    "If you lose your phone, each of these codes lets you sign in once. Print them or keep them somewhere safe. They are shown only now.",
+    "உங்கள் கைப்பேசி தொலைந்தால், இந்தக் குறியீடுகள் ஒவ்வொன்றையும் கொண்டு ஒருமுறை உள்நுழையலாம். இவற்றை அச்சிடவும் அல்லது பாதுகாப்பான இடத்தில் வைக்கவும். இவை இப்போது மட்டுமே காட்டப்படும்.",
+  ),
+  "twoFactor.recovery.listLabel": s("Your recovery codes", "உங்கள் மீட்புக் குறியீடுகள்"),
+  "twoFactor.recovery.download": s("Download the codes as a text file", "குறியீடுகளை உரைக் கோப்பாகப் பதிவிறக்கு"),
+  "twoFactor.recovery.saved": s("I have saved my recovery codes in a safe place.", "என் மீட்புக் குறியீடுகளைப் பாதுகாப்பான இடத்தில் சேமித்துவிட்டேன்."),
+  "twoFactor.recovery.savedRequired": s("Please confirm that you have saved your recovery codes.", "உங்கள் மீட்புக் குறியீடுகளைச் சேமித்ததை உறுதிப்படுத்தவும்."),
+  "twoFactor.field.code": s("6-digit code from the app", "செயலியிலுள்ள 6 இலக்கக் குறியீடு"),
+  "twoFactor.confirm.submit": s("Turn on two-factor sign-in", "இரு-படி உள்நுழைவை இயக்கு"),
+  "twoFactor.enabled.done": s(
+    "Two-factor sign-in is now on. You have been signed out of your other devices.",
+    "இரு-படி உள்நுழைவு இப்போது இயக்கத்தில் உள்ளது. உங்கள் மற்ற சாதனங்களிலிருந்து வெளியேற்றப்பட்டுள்ளீர்கள்.",
+  ),
+  "twoFactor.recovery.title": s("Recovery codes", "மீட்புக் குறியீடுகள்"),
+  "twoFactor.recovery.remaining": s("Unused recovery codes: {n} of 10.", "பயன்படுத்தப்படாத மீட்புக் குறியீடுகள்: 10-இல் {n}.", {
+    note: "{n} is replaced with a number.",
+  }),
+  "twoFactor.regenerate.help": s(
+    "Making new codes stops all your old recovery codes from working. Enter your password and a current code from the app.",
+    "புதிய குறியீடுகளை உருவாக்கினால், உங்கள் பழைய மீட்புக் குறியீடுகள் அனைத்தும் செயலிழக்கும். உங்கள் கடவுச்சொல்லையும் செயலியிலுள்ள தற்போதைய குறியீட்டையும் உள்ளிடவும்.",
+  ),
+  "twoFactor.regenerate.submit": s("Make new recovery codes", "புதிய மீட்புக் குறியீடுகளை உருவாக்கு"),
+  "twoFactor.regenerate.done": s("New recovery codes are ready. Your old codes no longer work.", "புதிய மீட்புக் குறியீடுகள் தயார். உங்கள் பழைய குறியீடுகள் இனி செயல்படாது."),
+  "twoFactor.disable.title": s("Turn off two-factor sign-in", "இரு-படி உள்நுழைவை நிறுத்து"),
+  "twoFactor.disable.help": s(
+    "Use this when you replace your phone: turn it off, then set it up again on the new phone. While it is off, a Church Admin cannot use the admin.",
+    "கைப்பேசியை மாற்றும்போது இதைப் பயன்படுத்தவும்: இதை நிறுத்தி, புதிய கைப்பேசியில் மீண்டும் அமைக்கவும். இது நிறுத்தப்பட்டிருக்கும்போது சபை நிர்வாகி நிர்வாகப் பகுதியைப் பயன்படுத்த முடியாது.",
+  ),
+  "twoFactor.disable.submit": s("Turn off two-factor sign-in", "இரு-படி உள்நுழைவை நிறுத்து"),
+  "twoFactor.disable.done": s("Two-factor sign-in is off.", "இரு-படி உள்நுழைவு நிறுத்தப்பட்டது."),
+  "twoFactor.field.currentCode": s("Code from the app, or a recovery code", "செயலியிலுள்ள குறியீடு அல்லது ஒரு மீட்புக் குறியீடு"),
+  "twoFactor.challenge.title": s("Enter your sign-in code", "உங்கள் உள்நுழைவுக் குறியீட்டை உள்ளிடவும்"),
+  "twoFactor.challenge.lead": s(
+    "Open your authenticator app and enter the 6-digit code shown for NLTAG.",
+    "உங்கள் அங்கீகரிப்புச் செயலியைத் திறந்து, NLTAG-க்குக் காட்டப்படும் 6 இலக்கக் குறியீட்டை உள்ளிடவும்.",
+  ),
+  "twoFactor.field.recoveryCode": s("Recovery code", "மீட்புக் குறியீடு"),
+  "twoFactor.recovery.hint": s("Each recovery code works only once.", "ஒவ்வொரு மீட்புக் குறியீடும் ஒருமுறை மட்டுமே செயல்படும்."),
+  "twoFactor.useRecovery": s("Use a recovery code instead", "அதற்குப் பதிலாக மீட்புக் குறியீட்டைப் பயன்படுத்து"),
+  "twoFactor.useApp": s("Use the authenticator app instead", "அதற்குப் பதிலாக அங்கீகரிப்புச் செயலியைப் பயன்படுத்து"),
+  "twoFactor.verify": s("Verify", "சரிபார்"),
+  "twoFactor.error.code": s("That code is not correct. Check it and try again.", "அந்தக் குறியீடு சரியானதல்ல. சரிபார்த்து மீண்டும் முயற்சிக்கவும்."),
+  "twoFactor.error.expired": s(
+    "This sign-in has expired or had too many attempts. Please sign in again.",
+    "இந்த உள்நுழைவு காலாவதியானது அல்லது அதிக முயற்சிகள் செய்யப்பட்டன. மீண்டும் உள்நுழையவும்.",
+  ),
+  "twoFactor.error.locked": s(
+    "Too many incorrect codes. Please wait 15 minutes and try again.",
+    "பல தவறான குறியீடுகள். 15 நிமிடங்கள் காத்திருந்து மீண்டும் முயற்சிக்கவும்.",
+  ),
+  "twoFactor.error.password": s("The password is not correct.", "கடவுச்சொல் சரியானதல்ல."),
+  "twoFactor.error.fresh": s(
+    "For your safety, sign out and sign in again before changing two-factor sign-in.",
+    "உங்கள் பாதுகாப்பிற்காக, இரு-படி உள்நுழைவை மாற்றும் முன் வெளியேறி மீண்டும் உள்நுழையவும்.",
+  ),
+  "account.twoFactor.setUp": s("Set up two-factor sign-in", "இரு-படி உள்நுழைவை அமைக்கவும்"),
+  "account.twoFactor.manage": s("Manage two-factor sign-in", "இரு-படி உள்நுழைவை நிர்வகிக்கவும்"),
+  "account.back": s("Back to your account", "உங்கள் கணக்குக்குத் திரும்பு"),
+
   // Account emails (Phase 4b). {church} is replaced with the confirmed church name.
   "email.verify.subject": s("Verify your email address", "உங்கள் மின்னஞ்சல் முகவரியைச் சரிபார்க்கவும்"),
   "email.verify.body": s(

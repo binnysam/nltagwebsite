@@ -1,7 +1,7 @@
 # Tamil content approval record
 
 **Generated from** `src/content/ui-strings.ts`, `src/content/schedule.ts` and `src/content/tamil-approvals.ts` by `node scripts/tamil-review.ts`. Do not edit by hand; `npm run verify` fails if this file is out of date.
-**Approved by the owner on 2026-11-01** (22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings). 63 of 103 items approved; 40 still awaiting review. Times, days and NECK were confirmed at Gate 0.
+**Approved by the owner on 2026-11-01** (22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings). 63 of 148 items approved; 85 still awaiting review. Times, days and NECK were confirmed at Gate 0.
 
 Owner-supplied Tamil is approved content and is reproduced exactly as supplied. Do not rephrase, re-spell or "correct" it; a unit test compares every character. Any change needs new owner approval. The language names தமிழ் and English were confirmed at Gate 0 and are not listed.
 
@@ -106,6 +106,51 @@ Owner-supplied Tamil is approved content and is reproduced exactly as supplied. 
 | account.thisDevice | This device | இந்தச் சாதனம் | — | — |  | Awaiting church review (`draft-review`) |
 | account.signOut | Sign out | வெளியேறு | — | — |  | Awaiting church review (`draft-review`) |
 | account.signOutOthers | Sign out of other devices | மற்ற சாதனங்களிலிருந்து வெளியேறு | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.title | Two-factor sign-in | இரு-படி உள்நுழைவு | — | — | Name of the feature on every two-factor screen. Other possible wording: இரு காரணி உள்நுழைவு, இரண்டு-படி சரிபார்ப்பு. | Awaiting church review (`draft-review`) |
+| twoFactor.lead | Each time you sign in, you also enter a code from an authenticator app on your phone. | ஒவ்வொரு முறை உள்நுழையும்போதும், உங்கள் கைப்பேசியிலுள்ள அங்கீகரிப்புச் செயலியிலிருந்து ஒரு குறியீட்டையும் உள்ளிடுவீர்கள். | — | — | அங்கீகரிப்புச் செயலி = authenticator app (other possible wording: Authenticator செயலி). App names stay in English. | Awaiting church review (`draft-review`) |
+| twoFactor.required | Church Admins must turn on two-factor sign-in before they can use the admin. | சபை நிர்வாகிகள் நிர்வாகப் பகுதியைப் பயன்படுத்தும் முன் இரு-படி உள்நுழைவை இயக்க வேண்டும். | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.status.on | Two-factor sign-in is on. | இரு-படி உள்நுழைவு இயக்கத்தில் உள்ளது. | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.status.off | Two-factor sign-in is off. | இரு-படி உள்நுழைவு இயக்கத்தில் இல்லை. | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.step1 | Step 1 of 3: Confirm your password | படி 1 / 3: உங்கள் கடவுச்சொல்லை உறுதிப்படுத்தவும் | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.continue | Continue | தொடரவும் | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.step2 | Step 2 of 3: Add NLTAG to your authenticator app | படி 2 / 3: உங்கள் அங்கீகரிப்புச் செயலியில் NLTAG-ஐச் சேர்க்கவும் | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.step2.help | Scan the QR code with an authenticator app, such as Google Authenticator or Microsoft Authenticator. If you cannot scan it, type the setup key into the app instead. | Google Authenticator அல்லது Microsoft Authenticator போன்ற அங்கீகரிப்புச் செயலியில் இந்த QR குறியீட்டை ஸ்கேன் செய்யவும். ஸ்கேன் செய்ய முடியவில்லை என்றால், அமைப்பு விசையைச் செயலியில் தட்டச்சு செய்யவும். | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.qr.label | QR code that adds NLTAG to an authenticator app | அங்கீகரிப்புச் செயலியில் NLTAG-ஐச் சேர்க்கும் QR குறியீடு | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.setupKey | Setup key | அமைப்பு விசை | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.step3 | Step 3 of 3: Save your recovery codes and confirm | படி 3 / 3: உங்கள் மீட்புக் குறியீடுகளைச் சேமித்து உறுதிப்படுத்தவும் | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.recovery.help | If you lose your phone, each of these codes lets you sign in once. Print them or keep them somewhere safe. They are shown only now. | உங்கள் கைப்பேசி தொலைந்தால், இந்தக் குறியீடுகள் ஒவ்வொன்றையும் கொண்டு ஒருமுறை உள்நுழையலாம். இவற்றை அச்சிடவும் அல்லது பாதுகாப்பான இடத்தில் வைக்கவும். இவை இப்போது மட்டுமே காட்டப்படும். | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.recovery.listLabel | Your recovery codes | உங்கள் மீட்புக் குறியீடுகள் | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.recovery.download | Download the codes as a text file | குறியீடுகளை உரைக் கோப்பாகப் பதிவிறக்கு | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.recovery.saved | I have saved my recovery codes in a safe place. | என் மீட்புக் குறியீடுகளைப் பாதுகாப்பான இடத்தில் சேமித்துவிட்டேன். | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.recovery.savedRequired | Please confirm that you have saved your recovery codes. | உங்கள் மீட்புக் குறியீடுகளைச் சேமித்ததை உறுதிப்படுத்தவும். | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.field.code | 6-digit code from the app | செயலியிலுள்ள 6 இலக்கக் குறியீடு | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.confirm.submit | Turn on two-factor sign-in | இரு-படி உள்நுழைவை இயக்கு | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.enabled.done | Two-factor sign-in is now on. You have been signed out of your other devices. | இரு-படி உள்நுழைவு இப்போது இயக்கத்தில் உள்ளது. உங்கள் மற்ற சாதனங்களிலிருந்து வெளியேற்றப்பட்டுள்ளீர்கள். | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.recovery.title | Recovery codes | மீட்புக் குறியீடுகள் | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.recovery.remaining | Unused recovery codes: {n} of 10. | பயன்படுத்தப்படாத மீட்புக் குறியீடுகள்: 10-இல் {n}. | — | — | {n} is replaced with a number. | Awaiting church review (`draft-review`) |
+| twoFactor.regenerate.help | Making new codes stops all your old recovery codes from working. Enter your password and a current code from the app. | புதிய குறியீடுகளை உருவாக்கினால், உங்கள் பழைய மீட்புக் குறியீடுகள் அனைத்தும் செயலிழக்கும். உங்கள் கடவுச்சொல்லையும் செயலியிலுள்ள தற்போதைய குறியீட்டையும் உள்ளிடவும். | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.regenerate.submit | Make new recovery codes | புதிய மீட்புக் குறியீடுகளை உருவாக்கு | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.regenerate.done | New recovery codes are ready. Your old codes no longer work. | புதிய மீட்புக் குறியீடுகள் தயார். உங்கள் பழைய குறியீடுகள் இனி செயல்படாது. | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.disable.title | Turn off two-factor sign-in | இரு-படி உள்நுழைவை நிறுத்து | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.disable.help | Use this when you replace your phone: turn it off, then set it up again on the new phone. While it is off, a Church Admin cannot use the admin. | கைப்பேசியை மாற்றும்போது இதைப் பயன்படுத்தவும்: இதை நிறுத்தி, புதிய கைப்பேசியில் மீண்டும் அமைக்கவும். இது நிறுத்தப்பட்டிருக்கும்போது சபை நிர்வாகி நிர்வாகப் பகுதியைப் பயன்படுத்த முடியாது. | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.disable.submit | Turn off two-factor sign-in | இரு-படி உள்நுழைவை நிறுத்து | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.disable.done | Two-factor sign-in is off. | இரு-படி உள்நுழைவு நிறுத்தப்பட்டது. | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.field.currentCode | Code from the app, or a recovery code | செயலியிலுள்ள குறியீடு அல்லது ஒரு மீட்புக் குறியீடு | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.challenge.title | Enter your sign-in code | உங்கள் உள்நுழைவுக் குறியீட்டை உள்ளிடவும் | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.challenge.lead | Open your authenticator app and enter the 6-digit code shown for NLTAG. | உங்கள் அங்கீகரிப்புச் செயலியைத் திறந்து, NLTAG-க்குக் காட்டப்படும் 6 இலக்கக் குறியீட்டை உள்ளிடவும். | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.field.recoveryCode | Recovery code | மீட்புக் குறியீடு | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.recovery.hint | Each recovery code works only once. | ஒவ்வொரு மீட்புக் குறியீடும் ஒருமுறை மட்டுமே செயல்படும். | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.useRecovery | Use a recovery code instead | அதற்குப் பதிலாக மீட்புக் குறியீட்டைப் பயன்படுத்து | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.useApp | Use the authenticator app instead | அதற்குப் பதிலாக அங்கீகரிப்புச் செயலியைப் பயன்படுத்து | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.verify | Verify | சரிபார் | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.error.code | That code is not correct. Check it and try again. | அந்தக் குறியீடு சரியானதல்ல. சரிபார்த்து மீண்டும் முயற்சிக்கவும். | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.error.expired | This sign-in has expired or had too many attempts. Please sign in again. | இந்த உள்நுழைவு காலாவதியானது அல்லது அதிக முயற்சிகள் செய்யப்பட்டன. மீண்டும் உள்நுழையவும். | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.error.locked | Too many incorrect codes. Please wait 15 minutes and try again. | பல தவறான குறியீடுகள். 15 நிமிடங்கள் காத்திருந்து மீண்டும் முயற்சிக்கவும். | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.error.password | The password is not correct. | கடவுச்சொல் சரியானதல்ல. | — | — |  | Awaiting church review (`draft-review`) |
+| twoFactor.error.fresh | For your safety, sign out and sign in again before changing two-factor sign-in. | உங்கள் பாதுகாப்பிற்காக, இரு-படி உள்நுழைவை மாற்றும் முன் வெளியேறி மீண்டும் உள்நுழையவும். | — | — |  | Awaiting church review (`draft-review`) |
+| account.twoFactor.setUp | Set up two-factor sign-in | இரு-படி உள்நுழைவை அமைக்கவும் | — | — |  | Awaiting church review (`draft-review`) |
+| account.twoFactor.manage | Manage two-factor sign-in | இரு-படி உள்நுழைவை நிர்வகிக்கவும் | — | — |  | Awaiting church review (`draft-review`) |
+| account.back | Back to your account | உங்கள் கணக்குக்குத் திரும்பு | — | — |  | Awaiting church review (`draft-review`) |
 | email.verify.subject | Verify your email address | உங்கள் மின்னஞ்சல் முகவரியைச் சரிபார்க்கவும் | — | — |  | Awaiting church review (`draft-review`) |
 | email.verify.body | Open the link below to verify your email address. It works for 24 hours. | உங்கள் மின்னஞ்சல் முகவரியைச் சரிபார்க்க கீழே உள்ள இணைப்பைத் திறக்கவும். அது 24 மணி நேரம் செல்லுபடியாகும். | — | — |  | Awaiting church review (`draft-review`) |
 | email.reset.subject | Reset your password | உங்கள் கடவுச்சொல்லை மீட்டமைக்கவும் | — | — |  | Awaiting church review (`draft-review`) |
