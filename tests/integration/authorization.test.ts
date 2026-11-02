@@ -146,6 +146,10 @@ describe("role management", () => {
 
   it("first-admin bootstrap works on an empty role table and only once", async () => {
     await getDb().delete(staffRole);
+    // Phase 6b: refused until the account has two-factor on.
+    await expect(bootstrapFirstAdmin(MEMBER)).rejects.toMatchObject({ code: "NO_TWO_FACTOR" });
+    expect(await rolesOf(await idOf(MEMBER))).toEqual([]);
+    await getDb().update(user).set({ twoFactorEnabled: true }).where(eq(user.email, MEMBER));
     await bootstrapFirstAdmin(MEMBER);
     expect(await rolesOf(await idOf(MEMBER))).toEqual(["CHURCH_ADMIN"]);
     await expect(bootstrapFirstAdmin(EDITOR)).rejects.toMatchObject({ code: "ALREADY_BOOTSTRAPPED" });
