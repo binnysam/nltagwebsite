@@ -81,3 +81,7 @@
 .action { margin-top: var(--space-6); }
 .note { margin-top: var(--space-5); }
 .inlineLink { color: var(--color-text-primary); display: inline-flex; align-items: center; min-height: var(--target-min); }
+
+/* Page shell: the footer sits at the bottom of short pages */
+.shell { display: flex; flex-direction: column; min-height: 100dvh; }
+.shell > main { flex: 1 0 auto; }

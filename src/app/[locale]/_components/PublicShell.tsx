@@ -3,6 +3,7 @@ import { SiteFooter, SiteHeader, type NavItem } from "@/design-system/components
 import { t, type Locale } from "@/content/ui-strings";
 import { churchName } from "@/content/church";
 import { footerNav, headerNav, href, type PublicRoute } from "./site";
+import styles from "../public.module.css";
 
 /**
  * Shared public page shell: header (five approved links, one CTA), <main id="main">, footer.
@@ -10,7 +11,7 @@ import { footerNav, headerNav, href, type PublicRoute } from "./site";
  */
 export function PublicShell({ locale, route, cta, children }: { locale: Locale; route: PublicRoute; cta?: NavItem; children: ReactNode }) {
   return (
-    <>
+    <div className={styles.shell}>
       <SiteHeader
         locale={locale}
         navItems={headerNav(locale)}
@@ -19,6 +20,6 @@ export function PublicShell({ locale, route, cta, children }: { locale: Locale; 
       />
       <main id="main">{children}</main>
       <SiteFooter locale={locale} name={churchName} navItems={footerNav(locale)} note={t("schedule.timezone", locale)} />
-    </>
+    </div>
   );
 }
