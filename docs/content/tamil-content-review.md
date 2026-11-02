@@ -1,7 +1,7 @@
 # Tamil content approval record
 
 **Generated from** `src/content/ui-strings.ts`, `src/content/schedule.ts` and `src/content/tamil-approvals.ts` by `node scripts/tamil-review.ts`. Do not edit by hand; `npm run verify` fails if this file is out of date.
-**Approved by the owner on 2026-11-01** (22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings). 63 of 148 items approved; 85 still awaiting review. Times, days and NECK were confirmed at Gate 0.
+**Approved by the owner on 2026-11-01** (22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings; 38 Phase 4b account and email strings and 45 Phase 6b two-factor strings, 2026-11-02). 146 of 148 items approved; 2 still awaiting review. Times, days and NECK were confirmed at Gate 0.
 
 Owner-supplied Tamil is approved content and is reproduced exactly as supplied. Do not rephrase, re-spell or "correct" it; a unit test compares every character. Any change needs new owner approval. The language names தமிழ் and English were confirmed at Gate 0 and are not listed.
 
@@ -72,91 +72,91 @@ Owner-supplied Tamil is approved content and is reproduced exactly as supplied. 
 | special.location.tba | Venue to be announced | இடம் பின்னர் அறிவிக்கப்படும் | Approved 2026-11-02 (Phase 5) | — |  | Approved (`confirmed`) |
 | visit.where | Where we meet | நாங்கள் கூடும் இடம் | Approved 2026-11-02 (Phase 5) | — |  | Approved (`confirmed`) |
 | visit.when | Main worship | சபை ஆராதனை | Approved 2026-11-02 (Phase 5) | — | Exactly the owner-approved name of the main worship service (schedule.main-worship). Previous draft: சபை ஆராதனை நேரம். | Approved (`confirmed`) |
-| auth.signIn.title | Sign in | உள்நுழைக | — | — |  | Awaiting church review (`draft-review`) |
-| auth.signUp.title | Create an account | கணக்கை உருவாக்குக | — | — |  | Awaiting church review (`draft-review`) |
-| auth.field.name | Full name | முழுப் பெயர் | — | — |  | Awaiting church review (`draft-review`) |
-| auth.field.email | Email address | மின்னஞ்சல் முகவரி | — | — |  | Awaiting church review (`draft-review`) |
-| auth.field.password | Password | கடவுச்சொல் | — | — |  | Awaiting church review (`draft-review`) |
-| auth.field.newPassword | New password | புதிய கடவுச்சொல் | — | — |  | Awaiting church review (`draft-review`) |
-| auth.passwordHint | At least 10 characters. | குறைந்தது 10 எழுத்துகள். | — | — |  | Awaiting church review (`draft-review`) |
-| auth.submit.signIn | Sign in | உள்நுழைக | — | — |  | Awaiting church review (`draft-review`) |
-| auth.submit.signUp | Create account | கணக்கை உருவாக்கு | — | — |  | Awaiting church review (`draft-review`) |
+| auth.signIn.title | Sign in | உள்நுழைக | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.signUp.title | Create an account | கணக்கை உருவாக்குக | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.field.name | Full name | முழுப் பெயர் | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.field.email | Email address | மின்னஞ்சல் முகவரி | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.field.password | Password | கடவுச்சொல் | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.field.newPassword | New password | புதிய கடவுச்சொல் | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.passwordHint | At least 10 characters. | குறைந்தது 10 எழுத்துகள். | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.submit.signIn | Sign in | உள்நுழைக | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.submit.signUp | Create account | கணக்கை உருவாக்கு | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
 | auth.google | Continue with Google | Google மூலம் தொடரவும் | — | — | Shown only when Google sign-in is configured. | Awaiting church review (`draft-review`) |
 | auth.or | or | அல்லது | — | — |  | Awaiting church review (`draft-review`) |
-| auth.forgot.link | Forgot your password? | கடவுச்சொல்லை மறந்துவிட்டீர்களா? | — | — |  | Awaiting church review (`draft-review`) |
-| auth.forgot.title | Reset your password | கடவுச்சொல்லை மீட்டமைக்கவும் | — | — |  | Awaiting church review (`draft-review`) |
-| auth.forgot.submit | Send reset link | மீட்டமைப்பு இணைப்பை அனுப்பு | — | — |  | Awaiting church review (`draft-review`) |
-| auth.forgot.sent | If an account exists for that address, we have sent a link. It works for 1 hour. | அந்த முகவரிக்கு கணக்கு இருந்தால், ஒரு இணைப்பை அனுப்பியுள்ளோம். அது 1 மணி நேரம் செல்லுபடியாகும். | — | — | Same message whether or not the address is registered (prevents account discovery). | Awaiting church review (`draft-review`) |
-| auth.signUp.sent | Check your email. If this address can be registered, we have sent a verification link. It works for 24 hours. | உங்கள் மின்னஞ்சலைப் பாருங்கள். இந்த முகவரியைப் பதிவு செய்ய முடிந்தால், சரிபார்ப்பு இணைப்பை அனுப்பியுள்ளோம். அது 24 மணி நேரம் செல்லுபடியாகும். | — | — | Same message whether or not the address is already registered. | Awaiting church review (`draft-review`) |
-| auth.reset.title | Choose a new password | புதிய கடவுச்சொல்லைத் தேர்ந்தெடுக்கவும் | — | — |  | Awaiting church review (`draft-review`) |
-| auth.reset.submit | Save new password | புதிய கடவுச்சொல்லைச் சேமி | — | — |  | Awaiting church review (`draft-review`) |
-| auth.reset.done | Your password has been changed. Please sign in. | உங்கள் கடவுச்சொல் மாற்றப்பட்டது. மீண்டும் உள்நுழையவும். | — | — |  | Awaiting church review (`draft-review`) |
-| auth.reset.invalid | This link is invalid or has expired. Please request a new one. | இந்த இணைப்பு செல்லாதது அல்லது காலாவதியானது. புதிய இணைப்பைக் கோருங்கள். | — | — |  | Awaiting church review (`draft-review`) |
-| auth.verify.title | Email verification | மின்னஞ்சல் சரிபார்ப்பு | — | — |  | Awaiting church review (`draft-review`) |
-| auth.verify.done | Your email address is verified. | உங்கள் மின்னஞ்சல் முகவரி சரிபார்க்கப்பட்டது. | — | — |  | Awaiting church review (`draft-review`) |
-| auth.verify.pending | Please verify your email address before signing in. We have sent you a new link. | உள்நுழைவதற்கு முன் உங்கள் மின்னஞ்சல் முகவரியைச் சரிபார்க்கவும். புதிய இணைப்பை அனுப்பியுள்ளோம். | — | — |  | Awaiting church review (`draft-review`) |
-| auth.error.invalid | Email or password is incorrect. | மின்னஞ்சல் அல்லது கடவுச்சொல் தவறானது. | — | — |  | Awaiting church review (`draft-review`) |
-| auth.error.rateLimited | Too many attempts. Please try again later. | அதிகமான முயற்சிகள். சிறிது நேரம் கழித்து மீண்டும் முயற்சிக்கவும். | — | — |  | Awaiting church review (`draft-review`) |
-| auth.error.generic | Something went wrong. Please try again. | ஏதோ தவறு நடந்தது. மீண்டும் முயற்சிக்கவும். | — | — |  | Awaiting church review (`draft-review`) |
-| auth.error.passwordShort | Use at least 10 characters. | குறைந்தது 10 எழுத்துகளைப் பயன்படுத்தவும். | — | — |  | Awaiting church review (`draft-review`) |
-| auth.noAccount | New here? Create an account | புதியவரா? கணக்கை உருவாக்குங்கள் | — | — |  | Awaiting church review (`draft-review`) |
-| auth.haveAccount | Already have an account? Sign in | ஏற்கனவே கணக்கு உள்ளதா? உள்நுழைக | — | — |  | Awaiting church review (`draft-review`) |
-| account.title | Your account | உங்கள் கணக்கு | — | — |  | Awaiting church review (`draft-review`) |
-| account.sessions | Signed-in devices | உள்நுழைந்துள்ள சாதனங்கள் | — | — |  | Awaiting church review (`draft-review`) |
-| account.thisDevice | This device | இந்தச் சாதனம் | — | — |  | Awaiting church review (`draft-review`) |
-| account.signOut | Sign out | வெளியேறு | — | — |  | Awaiting church review (`draft-review`) |
-| account.signOutOthers | Sign out of other devices | மற்ற சாதனங்களிலிருந்து வெளியேறு | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.title | Two-factor sign-in | இரு-படி உள்நுழைவு | — | — | Name of the feature on every two-factor screen. Other possible wording: இரு காரணி உள்நுழைவு, இரண்டு-படி சரிபார்ப்பு. | Awaiting church review (`draft-review`) |
-| twoFactor.lead | Each time you sign in, you also enter a code from an authenticator app on your phone. | ஒவ்வொரு முறை உள்நுழையும்போதும், உங்கள் கைப்பேசியிலுள்ள அங்கீகரிப்புச் செயலியிலிருந்து ஒரு குறியீட்டையும் உள்ளிடுவீர்கள். | — | — | அங்கீகரிப்புச் செயலி = authenticator app (other possible wording: Authenticator செயலி). App names stay in English. | Awaiting church review (`draft-review`) |
-| twoFactor.required | Church Admins must turn on two-factor sign-in before they can use the admin. | சபை நிர்வாகிகள் நிர்வாகப் பகுதியைப் பயன்படுத்தும் முன் இரு-படி உள்நுழைவை இயக்க வேண்டும். | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.status.on | Two-factor sign-in is on. | இரு-படி உள்நுழைவு இயக்கத்தில் உள்ளது. | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.status.off | Two-factor sign-in is off. | இரு-படி உள்நுழைவு இயக்கத்தில் இல்லை. | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.step1 | Step 1 of 3: Confirm your password | படி 1 / 3: உங்கள் கடவுச்சொல்லை உறுதிப்படுத்தவும் | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.continue | Continue | தொடரவும் | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.step2 | Step 2 of 3: Add NLTAG to your authenticator app | படி 2 / 3: உங்கள் அங்கீகரிப்புச் செயலியில் NLTAG-ஐச் சேர்க்கவும் | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.step2.help | Scan the QR code with an authenticator app, such as Google Authenticator or Microsoft Authenticator. If you cannot scan it, type the setup key into the app instead. | Google Authenticator அல்லது Microsoft Authenticator போன்ற அங்கீகரிப்புச் செயலியில் இந்த QR குறியீட்டை ஸ்கேன் செய்யவும். ஸ்கேன் செய்ய முடியவில்லை என்றால், அமைப்பு விசையைச் செயலியில் தட்டச்சு செய்யவும். | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.qr.label | QR code that adds NLTAG to an authenticator app | அங்கீகரிப்புச் செயலியில் NLTAG-ஐச் சேர்க்கும் QR குறியீடு | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.setupKey | Setup key | அமைப்பு விசை | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.step3 | Step 3 of 3: Save your recovery codes and confirm | படி 3 / 3: உங்கள் மீட்புக் குறியீடுகளைச் சேமித்து உறுதிப்படுத்தவும் | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.recovery.help | If you lose your phone, each of these codes lets you sign in once. Print them or keep them somewhere safe. They are shown only now. | உங்கள் கைப்பேசி தொலைந்தால், இந்தக் குறியீடுகள் ஒவ்வொன்றையும் கொண்டு ஒருமுறை உள்நுழையலாம். இவற்றை அச்சிடவும் அல்லது பாதுகாப்பான இடத்தில் வைக்கவும். இவை இப்போது மட்டுமே காட்டப்படும். | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.recovery.listLabel | Your recovery codes | உங்கள் மீட்புக் குறியீடுகள் | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.recovery.download | Download the codes as a text file | குறியீடுகளை உரைக் கோப்பாகப் பதிவிறக்கு | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.recovery.saved | I have saved my recovery codes in a safe place. | என் மீட்புக் குறியீடுகளைப் பாதுகாப்பான இடத்தில் சேமித்துவிட்டேன். | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.recovery.savedRequired | Please confirm that you have saved your recovery codes. | உங்கள் மீட்புக் குறியீடுகளைச் சேமித்ததை உறுதிப்படுத்தவும். | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.field.code | 6-digit code from the app | செயலியிலுள்ள 6 இலக்கக் குறியீடு | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.confirm.submit | Turn on two-factor sign-in | இரு-படி உள்நுழைவை இயக்கு | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.enabled.done | Two-factor sign-in is now on. You have been signed out of your other devices. | இரு-படி உள்நுழைவு இப்போது இயக்கத்தில் உள்ளது. உங்கள் மற்ற சாதனங்களிலிருந்து வெளியேற்றப்பட்டுள்ளீர்கள். | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.recovery.title | Recovery codes | மீட்புக் குறியீடுகள் | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.recovery.remaining | Unused recovery codes: {n} of 10. | பயன்படுத்தப்படாத மீட்புக் குறியீடுகள்: 10-இல் {n}. | — | — | {n} is replaced with a number. | Awaiting church review (`draft-review`) |
-| twoFactor.regenerate.help | Making new codes stops all your old recovery codes from working. Enter your password and a current code from the app. | புதிய குறியீடுகளை உருவாக்கினால், உங்கள் பழைய மீட்புக் குறியீடுகள் அனைத்தும் செயலிழக்கும். உங்கள் கடவுச்சொல்லையும் செயலியிலுள்ள தற்போதைய குறியீட்டையும் உள்ளிடவும். | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.regenerate.submit | Make new recovery codes | புதிய மீட்புக் குறியீடுகளை உருவாக்கு | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.regenerate.done | New recovery codes are ready. Your old codes no longer work. | புதிய மீட்புக் குறியீடுகள் தயார். உங்கள் பழைய குறியீடுகள் இனி செயல்படாது. | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.disable.title | Turn off two-factor sign-in | இரு-படி உள்நுழைவை நிறுத்து | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.disable.help | Use this when you replace your phone: turn it off, then set it up again on the new phone. While it is off, a Church Admin cannot use the admin. | கைப்பேசியை மாற்றும்போது இதைப் பயன்படுத்தவும்: இதை நிறுத்தி, புதிய கைப்பேசியில் மீண்டும் அமைக்கவும். இது நிறுத்தப்பட்டிருக்கும்போது சபை நிர்வாகி நிர்வாகப் பகுதியைப் பயன்படுத்த முடியாது. | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.disable.submit | Turn off two-factor sign-in | இரு-படி உள்நுழைவை நிறுத்து | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.disable.done | Two-factor sign-in is off. | இரு-படி உள்நுழைவு நிறுத்தப்பட்டது. | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.field.currentCode | Code from the app, or a recovery code | செயலியிலுள்ள குறியீடு அல்லது ஒரு மீட்புக் குறியீடு | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.challenge.title | Enter your sign-in code | உங்கள் உள்நுழைவுக் குறியீட்டை உள்ளிடவும் | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.challenge.lead | Open your authenticator app and enter the 6-digit code shown for NLTAG. | உங்கள் அங்கீகரிப்புச் செயலியைத் திறந்து, NLTAG-க்குக் காட்டப்படும் 6 இலக்கக் குறியீட்டை உள்ளிடவும். | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.field.recoveryCode | Recovery code | மீட்புக் குறியீடு | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.recovery.hint | Each recovery code works only once. | ஒவ்வொரு மீட்புக் குறியீடும் ஒருமுறை மட்டுமே செயல்படும். | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.useRecovery | Use a recovery code instead | அதற்குப் பதிலாக மீட்புக் குறியீட்டைப் பயன்படுத்து | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.useApp | Use the authenticator app instead | அதற்குப் பதிலாக அங்கீகரிப்புச் செயலியைப் பயன்படுத்து | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.verify | Verify | சரிபார் | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.error.code | That code is not correct. Check it and try again. | அந்தக் குறியீடு சரியானதல்ல. சரிபார்த்து மீண்டும் முயற்சிக்கவும். | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.error.expired | This sign-in has expired or had too many attempts. Please sign in again. | இந்த உள்நுழைவு காலாவதியானது அல்லது அதிக முயற்சிகள் செய்யப்பட்டன. மீண்டும் உள்நுழையவும். | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.error.locked | Too many incorrect codes. Please wait 15 minutes and try again. | பல தவறான குறியீடுகள். 15 நிமிடங்கள் காத்திருந்து மீண்டும் முயற்சிக்கவும். | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.error.password | The password is not correct. | கடவுச்சொல் சரியானதல்ல. | — | — |  | Awaiting church review (`draft-review`) |
-| twoFactor.error.fresh | For your safety, sign out and sign in again before changing two-factor sign-in. | உங்கள் பாதுகாப்பிற்காக, இரு-படி உள்நுழைவை மாற்றும் முன் வெளியேறி மீண்டும் உள்நுழையவும். | — | — |  | Awaiting church review (`draft-review`) |
-| account.twoFactor.setUp | Set up two-factor sign-in | இரு-படி உள்நுழைவை அமைக்கவும் | — | — |  | Awaiting church review (`draft-review`) |
-| account.twoFactor.manage | Manage two-factor sign-in | இரு-படி உள்நுழைவை நிர்வகிக்கவும் | — | — |  | Awaiting church review (`draft-review`) |
-| account.back | Back to your account | உங்கள் கணக்குக்குத் திரும்பு | — | — |  | Awaiting church review (`draft-review`) |
-| email.verify.subject | Verify your email address | உங்கள் மின்னஞ்சல் முகவரியைச் சரிபார்க்கவும் | — | — |  | Awaiting church review (`draft-review`) |
-| email.verify.body | Open the link below to verify your email address. It works for 24 hours. | உங்கள் மின்னஞ்சல் முகவரியைச் சரிபார்க்க கீழே உள்ள இணைப்பைத் திறக்கவும். அது 24 மணி நேரம் செல்லுபடியாகும். | — | — |  | Awaiting church review (`draft-review`) |
-| email.reset.subject | Reset your password | உங்கள் கடவுச்சொல்லை மீட்டமைக்கவும் | — | — |  | Awaiting church review (`draft-review`) |
-| email.reset.body | Open the link below to choose a new password. It works for 1 hour. | புதிய கடவுச்சொல்லைத் தேர்ந்தெடுக்க கீழே உள்ள இணைப்பைத் திறக்கவும். அது 1 மணி நேரம் செல்லுபடியாகும். | — | — |  | Awaiting church review (`draft-review`) |
-| email.ignore | If you did not ask for this, you can ignore this email. | நீங்கள் இதைக் கோரவில்லை என்றால், இந்த மின்னஞ்சலைப் புறக்கணிக்கலாம். | — | — |  | Awaiting church review (`draft-review`) |
-| email.footer | This message was sent automatically by the {church} website. | இந்தச் செய்தி {church} இணையதளத்தால் தானாக அனுப்பப்பட்டது. | — | — |  | Awaiting church review (`draft-review`) |
+| auth.forgot.link | Forgot your password? | கடவுச்சொல்லை மறந்துவிட்டீர்களா? | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.forgot.title | Reset your password | கடவுச்சொல்லை மீட்டமைக்கவும் | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.forgot.submit | Send reset link | மீட்டமைப்பு இணைப்பை அனுப்பு | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.forgot.sent | If an account exists for that address, we have sent a link. It works for 1 hour. | அந்த முகவரிக்கு கணக்கு இருந்தால், ஒரு இணைப்பை அனுப்பியுள்ளோம். அது 1 மணி நேரம் செல்லுபடியாகும். | Approved 2026-11-02 (Phase 4b accounts and emails) | — | Same message whether or not the address is registered (prevents account discovery). | Approved (`confirmed`) |
+| auth.signUp.sent | Check your email. If this address can be registered, we have sent a verification link. It works for 24 hours. | உங்கள் மின்னஞ்சலைப் பாருங்கள். இந்த முகவரியைப் பதிவு செய்ய முடிந்தால், சரிபார்ப்பு இணைப்பை அனுப்பியுள்ளோம். அது 24 மணி நேரம் செல்லுபடியாகும். | Approved 2026-11-02 (Phase 4b accounts and emails) | — | Same message whether or not the address is already registered. | Approved (`confirmed`) |
+| auth.reset.title | Choose a new password | புதிய கடவுச்சொல்லைத் தேர்ந்தெடுக்கவும் | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.reset.submit | Save new password | புதிய கடவுச்சொல்லைச் சேமி | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.reset.done | Your password has been changed. Please sign in. | உங்கள் கடவுச்சொல் மாற்றப்பட்டது. மீண்டும் உள்நுழையவும். | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.reset.invalid | This link is invalid or has expired. Please request a new one. | இந்த இணைப்பு செல்லாதது அல்லது காலாவதியானது. புதிய இணைப்பைக் கோருங்கள். | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.verify.title | Email verification | மின்னஞ்சல் சரிபார்ப்பு | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.verify.done | Your email address is verified. | உங்கள் மின்னஞ்சல் முகவரி சரிபார்க்கப்பட்டது. | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.verify.pending | Please verify your email address before signing in. We have sent you a new link. | உள்நுழைவதற்கு முன் உங்கள் மின்னஞ்சல் முகவரியைச் சரிபார்க்கவும். புதிய இணைப்பை அனுப்பியுள்ளோம். | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.error.invalid | Email or password is incorrect. | மின்னஞ்சல் அல்லது கடவுச்சொல் தவறானது. | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.error.rateLimited | Too many attempts. Please try again later. | அதிகமான முயற்சிகள். சிறிது நேரம் கழித்து மீண்டும் முயற்சிக்கவும். | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.error.generic | Something went wrong. Please try again. | ஏதோ தவறு நடந்தது. மீண்டும் முயற்சிக்கவும். | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.error.passwordShort | Use at least 10 characters. | குறைந்தது 10 எழுத்துகளைப் பயன்படுத்தவும். | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.noAccount | New here? Create an account | புதியவரா? கணக்கை உருவாக்குங்கள் | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| auth.haveAccount | Already have an account? Sign in | ஏற்கனவே கணக்கு உள்ளதா? உள்நுழைக | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| account.title | Your account | உங்கள் கணக்கு | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| account.sessions | Signed-in devices | உள்நுழைந்துள்ள சாதனங்கள் | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| account.thisDevice | This device | இந்தச் சாதனம் | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| account.signOut | Sign out | வெளியேறு | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| account.signOutOthers | Sign out of other devices | மற்ற சாதனங்களிலிருந்து வெளியேறு | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| twoFactor.title | Two-factor sign-in | இரு-படி உள்நுழைவு | Approved 2026-11-02 (Phase 6b two-factor) | — | Name of the feature on every two-factor screen. Other possible wording: இரு காரணி உள்நுழைவு, இரண்டு-படி சரிபார்ப்பு. | Approved (`confirmed`) |
+| twoFactor.lead | Each time you sign in, you also enter a code from an authenticator app on your phone. | ஒவ்வொரு முறை உள்நுழையும்போதும், உங்கள் கைப்பேசியிலுள்ள அங்கீகரிப்புச் செயலியிலிருந்து ஒரு குறியீட்டையும் உள்ளிடுவீர்கள். | Approved 2026-11-02 (Phase 6b two-factor) | — | அங்கீகரிப்புச் செயலி = authenticator app (other possible wording: Authenticator செயலி). App names stay in English. | Approved (`confirmed`) |
+| twoFactor.required | Church Admins must turn on two-factor sign-in before they can use the admin. | சபை நிர்வாகிகள் நிர்வாகப் பகுதியைப் பயன்படுத்தும் முன் இரு-படி உள்நுழைவை இயக்க வேண்டும். | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.status.on | Two-factor sign-in is on. | இரு-படி உள்நுழைவு இயக்கத்தில் உள்ளது. | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.status.off | Two-factor sign-in is off. | இரு-படி உள்நுழைவு இயக்கத்தில் இல்லை. | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.step1 | Step 1 of 3: Confirm your password | படி 1 / 3: உங்கள் கடவுச்சொல்லை உறுதிப்படுத்தவும் | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.continue | Continue | தொடரவும் | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.step2 | Step 2 of 3: Add NLTAG to your authenticator app | படி 2 / 3: உங்கள் அங்கீகரிப்புச் செயலியில் NLTAG-ஐச் சேர்க்கவும் | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.step2.help | Scan the QR code with an authenticator app, such as Google Authenticator or Microsoft Authenticator. If you cannot scan it, type the setup key into the app instead. | Google Authenticator அல்லது Microsoft Authenticator போன்ற அங்கீகரிப்புச் செயலியில் இந்த QR குறியீட்டை ஸ்கேன் செய்யவும். ஸ்கேன் செய்ய முடியவில்லை என்றால், அமைப்பு விசையைச் செயலியில் தட்டச்சு செய்யவும். | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.qr.label | QR code that adds NLTAG to an authenticator app | அங்கீகரிப்புச் செயலியில் NLTAG-ஐச் சேர்க்கும் QR குறியீடு | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.setupKey | Setup key | அமைப்பு விசை | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.step3 | Step 3 of 3: Save your recovery codes and confirm | படி 3 / 3: உங்கள் மீட்புக் குறியீடுகளைச் சேமித்து உறுதிப்படுத்தவும் | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.recovery.help | If you lose your phone, each of these codes lets you sign in once. Print them or keep them somewhere safe. They are shown only now. | உங்கள் கைப்பேசி தொலைந்தால், இந்தக் குறியீடுகள் ஒவ்வொன்றையும் கொண்டு ஒருமுறை உள்நுழையலாம். இவற்றை அச்சிடவும் அல்லது பாதுகாப்பான இடத்தில் வைக்கவும். இவை இப்போது மட்டுமே காட்டப்படும். | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.recovery.listLabel | Your recovery codes | உங்கள் மீட்புக் குறியீடுகள் | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.recovery.download | Download the codes as a text file | குறியீடுகளை உரைக் கோப்பாகப் பதிவிறக்கு | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.recovery.saved | I have saved my recovery codes in a safe place. | என் மீட்புக் குறியீடுகளைப் பாதுகாப்பான இடத்தில் சேமித்துவிட்டேன். | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.recovery.savedRequired | Please confirm that you have saved your recovery codes. | உங்கள் மீட்புக் குறியீடுகளைச் சேமித்ததை உறுதிப்படுத்தவும். | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.field.code | 6-digit code from the app | செயலியிலுள்ள 6 இலக்கக் குறியீடு | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.confirm.submit | Turn on two-factor sign-in | இரு-படி உள்நுழைவை இயக்கு | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.enabled.done | Two-factor sign-in is now on. You have been signed out of your other devices. | இரு-படி உள்நுழைவு இப்போது இயக்கத்தில் உள்ளது. உங்கள் மற்ற சாதனங்களிலிருந்து வெளியேற்றப்பட்டுள்ளீர்கள். | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.recovery.title | Recovery codes | மீட்புக் குறியீடுகள் | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.recovery.remaining | Unused recovery codes: {n} of 10. | பயன்படுத்தப்படாத மீட்புக் குறியீடுகள்: 10-இல் {n}. | Approved 2026-11-02 (Phase 6b two-factor) | — | {n} is replaced with a number. | Approved (`confirmed`) |
+| twoFactor.regenerate.help | Making new codes stops all your old recovery codes from working. Enter your password and a current code from the app. | புதிய குறியீடுகளை உருவாக்கினால், உங்கள் பழைய மீட்புக் குறியீடுகள் அனைத்தும் செயலிழக்கும். உங்கள் கடவுச்சொல்லையும் செயலியிலுள்ள தற்போதைய குறியீட்டையும் உள்ளிடவும். | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.regenerate.submit | Make new recovery codes | புதிய மீட்புக் குறியீடுகளை உருவாக்கு | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.regenerate.done | New recovery codes are ready. Your old codes no longer work. | புதிய மீட்புக் குறியீடுகள் தயார். உங்கள் பழைய குறியீடுகள் இனி செயல்படாது. | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.disable.title | Turn off two-factor sign-in | இரு-படி உள்நுழைவை நிறுத்து | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.disable.help | Use this when you replace your phone: turn it off, then set it up again on the new phone. While it is off, a Church Admin cannot use the admin. | கைப்பேசியை மாற்றும்போது இதைப் பயன்படுத்தவும்: இதை நிறுத்தி, புதிய கைப்பேசியில் மீண்டும் அமைக்கவும். இது நிறுத்தப்பட்டிருக்கும்போது சபை நிர்வாகி நிர்வாகப் பகுதியைப் பயன்படுத்த முடியாது. | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.disable.submit | Turn off two-factor sign-in | இரு-படி உள்நுழைவை நிறுத்து | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.disable.done | Two-factor sign-in is off. | இரு-படி உள்நுழைவு நிறுத்தப்பட்டது. | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.field.currentCode | Code from the app, or a recovery code | செயலியிலுள்ள குறியீடு அல்லது ஒரு மீட்புக் குறியீடு | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.challenge.title | Enter your sign-in code | உங்கள் உள்நுழைவுக் குறியீட்டை உள்ளிடவும் | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.challenge.lead | Open your authenticator app and enter the 6-digit code shown for NLTAG. | உங்கள் அங்கீகரிப்புச் செயலியைத் திறந்து, NLTAG-க்குக் காட்டப்படும் 6 இலக்கக் குறியீட்டை உள்ளிடவும். | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.field.recoveryCode | Recovery code | மீட்புக் குறியீடு | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.recovery.hint | Each recovery code works only once. | ஒவ்வொரு மீட்புக் குறியீடும் ஒருமுறை மட்டுமே செயல்படும். | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.useRecovery | Use a recovery code instead | அதற்குப் பதிலாக மீட்புக் குறியீட்டைப் பயன்படுத்து | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.useApp | Use the authenticator app instead | அதற்குப் பதிலாக அங்கீகரிப்புச் செயலியைப் பயன்படுத்து | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.verify | Verify | சரிபார் | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.error.code | That code is not correct. Check it and try again. | அந்தக் குறியீடு சரியானதல்ல. சரிபார்த்து மீண்டும் முயற்சிக்கவும். | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.error.expired | This sign-in has expired or had too many attempts. Please sign in again. | இந்த உள்நுழைவு காலாவதியானது அல்லது அதிக முயற்சிகள் செய்யப்பட்டன. மீண்டும் உள்நுழையவும். | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.error.locked | Too many incorrect codes. Please wait 15 minutes and try again. | பல தவறான குறியீடுகள். 15 நிமிடங்கள் காத்திருந்து மீண்டும் முயற்சிக்கவும். | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.error.password | The password is not correct. | கடவுச்சொல் சரியானதல்ல. | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| twoFactor.error.fresh | For your safety, sign out and sign in again before changing two-factor sign-in. | உங்கள் பாதுகாப்பிற்காக, இரு-படி உள்நுழைவை மாற்றும் முன் வெளியேறி மீண்டும் உள்நுழையவும். | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| account.twoFactor.setUp | Set up two-factor sign-in | இரு-படி உள்நுழைவை அமைக்கவும் | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| account.twoFactor.manage | Manage two-factor sign-in | இரு-படி உள்நுழைவை நிர்வகிக்கவும் | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| account.back | Back to your account | உங்கள் கணக்குக்குத் திரும்பு | Approved 2026-11-02 (Phase 6b two-factor) | — |  | Approved (`confirmed`) |
+| email.verify.subject | Verify your email address | உங்கள் மின்னஞ்சல் முகவரியைச் சரிபார்க்கவும் | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| email.verify.body | Open the link below to verify your email address. It works for 24 hours. | உங்கள் மின்னஞ்சல் முகவரியைச் சரிபார்க்க கீழே உள்ள இணைப்பைத் திறக்கவும். அது 24 மணி நேரம் செல்லுபடியாகும். | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| email.reset.subject | Reset your password | உங்கள் கடவுச்சொல்லை மீட்டமைக்கவும் | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| email.reset.body | Open the link below to choose a new password. It works for 1 hour. | புதிய கடவுச்சொல்லைத் தேர்ந்தெடுக்க கீழே உள்ள இணைப்பைத் திறக்கவும். அது 1 மணி நேரம் செல்லுபடியாகும். | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| email.ignore | If you did not ask for this, you can ignore this email. | நீங்கள் இதைக் கோரவில்லை என்றால், இந்த மின்னஞ்சலைப் புறக்கணிக்கலாம். | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| email.footer | This message was sent automatically by the {church} website. | இந்தச் செய்தி {church} இணையதளத்தால் தானாக அனுப்பப்பட்டது. | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
 
 ## Not yet in the record
 

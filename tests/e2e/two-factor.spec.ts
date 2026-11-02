@@ -81,6 +81,21 @@ const T = {
   en: { email: /Email address/, password: /^Password/, signIn: "Sign in", code: /6-digit code/, verify: "Verify", recovery: /Use a recovery code/, recoveryField: /^Recovery code/, cont: "Continue", saved: /I have saved my recovery codes/, turnOn: "Turn on two-factor sign-in", off: "Turn off two-factor sign-in", current: /Code from the app, or a recovery code/, wrong: /not correct/ },
 } as const;
 
+/**
+ * Review screenshot with every second-factor value blacked out: the QR code, the setup key and the
+ * recovery-code list. They belong to throwaway test accounts, but screenshots are uploaded as CI
+ * artifacts, and no artifact should ever carry a scannable QR code or usable-looking codes.
+ */
+async function shot(page: Page, path: string) {
+  const main = page.getByRole("main");
+  await page.screenshot({
+    path,
+    fullPage: true,
+    mask: [main.getByRole("img", { name: /QR/ }), page.getByTestId("setup-key"), main.locator("ul[translate='no']")],
+    maskColor: "#000",
+  });
+}
+
 async function passwordStep(page: Page, locale: "ta" | "en", email: string, password = PASSWORD) {
   const t = T[locale];
   // All browser traffic comes from 127.0.0.1; reset the per-IP counters between sign-ins.
@@ -105,7 +120,7 @@ for (const locale of ["ta", "en"] as const) {
     await page.goto(`/${locale}/account/two-factor`);
     await expect(page.locator("html")).toHaveAttribute("lang", locale);
     await checkPage(page);
-    await page.screenshot({ path: `${SHOTS}/1-setup-start-${locale}-${p}.png`, fullPage: true });
+    await shot(page, `${SHOTS}/1-setup-start-${locale}-${p}.png`);
 
     // Step 1: password. Step 2: QR + setup key. Step 3: codes + confirm.
     await page.getByLabel(t.password).fill(PASSWORD);
@@ -117,7 +132,7 @@ for (const locale of ["ta", "en"] as const) {
     const recovery = codes.filter((c) => /^[A-Za-z0-9]{5}-[A-Za-z0-9]{5}$/.test(c.trim()));
     expect(recovery).toHaveLength(10);
     await checkPage(page);
-    await page.screenshot({ path: `${SHOTS}/2-setup-qr-codes-${locale}-${p}.png`, fullPage: true });
+    await shot(page, `${SHOTS}/2-setup-qr-codes-${locale}-${p}.png`);
     const secret = base32Decode(await key.innerText());
 
     // Confirm without ticking "saved" → asked to confirm; wrong code → error; right code → on.
@@ -136,7 +151,7 @@ for (const locale of ["ta", "en"] as const) {
     const [row] = await sql<{ on: number }[]>("SELECT two_factor_enabled AS `on` FROM user WHERE id = ?", [id]);
     expect(row!.on).toBe(1);
     await checkPage(page);
-    await page.screenshot({ path: `${SHOTS}/3-setup-done-${locale}-${p}.png`, fullPage: true });
+    await shot(page, `${SHOTS}/3-setup-done-${locale}-${p}.png`);
 
     // New browser context = new device: password, then the challenge.
     await page.context().clearCookies();
@@ -144,13 +159,13 @@ for (const locale of ["ta", "en"] as const) {
     await expect(page).toHaveURL(new RegExp(`/${locale}/two-factor$`));
     await expect(page.locator("html")).toHaveAttribute("lang", locale);
     await checkPage(page);
-    await page.screenshot({ path: `${SHOTS}/4-challenge-${locale}-${p}.png`, fullPage: true });
+    await shot(page, `${SHOTS}/4-challenge-${locale}-${p}.png`);
     // A wrong code shows an error and keeps the person here.
     await page.getByLabel(t.code).fill(wrongCode(secret));
     await page.getByRole("button", { name: t.verify }).click();
     await expect(page.getByRole("main").getByRole("alert")).toContainText(t.wrong);
     await expect(page).toHaveURL(/\/two-factor$/);
-    await page.screenshot({ path: `${SHOTS}/5-challenge-error-${locale}-${p}.png`, fullPage: true });
+    await shot(page, `${SHOTS}/5-challenge-error-${locale}-${p}.png`);
     await freshStep();
     await page.getByLabel(t.code).fill(totp(secret));
     await page.getByRole("button", { name: t.verify }).click();
@@ -162,7 +177,7 @@ for (const locale of ["ta", "en"] as const) {
     await page.getByRole("button", { name: t.recovery }).click();
     await expect(page.getByLabel(t.recoveryField)).toBeFocused();
     await checkPage(page);
-    await page.screenshot({ path: `${SHOTS}/6-challenge-recovery-${locale}-${p}.png`, fullPage: true });
+    await shot(page, `${SHOTS}/6-challenge-recovery-${locale}-${p}.png`);
     await page.getByLabel(t.recoveryField).fill(recovery[0]!.trim());
     await page.getByRole("button", { name: t.verify }).click();
     await page.waitForURL(new RegExp(`/${locale}/account$`));
@@ -206,7 +221,7 @@ test("a Church Admin without two-factor is sent to set it up and cannot open the
   }
   await expect(page.getByRole("main").getByRole("status").filter({ hasText: "Church Admins must turn on two-factor sign-in" })).toBeVisible();
   await checkPage(page);
-  await page.screenshot({ path: `${SHOTS}/7-admin-required-en-${info.project.name}.png`, fullPage: true });
+  await shot(page, `${SHOTS}/7-admin-required-en-${info.project.name}.png`);
   const [audit] = await sql<{ k: number }[]>("SELECT COUNT(*) AS k FROM audit_log WHERE action = 'auth.2fa.required' AND actor_user_id = ?", [id]);
   expect(Number(audit!.k)).toBeGreaterThanOrEqual(4);
   await sql("DELETE FROM user WHERE id = ?", [id]);
@@ -231,7 +246,7 @@ test("the seeded Church Admin reaches the admin only after the code", async ({ p
   await page.getByLabel(T.ta.code).fill(totp(SEED_TOTP_SECRET));
   await page.getByRole("button", { name: T.ta.verify }).click();
   await page.waitForURL(/\/ta\/account$/);
-  await page.screenshot({ path: `${SHOTS}/8-account-2fa-on-ta-${info.project.name}.png`, fullPage: true });
+  await shot(page, `${SHOTS}/8-account-2fa-on-ta-${info.project.name}.png`);
   await page.goto("/admin");
   await expect(page.locator("h1")).toBeVisible();
   await expect(page).toHaveURL(/\/admin$/);

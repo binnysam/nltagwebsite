@@ -155,14 +155,14 @@ describe("QR code", () => {
 
 describe("two-factor strings", () => {
   const keys = Object.keys(uiStrings).filter((k) => k.startsWith("twoFactor.") || k.startsWith("account.twoFactor") || k === "account.back");
-  it("exist in Tamil and English and start as draft-review (owner approval needed)", () => {
-    expect(keys.length).toBeGreaterThan(30);
+  it("exist in Tamil and English and are owner-approved (2 Nov 2026)", () => {
+    expect(keys).toHaveLength(45);
     for (const k of keys) {
       const v = uiStrings[k as keyof typeof uiStrings];
       expect(v.en.trim(), k).not.toBe("");
       expect(v.ta.trim(), k).not.toBe("");
       expect(/[஀-௿]/.test(v.ta), `${k} has Tamil script`).toBe(true);
-      expect(v.taStatus, k).toBe("draft-review");
+      expect(v.taStatus, k).toBe("confirmed");
     }
   });
 });

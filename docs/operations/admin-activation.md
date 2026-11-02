@@ -3,6 +3,25 @@
 **Phase 6b. Only with the owner present, in an approved activation window, after the Phase 6b PR is merged and deployed.**
 Do the steps in order. Stop and roll back (§ 12) if any check fails. Nothing here touches the domain, DNS, email records, SMTP settings or Hostinger email.
 
+**Owner decisions recorded (2 Nov 2026):** Church Admin — authenticator-app (TOTP) two-factor mandatory; Content Editor — optional for now; Google sign-in stays unconfigured; no trusted devices; recovery codes single-use, regenerating them voids all old codes; turning two-factor off needs password **and** a current code; phone and recovery codes both lost → the database reset in § 11 D, only with explicit owner approval and an audit row, never an automatic bypass. All 38 needed Phase 4b account/email and 45 Phase 6b two-factor Tamil strings are approved.
+
+## Which steps need a Hostinger build, which do not
+
+Hostinger masks variable values and applies them when the app (re)starts. Saving a variable restarts the app; that is enough for runtime settings. Two things run **only during a build** (`scripts/hostinger-build.mjs`): the database migration and the first-admin bootstrap. Those need *Save → trigger a rebuild/redeploy*.
+
+| Step | What | How it takes effect |
+|---|---|---|
+| § 1 | Database backup | phpMyAdmin (no app change) |
+| § 2 | Migration `0003_two_factor` | **Build** with `NLTAG_APPROVED_PRODUCTION_MIGRATION=1`, then remove it and **build** again |
+| § 3 | `AUTH_RATE_LIMIT`, `NLTAG_SIGNUP_ALLOWLIST`, `NLTAG_ACCOUNTS_ENABLED=1` | Save variables (app restart); no build |
+| § 4–6 | Register, verify email, enroll authenticator, save recovery codes | In the app (browser + phone) |
+| § 7 | Bootstrap with `NLTAG_BOOTSTRAP_ADMIN_EMAIL` | **Build** |
+| § 8 | Remove `NLTAG_BOOTSTRAP_ADMIN_EMAIL` | Save, then **build** once more to confirm the log |
+| § 9–10 | Admin, audit, 2FA, Content Editor and membership checks | In the app |
+| § 12 | Close accounts (`NLTAG_ACCOUNTS_ENABLED=0`) | Save variable (app restart); no build |
+
+If a saved variable does not seem to apply (for example the account pages still 404 after § 3), use *Restart* on the Node.js app, or a redeploy — never change other settings to force it.
+
 **Where variables live:** hPanel → Websites → **nltagkuwait.com** → the Node.js app → **Environment variables** (the list that already has `SMTP_*`, `DATABASE_URL`, `BETTER_AUTH_SECRET` and `NLTAG_ACCOUNTS_ENABLED`). Saving restarts the app. Type values only in hPanel — never in chat, email, GitHub or a file.
 
 **Never change `BETTER_AUTH_SECRET` after anyone has enrolled.** It encrypts every authenticator secret and recovery code; a new value makes all of them unreadable and locks every Church Admin out of the admin (recovery: § 11 D for each person).
@@ -20,13 +39,14 @@ Do the steps in order. Stop and roll back (§ 12) if any check fails. Nothing he
 - [ ] `/ta/sign-in`, `/ta/two-factor` and `/admin` still show "Not Found".
 - [ ] You know the first admin's address (a church staff mailbox that person can open).
 - [ ] The first admin has a phone with an authenticator app installed (free: **Google Authenticator** or **Microsoft Authenticator**), and the phone's clock is set automatically.
-- [ ] The **43 Phase 4b** and the **Phase 6b two-factor** Tamil strings are approved, or you accept that Tamil account pages show draft wording (English pages are unaffected).
+- [ ] PR #10 is merged and the Hostinger build for that `main` commit **completed** (its log: `No migration requested`, `No admin bootstrap requested`).
+- [ ] Tamil: the 38 Phase 4b and 45 Phase 6b strings are approved (2 Nov 2026, `docs/content/tamil-content-review.md`). Only `auth.google` and `auth.or` stay draft; they appear only if Google sign-in is configured, and it is not.
 - [ ] You have a way to keep the first admin's recovery codes offline (printed and locked away, or in a password manager).
 
 ## 1. Fresh database backup
 1. hPanel → Databases → phpMyAdmin → `u339364475_nltag` → **Export** → Custom → all tables, structure and data, SQL → download as `nltag-db-before-admin-YYYYMMDD-HHMM.sql`.
-2. Open the file: it must end with the last table's data and list `__drizzle_migrations` with **3** rows (`0000`, `0001`, `0002`).
-3. Optionally hPanel → Backups → Database backups → generate. Keep the export off the server.
+2. **Verify it:** the file is not empty, ends with the last table's data (no error text at the end), contains `CREATE TABLE` for `user`, `session`, `audit_log` and the CMS tables, and lists `__drizzle_migrations` with **3** rows (`0000`, `0001`, `0002`). In phpMyAdmin note the row count of `audit_log` and of one CMS table; the same `INSERT` rows must be in the file.
+3. Also hPanel → Backups → Database backups → generate. Keep the export off the server and off shared computers.
 
 ## 2. Apply migration `0003_two_factor` (one build, owner-approved)
 Adds the `two_factor` table and one column `user.two_factor_enabled` (default off). Additive only; the public site is unaffected before and after.
@@ -51,7 +71,7 @@ Check (private window): `/ta/sign-in` and `/ta/sign-up` load; `/ta` still has `n
 The admin opens `https://nltagkuwait.com/ta/sign-up` (or `/en/sign-up`), enters name, the listed address and a password of 10+ characters, and submits. The page says to check email.
 
 ## 5. Email verification
-1. The verification email arrives in that mailbox (Tamil and English). Open the link within 24 hours. The page confirms the address is verified and the admin is signed in.
+1. The verification email, sent through the church's Gmail SMTP, arrives in that mailbox (Tamil and English). Open the link within 24 hours. The page confirms the address is verified and the admin is signed in.
 2. No email within 10 minutes: check spam; check the address matches the allowlist exactly; otherwise roll back (§ 12) and report.
 
 ## 6. Authenticator enrollment and verification (the admin, on their phone and computer)
@@ -87,7 +107,15 @@ If the code is refused: check the phone clock is automatic, wait for a new code,
 - [ ] **Wrong code:** enter `000000` (unless it is the real code). The page says the code is not correct; you stay on the code page.
 - [ ] **Unlisted address:** sign up with an address *not* on the list. Same "check your email" message; no email arrives (no account is created).
 - [ ] **Rate limit:** sign in with the admin address and a wrong password 6 times within 15 minutes. The 6th attempt shows "Too many attempts". Wait 15 minutes before the real sign-in. If the 6th is *not* blocked, roll back (§ 12) and report: client-IP detection behind Hostinger's proxy needs checking (`TRUSTED_PROXIES`).
+- [ ] **Two-factor enforced for the role:** the admin's *Account* page says two-factor sign-in is on, and `/admin/audit` → *Sign-in and accounts* shows `auth.2fa.enable` before `role.bootstrap`. (The bootstrap refuses an account without it; any later Church Admin without it is sent to the setup page and gets `auth.2fa.required` rows.)
+- [ ] **Membership data is not reachable:** there is no membership screen in the admin (Phase 4d is not built). `/admin/members`, `/admin/membership` and `/en/account/membership` return "Not Found"; nothing in the admin lists members, birthdays or exports.
 - [ ] `noindex, nofollow` still on `/ta` and `/en`. Public pages unchanged; CMS images still visible to staff only.
+
+**Content Editor check — when the first editor is added** (see "Later" below; no extra production account is created only to test this):
+- [ ] The editor can open `/admin`, create and edit drafts, upload images and *submit for review*.
+- [ ] The editor **cannot publish**: the editor's item page has *Submit for review* but no *Publish*; the submitted item waits in `/admin/review` until a Church Admin publishes it. (Editors may view that list; publishing is refused for them by the server as well.)
+- [ ] `/admin/staff` and `/admin/audit` return "Not Found" for the editor (no `staff.manage`, no `audit.read`).
+- [ ] No membership data anywhere (as above). Two-factor is offered on *Account* but not required.
 
 Do **not** use a recovery code just to test it: each one works once.
 
@@ -98,16 +126,26 @@ Do **not** use a recovery code just to test it: each one works once.
 
 **C. Running low on recovery codes.** The page shows how many are unused. *Make new recovery codes* (password + current code) replaces all old codes.
 
-**D. Phone and recovery codes both lost (last resort, owner present).** There is no reset button by design. With the owner's approval:
-1. Take a fresh backup (§ 1).
-2. phpMyAdmin → `u339364475_nltag` → SQL, with the person's exact address in both places:
+**D. Phone and recovery codes both lost (last resort).** There is no reset button and no automatic bypass, by design. Only with the **owner's explicit approval**, given for this person on this date:
+1. Confirm the person's identity outside the website (in person or by a known phone number).
+2. Take a fresh backup and verify it (§ 1).
+3. phpMyAdmin → `u339364475_nltag` → **SQL**. Replace `person@example.org` with the person's exact address in all four places and run the block once. It removes the authenticator and recovery codes, signs the person out everywhere and writes an audit row, all in one transaction:
    ```sql
-   DELETE FROM two_factor WHERE user_id = (SELECT id FROM user WHERE email = 'person@example.org');
-   UPDATE user SET two_factor_enabled = 0 WHERE email = 'person@example.org';
-   DELETE FROM session WHERE user_id = (SELECT id FROM user WHERE email = 'person@example.org');
+   START TRANSACTION;
+   SET @uid = (SELECT id FROM user WHERE email = 'person@example.org');
+   INSERT INTO audit_log (actor_user_id, action, outcome, entity, entity_id, reason, created_at)
+     SELECT NULL, 'auth.2fa.reset_by_owner', 'SUCCESS', 'user', @uid,
+            'Owner-approved database reset: authenticator and recovery codes lost (runbook 11 D)', NOW(3)
+     FROM DUAL WHERE @uid IS NOT NULL;
+   DELETE FROM two_factor WHERE user_id = @uid;
+   UPDATE user SET two_factor_enabled = 0 WHERE id = @uid;
+   DELETE FROM session WHERE user_id = @uid;
+   SELECT @uid AS reset_user_id, ROW_COUNT() AS sessions_removed;
+   COMMIT;
    ```
-3. The person signs in with the password and must set up two-factor again at once (§ 6) — the admin stays closed to them until they do.
-4. This database change is **not** in the site's audit log. Record it in the church's own records (date, who, why, who approved).
+   If `reset_user_id` is `NULL`, the address did not match: nothing was changed. Check the spelling and run it again.
+4. `/admin/audit` now shows `auth.2fa.reset_by_owner` for that account. Also record in the church's own records: date, person, reason, who approved, who ran it (the audit row holds no names by design).
+5. The person signs in with the password and sets up two-factor again at once (§ 6) with new recovery codes. For a Church Admin the admin stays closed until they do.
 
 **E. Forgotten password.** *Forgot your password?* sends a reset link (1 hour). After the reset, sign-in still asks for the authenticator code.
 

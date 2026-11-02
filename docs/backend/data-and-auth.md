@@ -118,6 +118,8 @@ All account pages (`/ta|en/sign-in`, `sign-up`, `forgot-password`, `reset-passwo
 Step-by-step runbook: `docs/operations/admin-activation.md`. SMTP delivery was tested on 2 Nov 2026 (Stage A, since removed).
 
 ## Two-factor (Phase 6b)
+**Owner decisions (2 Nov 2026):** Church Admin — two-factor mandatory; Content Editor — optional; Google sign-in unconfigured; no trusted devices; single-use recovery codes, regenerating voids all old ones; disabling needs password and a second factor; phone and recovery codes both lost → owner-approved database reset (runbook § 11 D) with its own audit row, never an automatic bypass.
+
 Better Auth's two-factor plugin (`better-auth/plugins/two-factor`) with authenticator apps (TOTP: 6 digits, 30 s) and 10 single-use recovery codes. Configured in `auth.ts`; rules in `two-factor-policy.ts`; screens in `src/app/[locale]/(account)/two-factor` (sign-in code) and `…/account/two-factor` (setup and management, server actions in `actions.ts`); owner runbook `docs/operations/admin-activation.md`.
 
 | Rule | How |
@@ -133,11 +135,11 @@ Better Auth's two-factor plugin (`better-auth/plugins/two-factor`) with authenti
 | Turning it on ends every other session | `user.update.after` on `/two-factor/verify-totp` |
 | Church Admin must have it | `permissionsFor`; admin pages redirect to setup (`auth.2fa.required` audited); bootstrap refuses `NO_TWO_FACTOR` |
 | QR code never leaves the browser | drawn locally as SVG with `uqr` (MIT, no dependencies) |
-| Audit | `auth.2fa.enroll_start`, `.enable`, `.disable`, `.verify_fail`, `.recovery_code.use`, `.recovery_codes.regenerate`, `.manage_fail`, `.bypass_blocked`, `.required`; sign-in rows carry `reason=two-factor/verify-totp`. Never codes or secrets. |
+| Audit | `auth.2fa.enroll_start`, `.enable`, `.disable`, `.verify_fail`, `.recovery_code.use`, `.recovery_codes.regenerate`, `.manage_fail`, `.bypass_blocked`, `.required`, and `auth.2fa.reset_by_owner` written by the runbook § 11 D SQL itself; sign-in rows carry `reason=two-factor/verify-totp`. Never codes or secrets. |
 
-Known limits: a code stays valid for its 30-second step and one step either side (plugin default), so a code seen over someone's shoulder could be reused within about a minute; `BETTER_AUTH_SECRET` must never change once anyone has enrolled; there is no in-app reset when phone and recovery codes are both lost (runbook § 11 D).
+Known limits: a code stays valid for its 30-second step and one step either side (plugin default), so a code seen over someone's shoulder could be reused within about a minute; `BETTER_AUTH_SECRET` must never change once anyone has enrolled; there is no in-app reset when phone and recovery codes are both lost (runbook § 11 D, by owner decision).
 
-Tests: `tests/unit/two-factor.test.tsx`, `tests/integration/two-factor.test.ts` (MariaDB), `tests/e2e/two-factor.spec.ts` (Tamil and English). The seeded Church Admin has a fictional test authenticator (`scripts/db/seed-constants.ts`).
+Tests: `tests/unit/two-factor.test.tsx`, `tests/integration/two-factor.test.ts` and `two-factor-owner-reset.test.ts` (MariaDB; the latter runs the runbook § 11 D SQL exactly as written), `tests/e2e/two-factor.spec.ts` (Tamil and English; screenshots mask the QR code, setup key and recovery codes). The seeded Church Admin has a fictional test authenticator (`scripts/db/seed-constants.ts`).
 
 ## Security behaviour (all covered by tests)
 - Same response for registered and unregistered addresses (sign-up and reset); emails are sent in the background so timing does not reveal accounts.
@@ -167,4 +169,4 @@ npm run test:integration        MariaDB-backed tests (TEST_DATABASE_URL, *_test 
 - Two-factor: built in Phase 6b (above); migration `0003_two_factor` not yet applied to production.
 - Google OAuth client (D3): church-owned Google Cloud project; until then the button is hidden.
 - `TRUSTED_PROXIES`: confirm Hostinger's proxy chain on staging so rate limits key on the real client IP.
-- Tamil wording for the Phase 4b account/email strings and the Phase 6b two-factor strings is `draft-review`.
+- Tamil: the 38 Phase 4b account/email strings and 45 Phase 6b two-factor strings were approved by the owner on 2 Nov 2026. `auth.google` and `auth.or` stay `draft-review` (shown only once Google sign-in is configured).
