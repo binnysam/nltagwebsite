@@ -1,7 +1,8 @@
 // Media storage location and the startup storage probe (Phase 4c, owner decision 2 Nov 2026).
 //
 // Uploaded images are to live OUTSIDE the deployed application, in a folder Hostinger's Git
-// deployment never replaces: by default `<home>/nltag-data/media`, which on the production
+// deployment never replaces: by default `<account home>/nltag-data/media` (home from the system user database, because
+// Hostinger sets $HOME to the domain folder for the Node.js app), which on the production
 // account is /home/u339364475/nltag-data/media. `NLTAG_MEDIA_DIR` (absolute path) overrides it.
 //
 // This module is deliberately free of Next.js and database imports so the probe can run from
@@ -16,6 +17,19 @@ import path from "node:path";
 
 export const MARKER_FILE = ".nltag-storage-marker.json";
 
+/**
+ * The hosting account's home folder from the system user database, not $HOME. On Hostinger the
+ * Node.js app runs with HOME set to the domain folder (/home/<user>/domains/<domain>), but the
+ * approved media folder is /home/<user>/nltag-data/media (first production probe, 2 Nov 2026).
+ */
+export function accountHome(): string {
+  try {
+    return os.userInfo().homedir || os.homedir();
+  } catch {
+    return os.homedir();
+  }
+}
+
 export type MediaDirResolution =
   | { ok: true; dir: string; source: "env" | "home" | "dev" }
   | { ok: false; reason: string };
@@ -23,7 +37,7 @@ export type MediaDirResolution =
 /** Where media files belong. Pure: no disk access. */
 export function resolveMediaDir(
   env: Record<string, string | undefined> = process.env,
-  home: string = os.homedir(),
+  home: string = accountHome(),
   appDir: string = process.cwd(),
 ): MediaDirResolution {
   const configured = env.NLTAG_MEDIA_DIR?.trim();
@@ -83,7 +97,7 @@ export async function probeMediaStorage(
     dir: null, source: null, writable: false, readBack: false, dirMode: null,
     markerExisted: false, markerCreatedAt: null, markerAppDir: null, appDir, checkedAt: now.toISOString(),
   };
-  const resolved = resolveMediaDir(env, os.homedir(), appDir);
+  const resolved = resolveMediaDir(env, accountHome(), appDir);
   if (!resolved.ok) return { ...base, error: resolved.reason };
   const result: ProbeResult = { ...base, dir: resolved.dir, source: resolved.source };
   try {
@@ -119,4 +133,19 @@ export async function probeMediaStorage(
     result.error = e instanceof Error ? (e as NodeJS.ErrnoException).code ?? "write failed" : "write failed";
   }
   return result;
+}
+
+/** Read-only: is a marker from an earlier deployment present in `dir`? Used to confirm earlier probe folders persisted. */
+export async function readMarker(dir: string): Promise<{ dir: string; markerExisted: boolean; markerCreatedAt: string | null }> {
+  try {
+    const prev = JSON.parse(await fs.readFile(/* turbopackIgnore: true */ path.join(dir, MARKER_FILE), "utf8")) as { createdAt?: unknown };
+    return { dir, markerExisted: true, markerCreatedAt: typeof prev.createdAt === "string" ? prev.createdAt : null };
+  } catch {
+    return { dir, markerExisted: false, markerCreatedAt: null };
+  }
+}
+
+/** $HOME-based folder used by the first production probe (2 Nov 2026); checked read-only for persistence. */
+export function earlierProbeDir(): string {
+  return path.join(os.homedir(), "nltag-data", "media");
 }
