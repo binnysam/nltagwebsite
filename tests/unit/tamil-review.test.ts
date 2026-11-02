@@ -56,8 +56,8 @@ const PHASE5_APPROVED: Record<string, string> = {
   "visit.when": "சபை ஆராதனை",
 };
 
-/** Tamil still awaiting owner review: only the Phase 4b account and email wording. */
-const PENDING_PREFIXES = /^(auth|account|email)\./;
+/** Tamil still awaiting owner review: the Phase 4b account and email wording and the Phase 6b two-factor wording. */
+const PENDING_PREFIXES = /^(auth|account|email|twoFactor)\./;
 
 /** The 26 recommended drafts the owner approved unchanged ("rest all is fine"). */
 const APPROVED_AS_RECOMMENDED: [string, string][] = [

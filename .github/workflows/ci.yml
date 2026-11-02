@@ -51,7 +51,8 @@ jobs:
         run: npm run test:integration
 
   # Phase 4c: the CMS admin in real Chrome at 390px and 1280px (axe WCAG 2.2 AA, 44px targets,
-  # no sideways scroll, role isolation, workflow). Fictional @nltag.test data only.
+  # no sideways scroll, role isolation, workflow). Phase 6b adds two-factor sign-in (Tamil and
+  # English). Fictional @nltag.test data only.
   admin-browser:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -98,6 +99,10 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Admin browser tests
         run: E2E_AUTH=1 npx playwright test admin
+      # Phase 6b: two-factor enrollment, sign-in challenge, recovery codes and the Church Admin
+      # requirement, Tamil and English, 390px and 1280px. One worker: per-IP sign-in limits are shared.
+      - name: Two-factor browser tests
+        run: E2E_AUTH=1 npx playwright test two-factor --workers=1
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -2,6 +2,8 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import mysql from "mysql2/promise";
+import { SEED_PASSWORD, SEED_TOTP_SECRET } from "../../scripts/db/seed-constants";
+import { freshStep, totp } from "../support/totp";
 
 /**
  * Phase 4c CMS admin in a real browser at 390px and 1280px: access control, the bilingual editor,
@@ -14,7 +16,7 @@ import mysql from "mysql2/promise";
 test.describe.configure({ mode: "serial" });
 test.skip(process.env.E2E_AUTH !== "1", "set E2E_AUTH=1 with a database-backed server");
 
-const PASSWORD = "nltag-dev-only-password";
+const PASSWORD = SEED_PASSWORD;
 const SHOTS = "test-results/admin-screens";
 mkdirSync(SHOTS, { recursive: true });
 
@@ -34,6 +36,13 @@ async function signIn(page: Page, email: string) {
   await page.getByRole("button", { name: "Sign in" }).click();
   // Better Auth may land on the account or verify-email page; either means a session exists.
   await page.waitForURL((u) => !u.pathname.endsWith("/sign-in"));
+  // Phase 6b: the seeded Church Admin has two-factor on; answer the challenge with its test app.
+  if (new URL(page.url()).pathname.endsWith("/two-factor")) {
+    await freshStep();
+    await page.getByLabel(/6-digit code/).fill(totp(SEED_TOTP_SECRET));
+    await page.getByRole("button", { name: "Verify" }).click();
+    await page.waitForURL((u) => u.pathname.endsWith("/account"));
+  }
 }
 
 async function checkPage(page: Page) {
