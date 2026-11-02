@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, eq, isNull, or, sql } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { kuwaitDateKey } from "@/lib/date";
 import { getDb } from "../db/client";
@@ -66,22 +66,79 @@ export async function queryPublishedRows(type: ContentType): Promise<Row[]> {
   return rows.map((r) => ({ ...r, publishAt: r.publishAt, expiresAt: r.expiresAt }));
 }
 
-const cachedRows = unstable_cache(async (type: ContentType) => queryPublishedRows(type), ["cms-published-rows"], { tags: [PUBLIC_CONTENT_TAG], revalidate: 300 });
+/** Cache revalidation window (seconds). Any CMS write that touches public output expires the tag at once. */
+export const PUBLIC_REVALIDATE_SECONDS = 300;
 
-async function rowsFor(type: ContentType): Promise<Row[]> {
-  try {
-    const rows = await cachedRows(type);
-    // unstable_cache serialises to JSON: restore dates.
-    return rows.map((r) => ({
-      ...r,
-      publishAt: r.publishAt ? new Date(r.publishAt) : null,
-      expiresAt: r.expiresAt ? new Date(r.expiresAt) : null,
-      publishedAt: r.publishedAt ? new Date(r.publishedAt) : null,
-    }));
-  } catch {
-    return queryPublishedRows(type); // outside Next.js (scripts, tests)
-  }
+/**
+ * Wraps a query in the Next.js data cache under the public tag. unstable_cache serialises to JSON,
+ * so `revive` restores Date fields. Outside Next.js (scripts, tests) there is no cache and the
+ * query runs directly.
+ */
+function cached<A extends unknown[], R>(key: string, query: (...args: A) => Promise<R>, revive: (r: R) => R): (...args: A) => Promise<R> {
+  const inCache = unstable_cache(query, [key], { tags: [PUBLIC_CONTENT_TAG], revalidate: PUBLIC_REVALIDATE_SECONDS });
+  return async (...args: A) => {
+    try {
+      return revive(await inCache(...args));
+    } catch {
+      // No Next.js cache in this context (scripts, tests). A real database failure throws again here.
+      return query(...args);
+    }
+  };
 }
+
+const toDate = (v: Date | string | null | undefined): Date | null => (v ? new Date(v) : null);
+
+const rowsFor = cached("cms-published-rows", queryPublishedRows, (rows) =>
+  rows.map((r) => ({ ...r, publishAt: toDate(r.publishAt), expiresAt: toDate(r.expiresAt), publishedAt: toDate(r.publishedAt) })),
+);
+
+/** Detail rows of published, not-deleted items of one type (public fields are picked later). */
+const publishedIds = (type: ContentType) =>
+  and(eq(contentItem.type, type), eq(contentItem.status, "PUBLISHED"), isNull(contentItem.deletedAt));
+
+const eventDetails = cached(
+  "cms-public-event-details",
+  async () =>
+    getDb()
+      .select({ itemId: eventDetail.itemId, startsAt: eventDetail.startsAt, endsAt: eventDetail.endsAt, locationKind: eventDetail.locationKind, locationText: eventDetail.locationText })
+      .from(eventDetail)
+      .innerJoin(contentItem, eq(contentItem.id, eventDetail.itemId))
+      .where(publishedIds("EVENT")),
+  (rows) => rows.map((d) => ({ ...d, startsAt: new Date(d.startsAt), endsAt: toDate(d.endsAt) })),
+);
+
+const sermonDetails = cached(
+  "cms-public-sermon-details",
+  async () =>
+    getDb()
+      .select({ itemId: sermonDetail.itemId, speaker: sermonDetail.speaker, bibleReference: sermonDetail.bibleReference, sermonDate: sermonDetail.sermonDate, videoUrl: sermonDetail.videoUrl })
+      .from(sermonDetail)
+      .innerJoin(contentItem, eq(contentItem.id, sermonDetail.itemId))
+      .where(publishedIds("SERMON")),
+  (rows) => rows,
+);
+
+const ministryDetails = cached(
+  "cms-public-ministry-details",
+  async () =>
+    getDb()
+      .select({ itemId: ministryDetail.itemId, contactText: ministryDetail.contactText, contactApproved: ministryDetail.contactApproved })
+      .from(ministryDetail)
+      .innerJoin(contentItem, eq(contentItem.id, ministryDetail.itemId))
+      .where(publishedIds("MINISTRY")),
+  (rows) => rows,
+);
+
+const testimonyDetails = cached(
+  "cms-public-testimony-details",
+  async () =>
+    getDb()
+      .select({ itemId: testimonyDetail.itemId, anonymous: testimonyDetail.anonymous, authorDisplayName: testimonyDetail.authorDisplayName })
+      .from(testimonyDetail)
+      .innerJoin(contentItem, eq(contentItem.id, testimonyDetail.itemId))
+      .where(and(publishedIds("TESTIMONY"), eq(testimonyDetail.permissionStatus, "GRANTED"))),
+  (rows) => rows,
+);
 
 export function toPublic(rows: Row[], locale: ContentLocale, now: Date): PublicItem[] {
   return rows
@@ -112,48 +169,70 @@ export interface PublicSpecialMeeting extends PublicItem {
 export async function listUpcomingSpecialMeetings(locale: ContentLocale, now = new Date()): Promise<PublicSpecialMeeting[]> {
   const items = await listPublished("EVENT", locale, now);
   if (!items.length) return [];
-  const details = await getDb().select().from(eventDetail).where(inArray(eventDetail.itemId, items.map((i) => i.id)));
-  const byId = new Map(details.map((d) => [d.itemId, d]));
+  const byId = new Map((await eventDetails()).map((d) => [d.itemId, d]));
   return items
     .flatMap((i) => {
       const d = byId.get(i.id);
+      // Past meetings leave the site at their end (or start, when no end is given).
       if (!d || (d.endsAt ?? d.startsAt).getTime() < now.getTime()) return [];
-      // Members' homes are never given an address publicly, even if one slipped into the text.
+      // Members' homes and NECK are never given an address publicly, even if one slipped into the text.
       return [{ ...i, startsAt: d.startsAt, endsAt: d.endsAt, locationKind: d.locationKind, locationText: d.locationKind === "OTHER" ? d.locationText : "" }];
     })
     .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
 }
 
-export async function listPublishedSermons(locale: ContentLocale, now = new Date()) {
+export interface PublicSermon extends PublicItem {
+  speaker: string;
+  bibleReference: string;
+  /** "YYYY-MM-DD" (Kuwait date as entered) or null. */
+  sermonDate: string | null;
+  videoUrl: string;
+}
+
+/** Newest sermon first (by sermon date, then publication). */
+export async function listPublishedSermons(locale: ContentLocale, now = new Date()): Promise<PublicSermon[]> {
   const items = await listPublished("SERMON", locale, now);
   if (!items.length) return [];
-  const details = await getDb().select().from(sermonDetail).where(inArray(sermonDetail.itemId, items.map((i) => i.id)));
-  const byId = new Map(details.map((d) => [d.itemId, d]));
-  return items.map((i) => {
-    const d = byId.get(i.id);
-    return { ...i, speaker: d?.speaker ?? "", bibleReference: d?.bibleReference ?? "", sermonDate: d?.sermonDate ?? null, videoUrl: d?.videoUrl ?? "" };
-  });
+  const byId = new Map((await sermonDetails()).map((d) => [d.itemId, d]));
+  return items
+    .map((i) => {
+      const d = byId.get(i.id);
+      const date = d?.sermonDate ? String(d.sermonDate).slice(0, 10) : null;
+      return { ...i, speaker: d?.speaker ?? "", bibleReference: d?.bibleReference ?? "", sermonDate: date, videoUrl: d?.videoUrl ?? "" };
+    })
+    .sort((a, b) => Number(b.featured) - Number(a.featured) || (b.sermonDate ?? "").localeCompare(a.sermonDate ?? ""));
 }
 
-export async function listPublishedMinistries(locale: ContentLocale, now = new Date()) {
+export interface PublicMinistry extends PublicItem {
+  /** Public contact line, only once a Church Admin approved it. */
+  contact: string;
+}
+
+export async function listPublishedMinistries(locale: ContentLocale, now = new Date()): Promise<PublicMinistry[]> {
   const items = await listPublished("MINISTRY", locale, now);
   if (!items.length) return [];
-  const details = await getDb().select().from(ministryDetail).where(inArray(ministryDetail.itemId, items.map((i) => i.id)));
-  const byId = new Map(details.map((d) => [d.itemId, d]));
-  return items.map((i) => {
-    const d = byId.get(i.id);
-    return { ...i, contact: d?.contactApproved ? d.contactText : "" };
-  });
+  const byId = new Map((await ministryDetails()).map((d) => [d.itemId, d]));
+  return items
+    .map((i) => {
+      const d = byId.get(i.id);
+      return { ...i, contact: d?.contactApproved ? d.contactText : "" };
+    })
+    .sort((a, b) => a.title.localeCompare(b.title, locale));
 }
 
-export async function listPublishedTestimonies(locale: ContentLocale, now = new Date()) {
+export interface PublicTestimony extends PublicItem {
+  /** Display name, or null when the author asked to be anonymous. */
+  author: string | null;
+}
+
+export async function listPublishedTestimonies(locale: ContentLocale, now = new Date()): Promise<PublicTestimony[]> {
   const items = await listPublished("TESTIMONY", locale, now);
   if (!items.length) return [];
-  const details = await getDb().select().from(testimonyDetail).where(inArray(testimonyDetail.itemId, items.map((i) => i.id)));
-  const byId = new Map(details.map((d) => [d.itemId, d]));
-  return items.map((i) => {
+  const byId = new Map((await testimonyDetails()).map((d) => [d.itemId, d]));
+  return items.flatMap((i) => {
     const d = byId.get(i.id);
-    return { ...i, author: d && !d.anonymous ? d.authorDisplayName : null };
+    if (!d) return []; // permission no longer Granted (belt and braces with the row query)
+    return [{ ...i, author: d.anonymous ? null : d.authorDisplayName || null }];
   });
 }
 
@@ -165,35 +244,53 @@ export interface PublicVerse {
   translations: { translationId: string; locale: ContentLocale; name: string; reference: string; text: string | null; creditLine: string; downloadsAllowed: boolean }[];
 }
 
+const verseCandidates = cached(
+  "cms-public-verse-candidates",
+  async (dateKey: string) => {
+    const db = getDb();
+    const published = await db
+      .select({ id: contentItem.id, publishAt: contentItem.publishAt, expiresAt: contentItem.expiresAt })
+      .from(contentItem)
+      .where(publishedIds("VERSE"));
+    const [scheduled] = await db.select({ itemId: verseSchedule.itemId }).from(verseSchedule).where(eq(verseSchedule.dateKey, dateKey));
+    return { published, scheduledId: scheduled?.itemId ?? null };
+  },
+  (r) => ({ ...r, published: r.published.map((v) => ({ ...v, publishAt: toDate(v.publishAt), expiresAt: toDate(v.expiresAt) })) }),
+);
+
+const verseCard = cached(
+  "cms-public-verse-card",
+  async (itemId: string) => {
+    const db = getDb();
+    const [detail] = await db.select({ cardVariant: verseDetail.cardVariant, preset: verseDetail.preset }).from(verseDetail).where(eq(verseDetail.itemId, itemId));
+    const texts = await db
+      .select({
+        translationId: verseText.translationId, reference: verseText.reference, text: verseText.text, locale: bibleTranslation.locale, name: bibleTranslation.name,
+        creditLine: bibleTranslation.creditLine, permission: bibleTranslation.permissionStatus, downloadsAllowed: bibleTranslation.downloadsAllowed,
+      })
+      .from(verseText)
+      .innerJoin(bibleTranslation, eq(bibleTranslation.id, verseText.translationId))
+      .where(and(eq(verseText.itemId, itemId), or(sql`${verseText.reference} <> ''`, sql`${verseText.text} <> ''`)));
+    // Permission is applied here, before anything leaves the server: unverified text never enters the cache result.
+    return {
+      cardVariant: detail?.cardVariant ?? "compact",
+      preset: detail?.preset ?? "vaigarai",
+      translations: texts.map((t) => {
+        const verified = t.permission === "VERIFIED";
+        return { translationId: t.translationId, locale: t.locale, name: t.name, reference: t.reference, text: verified && t.text ? t.text : null, creditLine: verified ? t.creditLine : "", downloadsAllowed: verified && t.downloadsAllowed };
+      }),
+    };
+  },
+  (r) => r,
+);
+
 /** Today's verse (Asia/Kuwait). Text is null for any translation whose permission is not verified. */
 export async function getDailyVerse(now = new Date()): Promise<PublicVerse | null> {
   const dateKey = kuwaitDateKey(now);
-  const db = getDb();
-  const published = await db
-    .select({ id: contentItem.id, publishAt: contentItem.publishAt, expiresAt: contentItem.expiresAt })
-    .from(contentItem)
-    .where(and(eq(contentItem.type, "VERSE"), eq(contentItem.status, "PUBLISHED"), isNull(contentItem.deletedAt)));
+  const { published, scheduledId } = await verseCandidates(dateKey);
   const visible = published.filter((v) => isPubliclyVisible({ type: "VERSE", status: "PUBLISHED", deletedAt: null, publishAt: v.publishAt, expiresAt: v.expiresAt }, now));
-  const [scheduled] = await db.select({ itemId: verseSchedule.itemId }).from(verseSchedule).where(eq(verseSchedule.dateKey, dateKey));
-  const chosen = pickDailyVerse(dateKey, visible, scheduled?.itemId);
+  const chosen = pickDailyVerse(dateKey, visible, scheduledId);
   if (!chosen) return null;
-  const [detail] = await db.select().from(verseDetail).where(eq(verseDetail.itemId, chosen.id));
-  const texts = await db
-    .select({
-      translationId: verseText.translationId, reference: verseText.reference, text: verseText.text, locale: bibleTranslation.locale, name: bibleTranslation.name,
-      creditLine: bibleTranslation.creditLine, permission: bibleTranslation.permissionStatus, downloadsAllowed: bibleTranslation.downloadsAllowed,
-    })
-    .from(verseText)
-    .innerJoin(bibleTranslation, eq(bibleTranslation.id, verseText.translationId))
-    .where(and(eq(verseText.itemId, chosen.id), or(sql`${verseText.reference} <> ''`, sql`${verseText.text} <> ''`)));
-  return {
-    id: chosen.id,
-    dateKey,
-    cardVariant: detail?.cardVariant ?? "compact",
-    preset: detail?.preset ?? "vaigarai",
-    translations: texts.map((t) => {
-      const verified = t.permission === "VERIFIED";
-      return { translationId: t.translationId, locale: t.locale, name: t.name, reference: t.reference, text: verified && t.text ? t.text : null, creditLine: verified ? t.creditLine : "", downloadsAllowed: verified && t.downloadsAllowed };
-    }),
-  };
+  const card = await verseCard(chosen.id);
+  return { id: chosen.id, dateKey, ...card };
 }

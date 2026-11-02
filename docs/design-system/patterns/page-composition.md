@@ -30,3 +30,8 @@ Page language first; the other language beneath in 14px ink-500 with its own `la
 
 ## Empty and fallback states
 Use designed fallback copy from `ui-strings` (e.g. `verse.fallback`, `special.empty`). Never fill gaps with invented church content; missing content stays unpublished and is marked CONTENT REQUIRED in the CMS.
+
+## Public pages (Phase 5)
+Every public page uses `PublicShell` (`src/app/[locale]/_components/PublicShell.tsx`): SiteHeader (four links, one CTA) → `<main id="main">` → SiteFooter. Dedicated pages open with `PageHead` (one h1, display-l, optional lead) and then the content without a second heading. Homepage sections use `PublicSection` (SectionIntro + content); "View all" is a secondary pill in the intro's action slot. Section renderers in `_components/sections.tsx` are shared by the homepage and the dedicated pages, so a record looks the same everywhere.
+
+Empty CMS sections show one quiet line between hairlines (`section.comingSoon`, or `special.empty` for meetings) — never sample content. Gradients outside the hero: the special-meeting card row and the verse card only, in separate sections.

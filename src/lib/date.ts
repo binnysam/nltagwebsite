@@ -53,3 +53,26 @@ export function formatKuwaitDateTime(date: Date): string {
     timeZone: CHURCH_TIME_ZONE, weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
   }).format(date);
 }
+
+/**
+ * Public date and time of a special meeting, Kuwait time: "வெள்ளி, 6 நவம்பர், 2026 · 19:30" /
+ * "Friday, 6 November 2026 · 7:30 PM". Tamil uses the 24-hour clock so no unapproved
+ * morning/evening words are introduced (only காலை / மாலை are approved, for the Gate 0 schedule).
+ */
+export function formatKuwaitMeetingTime(date: Date, locale: Locale): string {
+  const day = new Intl.DateTimeFormat(intlLocale[locale], {
+    timeZone: CHURCH_TIME_ZONE, weekday: "long", day: "numeric", month: "long", year: "numeric",
+  }).format(date);
+  const time = new Intl.DateTimeFormat("en-GB", {
+    timeZone: CHURCH_TIME_ZONE, hour: "numeric", minute: "2-digit", hourCycle: locale === "ta" ? "h23" : "h12",
+  }).format(date).toUpperCase();
+  return `${day} · ${time}`;
+}
+
+/** "YYYY-MM-DD" calendar date (as entered, Kuwait) → "6 நவம்பர், 2026" / "6 November 2026". */
+export function formatDateKey(dateKey: string, locale: Locale): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
+  if (!m) return "";
+  // Noon UTC on that date is the same calendar day in Kuwait (UTC+3).
+  return formatKuwaitDate(new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12)), locale);
+}

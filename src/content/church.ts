@@ -9,3 +9,9 @@ export const churchName = {
   en: "New Life Tamil AG Church",
   ta: ownerSuppliedTamil["preview.heroTitle"].ta,
 } as const;
+
+/**
+ * Public origin for canonical and hreflang URLs. nltagkuwait.com is the owner-approved sole
+ * production site (2 Nov 2026). Indexing stays off (noindex) until the launch gate.
+ */
+export const siteOrigin = "https://nltagkuwait.com";

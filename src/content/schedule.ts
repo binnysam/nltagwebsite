@@ -121,7 +121,12 @@ export function formatWhen(item: ScheduleItem, locale: Locale): string {
 }
 
 export function formatWhere(item: ScheduleItem, locale: Locale): string {
-  switch (item.venue.kind) {
+  return venueLabel(item.venue.kind, locale);
+}
+
+/** Public venue wording. NECK exactly; members' homes never with an address. */
+export function venueLabel(kind: Venue["kind"], locale: Locale): string {
+  switch (kind) {
     case "neck":
       return "NECK";
     case "members-homes":

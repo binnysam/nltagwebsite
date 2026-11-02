@@ -103,3 +103,54 @@ jobs:
           name: admin-screens
           path: test-results/
           retention-days: 7
+
+  # Phase 5: the public website in real Chrome at 390px and 1280px (screenshots also at 768px),
+  # Tamil and English, against MariaDB 11.8.9 with fictional "[E2E …]" fixtures: published records
+  # appear; drafts, in-review, archived, deleted, future, expired, past, unpermitted and unverified
+  # content never does. Accounts stay off (the production default). Screenshots: public-screens.
+  public-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      mariadb:
+        image: mariadb:11.8.9
+        env:
+          MARIADB_DATABASE: nltag_dev
+          MARIADB_USER: nltag
+          MARIADB_PASSWORD: ci-only-password
+          MARIADB_ROOT_PASSWORD: ci-only-root-password
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Database collation for Tamil
+        run: |
+          docker exec ${{ job.services.mariadb.id }} mariadb -uroot -pci-only-root-password \
+            -e "ALTER DATABASE nltag_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci;"
+      - name: Local environment (CI-only values; accounts off as in production)
+        run: |
+          cat > .env.local <<ENV
+          DATABASE_URL=mysql://nltag:ci-only-password@127.0.0.1:3306/nltag_dev
+          BETTER_AUTH_SECRET=ci-only-secret-not-used-anywhere-else-0123456789
+          BETTER_AUTH_URL=http://localhost:3100
+          NLTAG_ACCOUNTS_ENABLED=0
+          ENV
+      - run: npm run db:migrate && npm run db:seed && npm run db:seed:public
+      - run: npx playwright install --with-deps chromium
+      - name: Public website browser tests (seeded)
+        run: PUBLIC_E2E_SEEDED=1 npx playwright test public-site accounts-gate
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-screens
+          path: test-results/
+          retention-days: 7

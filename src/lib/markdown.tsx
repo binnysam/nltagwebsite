@@ -59,7 +59,13 @@ function withBreaks(lines: string[], key: string): ReactNode[] {
   return lines.flatMap((line, i) => (i === 0 ? [<Fragment key={`${key}-${i}`}>{renderInline(line, `${key}-${i}`)}</Fragment>] : [<br key={`${key}-br-${i}`} />, <Fragment key={`${key}-${i}`}>{renderInline(line, `${key}-${i}`)}</Fragment>]));
 }
 
-export function Markdown({ source, className }: { source: string; className?: string }) {
+/**
+ * `headingLevel` is the level used for `##` (and `###` is one deeper). Defaults to 2 (page bodies,
+ * where the title is the h1); pass 4 when the text sits under an h3, e.g. inside a list entry.
+ */
+export function Markdown({ source, className, headingLevel = 2 }: { source: string; className?: string; headingLevel?: 2 | 3 | 4 }) {
+  const H2 = `h${headingLevel}` as "h2" | "h3" | "h4";
+  const H3 = `h${Math.min(headingLevel + 1, 5)}` as "h3" | "h4" | "h5";
   const blocks = source.replace(/\r\n?/g, "\n").split(/\n{2,}/).map((b) => b.trim()).filter(Boolean);
   return (
     <div className={className}>
@@ -68,7 +74,7 @@ export function Markdown({ source, className }: { source: string; className?: st
         const lines = block.split("\n");
         const heading = /^(#{1,3})\s+(.+)$/.exec(block);
         if (heading && lines.length === 1) {
-          return heading[1]!.length === 3 ? <h3 key={key}>{renderInline(heading[2]!, key)}</h3> : <h2 key={key}>{renderInline(heading[2]!, key)}</h2>;
+          return heading[1]!.length === 3 ? <H3 key={key}>{renderInline(heading[2]!, key)}</H3> : <H2 key={key}>{renderInline(heading[2]!, key)}</H2>;
         }
         if (lines.every((l) => /^[-*]\s+/.test(l))) {
           return <ul key={key}>{lines.map((l, j) => <li key={j}>{renderInline(l.replace(/^[-*]\s+/, ""), `${key}-${j}`)}</li>)}</ul>;

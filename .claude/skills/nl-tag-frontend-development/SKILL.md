@@ -19,6 +19,7 @@ Creating or changing routes, layouts, data loading, metadata, client interactivi
 - Routes live under `src/app/[locale]/` (`ta` default, `en`); `/` redirects to `/ta`. `[locale]/layout.tsx` is the root layout and sets `<html lang>`.
 - Fonts: `src/design-system/fonts/fonts.ts` (`next/font/local`, literal options only).
 - Content: interface strings `src/content/ui-strings.ts`; schedule `src/content/schedule.ts`; verses `src/content/bible.ts` (placeholder only).
+- Public pages (Phase 5): compose from `src/app/[locale]/_components/` (`PublicShell`, section renderers, `pageMetadata`). CMS data only via `src/server/cms/public-site.ts` loaders (per-request, cached by tag, empty state on failure); never query content tables in a page.
 
 ## Workflow
 1. Identify routes, roles and data affected. Ask before architecture, security or paid-service changes.

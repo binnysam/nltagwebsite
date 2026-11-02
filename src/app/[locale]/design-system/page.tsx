@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   Button, ButtonLink, GradientSurface, IconButton, MembershipStatusBadge, ScheduleList, SectionIntro,
-  SiteHeader, SpecialMeetingCard, StatusBadge, TextField, VerseCard, VerseCardActions, gradientPresets,
+  SiteHeader, SiteFooter, EntryList, SpecialMeetingCard, StatusBadge, TextField, VerseCard, VerseCardActions, gradientPresets,
   type MembershipStatus, SelectField, CheckboxField, Notice, DataTable, ConfirmButton,
 } from "@/design-system/components";
 import { Container, Heading, Icon, Text } from "@/design-system/primitives";
@@ -269,10 +269,33 @@ export default async function DesignSystemGallery({ params }: { params: Promise<
                   href="#meetings"
                 />
               ))}
+              <SpecialMeetingCard
+                preset="thalir"
+                typeLabel={t("special.typeLabel", locale)}
+                dateLabel="[Date and time]"
+                dateTime="2026-11-01"
+                titleTa="[தலைப்பு]"
+                titleEn="[Title]"
+                primary={locale}
+                location="NECK"
+              />
             </div>
+          </section>
+
+          {/* Entry list (Phase 5) */}
+          <section id="entries" className={g.block} aria-labelledby="h-entries" data-testid="entry-list">
+            <Heading level={2} id="h-entries" className={g.blockTitle} lang="en">Entry list</Heading>
+            <EntryList
+              label="[Entry list]"
+              entries={[
+                { id: "e1", meta: "[Date] · [Speaker] · [Reference]", title: "[Title — content required]", children: <p>[Summary from the CMS]</p>, action: <ButtonLink href="#entries" variant="tertiary">[Action]</ButtonLink> },
+                { id: "e2", meta: "[Meta]", title: "[Second title]", children: <p>[Summary from the CMS]</p> },
+              ]}
+            />
           </section>
         </Container>
       </main>
+      <SiteFooter locale={locale} name={{ ta: "[சபையின் பெயர்]", en: "[Church name]" }} navItems={[{ href: `/${locale}`, label: "[Link]" }, { href: `/${locale}/design-system`, label: "[Link two]" }]} note="[Footer note]" />
     </>
   );
 }

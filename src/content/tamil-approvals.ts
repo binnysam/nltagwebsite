@@ -47,5 +47,31 @@ export const ownerSuppliedTamil = {
 
 export type OwnerSuppliedId = keyof typeof ownerSuppliedTamil;
 
+/**
+ * Phase 5 public-site wording — owner sign-off of 2 November 2026 ("I approve all 15 Tamil
+ * translations in PR #8"). Approved exactly as shown in PR #8 (branch head a43bedb, which
+ * aligned four drafts with the owner-approved terminology). Reproduce EXACTLY; any change
+ * needs new owner approval. tests/unit/tamil-review.test.ts compares every character.
+ */
+export const PHASE5_APPROVAL_DATE = "2026-11-02";
+
+export const phase5ApprovedTamil = {
+  "nav.ministries": "ஊழியங்கள்",
+  "nav.testimonies": "சாட்சிகள்",
+  "footer.nav": "இணையதள இணைப்புகள்",
+  "section.announcements": "அறிவிப்புகள்",
+  "section.specialMeetings": "வரவிருக்கும் விசேஷ ஆராதனைகள்",
+  "section.visit": "எங்களைச் சந்திக்க வாருங்கள்",
+  "section.comingSoon": "இந்தப் பகுதி விரைவில் புதுப்பிக்கப்படும்.",
+  "action.viewAll": "அனைத்தையும் காண்க",
+  "action.readMore": "மேலும் வாசிக்க",
+  "sermon.watch": "தேவ செய்தியைப் பார்க்க",
+  "testimony.anonymous": "பெயர் குறிப்பிடப்படவில்லை",
+  "ministry.contact": "தொடர்பு கொள்ள",
+  "special.location.tba": "இடம் பின்னர் அறிவிக்கப்படும்",
+  "visit.where": "நாங்கள் கூடும் இடம்",
+  "visit.when": "சபை ஆராதனை",
+} as const satisfies Record<string, string>;
+
 /** Interface strings confirmed at Gate 0, before the Tamil review. Not part of the 48. */
 export const gate0ConfirmedTamil = ["lang.ta", "lang.en"] as const;

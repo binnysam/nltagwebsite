@@ -12,3 +12,5 @@ export * from "./Hero";
 export * from "./Notice";
 export * from "./DataTable";
 export * from "./ConfirmDialog";
+export * from "./EntryList";
+export * from "./SiteFooter";

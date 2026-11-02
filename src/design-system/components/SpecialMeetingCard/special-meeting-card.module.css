@@ -39,6 +39,9 @@
   font-size: var(--text-h3);
   line-height: var(--leading-h3-ta);
 }
+.titleTa:lang(en) { font-family: var(--font-stack-en-display); font-weight: var(--font-weight-body); line-height: var(--leading-h3-en); letter-spacing: var(--tracking-h3-en); }
+.titleEn:lang(ta) { font-family: var(--font-stack-ta-body); line-height: var(--leading-small-ta); }
+.location { font-size: var(--text-small); color: var(--color-text-strong-secondary); }
 .titleEn { font-family: var(--font-stack-en-body); font-size: var(--text-small); color: var(--color-text-secondary); line-height: var(--leading-small-en); }
 .announcement { margin-top: var(--space-2); color: var(--color-text-strong-secondary); }
 .link { color: inherit; text-decoration: none; }

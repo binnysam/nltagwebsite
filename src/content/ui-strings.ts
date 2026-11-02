@@ -7,7 +7,8 @@
  *   - "draft-review"  → Tamil wording awaiting church review. Must not go live on a public
  *                        page until changed to "confirmed". New strings start here.
  *
- * All existing Tamil was approved by the owner on 1 Nov 2026 (src/content/tamil-approvals.ts).
+ * The reviewed Tamil was approved by the owner on 1 Nov 2026 and the Phase 5 public-site wording on
+ * 2 Nov 2026 (src/content/tamil-approvals.ts).
  * Owner-supplied Tamil is reproduced exactly; never rephrase it. The approval record lives in
  * docs/content/tamil-content-review.md and is generated from the same entries. Do not add church facts (names, times, addresses) here: those belong in
  * src/content/schedule.ts or the CMS.
@@ -38,7 +39,7 @@ const s = (
   extra: Partial<Pick<UiString, "taAlternatives" | "taShortAlternative" | "note" | "enStatus" | "taStatus">> = {},
 ): UiString => ({ en, ta, enStatus: "proposed", taStatus: "draft-review", ...extra });
 
-/** Tamil approved by the owner (1 Nov 2026). Use `s()` for any new string. */
+/** Tamil approved by the owner (1 Nov 2026; Phase 5 wording 2 Nov 2026). Use `s()` for any new string. */
 const c = (
   en: string,
   ta: string,
@@ -124,6 +125,35 @@ export const uiStrings = {
     "Special meetings are announced individually.",
     "சிறப்புக் கூட்டங்கள் தனித்தனியாக அறிவிக்கப்படும்.",
   ),
+
+  // Public website (Phase 5, 2 Nov 2026). Tamil approved by the owner on 2 Nov 2026 (phase5ApprovedTamil).
+  "nav.ministries": c("Ministries", "ஊழியங்கள்"),
+  "nav.testimonies": c("Testimonies", "சாட்சிகள்"),
+  "footer.nav": c("Site links", "இணையதள இணைப்புகள்"),
+  "section.announcements": c("Announcements", "அறிவிப்புகள்"),
+  "section.specialMeetings": c("Upcoming special meetings", "வரவிருக்கும் விசேஷ ஆராதனைகள்", {
+    note: "Uses the owner-approved name விசேஷ ஆராதனைகள் (schedule.special-meetings). Previous draft: வரவிருக்கும் சிறப்புக் கூட்டங்கள்.",
+  }),
+  "section.visit": c("Visit us", "எங்களைச் சந்திக்க வாருங்கள்"),
+  "section.comingSoon": c(
+    "This section will be updated soon.",
+    "இந்தப் பகுதி விரைவில் புதுப்பிக்கப்படும்.",
+    { note: "Shown wherever the church has not published content for a section yet." },
+  ),
+  "action.viewAll": c("View all", "அனைத்தையும் காண்க"),
+  "action.readMore": c("Read more", "மேலும் வாசிக்க"),
+  "sermon.watch": c("Watch the sermon", "தேவ செய்தியைப் பார்க்க", {
+    note: "Uses the owner-approved term தேவ செய்தி (nav.sermons); bare செய்தி also means news. Previous draft: செய்தியைப் பார்க்க.",
+  }),
+  "testimony.anonymous": c("Name withheld", "பெயர் குறிப்பிடப்படவில்லை"),
+  "ministry.contact": c("Contact", "தொடர்பு கொள்ள", {
+    note: "Same wording as the owner-approved nav.contact. Previous draft: தொடர்புக்கு.",
+  }),
+  "special.location.tba": c("Venue to be announced", "இடம் பின்னர் அறிவிக்கப்படும்"),
+  "visit.where": c("Where we meet", "நாங்கள் கூடும் இடம்"),
+  "visit.when": c("Main worship", "சபை ஆராதனை", {
+    note: "Exactly the owner-approved name of the main worship service (schedule.main-worship). Previous draft: சபை ஆராதனை நேரம்.",
+  }),
 
   // Accounts and sign-in (Phase 4b). Tamil is draft-review until the owner approves it.
   "auth.signIn.title": s("Sign in", "உள்நுழைக"),
