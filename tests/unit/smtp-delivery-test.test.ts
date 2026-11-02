@@ -9,6 +9,7 @@ import {
   describeRecipient,
   exitCodeFor,
   parseSmtpTestRequest,
+  renderSmtpTestEmail,
   runSmtpDeliveryTest,
   type SmtpTestDeps,
 } from "@/server/email/smtp-delivery-test";
@@ -40,7 +41,6 @@ describe("parseSmtpTestRequest — authorization (fail closed)", () => {
       status: "approved",
       to: "newlifetamilassembly+webtest@gmail.com",
       runId: "stage-a-1",
-      link: "https://nltagkuwait.com/ta",
     });
   });
   it("refuses outside production", () => {
@@ -130,24 +130,49 @@ describe("runSmtpDeliveryTest", () => {
   });
   afterEach(() => rmSync(root, { recursive: true, force: true }));
 
-  it("sends exactly one bilingual verify email: Tamil first, English second, https link to nltagkuwait.com", async () => {
+  it("sends exactly one message: the dedicated bilingual delivery-test email", async () => {
     const out = await runSmtpDeliveryTest(deps());
     expect(out).toEqual({ status: "sent", runId: "stage-a-1", recipient: "church mailbox (+webtest)" });
     expect(sent).toHaveLength(1);
-    const m = sent[0]!;
-    expect(m.to).toBe("newlifetamilassembly+webtest@gmail.com");
-    const [taSubject, enSubject] = m.subject.split(" · ");
-    expect(taSubject).toMatch(/[஀-௿]/);
-    expect(enSubject).toBe("Verify your email address");
-    const ta = m.html.indexOf('<div lang="ta">');
-    const en = m.html.indexOf('<div lang="en">');
-    expect(ta).toBeGreaterThan(-1);
-    expect(en).toBeGreaterThan(ta);
-    expect(m.text.indexOf("உங்கள்")).toBeLessThan(m.text.indexOf("Open the link"));
-    const links = [...m.html.matchAll(/href="([^"]+)"/g)].map((x) => x[1]);
-    expect(links).toEqual(["https://nltagkuwait.com/ta", "https://nltagkuwait.com/ta"]);
-    expect(m.text).not.toMatch(/token|localhost|http:\/\//);
-    expect(m.html).not.toMatch(/<img|<script|src=/i);
+    expect(sent[0]!.to).toBe("newlifetamilassembly+webtest@gmail.com");
+    expect(sent[0]).toMatchObject(renderSmtpTestEmail());
+  });
+
+  describe("test email content", () => {
+    const m = renderSmtpTestEmail();
+    it("identifies itself as an NLTAG website email delivery test, Tamil subject first", () => {
+      const [taSubject, enSubject] = m.subject.split(" · ");
+      expect(taSubject).toMatch(/[஀-௿]/);
+      expect(taSubject).toContain("NLTAG");
+      expect(enSubject).toBe("NLTAG website email delivery test");
+      expect(m.text).toContain("This is a test message to confirm that emails sent by the New Life Tamil AG Church website are delivered.");
+    });
+    it("puts the Tamil block first and the English block second, in text and HTML", () => {
+      const ta = m.html.indexOf('<div lang="ta">');
+      const en = m.html.indexOf('<div lang="en">');
+      expect(ta).toBeGreaterThan(-1);
+      expect(en).toBeGreaterThan(ta);
+      expect(m.text.indexOf("சோதனைச் செய்தி")).toBeGreaterThan(-1);
+      expect(m.text.indexOf("சோதனைச் செய்தி")).toBeLessThan(m.text.indexOf("This is a test message"));
+    });
+    it("is not the verification email: no verify wording, no expiry, no token", () => {
+      for (const body of [m.subject, m.text, m.html]) {
+        expect(body).not.toMatch(/verif|24 hours|hour|expire|token|password|sign[ -]?(in|up)|ignore this/i);
+        expect(body).not.toMatch(/சரிபார்|மணி நேரம்|செல்லுபடி|கடவுச்சொல்|புறக்கணி/);
+      }
+    });
+    it("links only to the website homepages, each labelled as the website", () => {
+      const links = [...m.html.matchAll(/href="([^"]+)"/g)].map((x) => x[1]);
+      expect(links).toEqual(["https://nltagkuwait.com/ta", "https://nltagkuwait.com/en"]);
+      expect(m.html).toContain('இணையதளம்: <a href="https://nltagkuwait.com/ta">');
+      expect(m.html).toContain('Website: <a href="https://nltagkuwait.com/en">');
+      expect(m.text).toContain("இணையதளம்: https://nltagkuwait.com/ta");
+      expect(m.text).toContain("Website: https://nltagkuwait.com/en");
+      expect(m.text + m.html).not.toMatch(/[?#&]|localhost|http:\/\//);
+    });
+    it("is plain: no images, scripts or remote assets", () => {
+      expect(m.html).not.toMatch(/<img|<script|<link|src=|style=/i);
+    });
   });
 
   it("does not let the caller override the sender: the transport adds SMTP_FROM, the mail carries none", async () => {
@@ -168,21 +193,58 @@ describe("runSmtpDeliveryTest", () => {
     it("a second build with the same run id sends nothing", async () => {
       await runSmtpDeliveryTest(deps());
       const again = await runSmtpDeliveryTest(deps());
-      expect(again).toEqual({ status: "already-done", runId: "stage-a-1" });
+      expect(again).toEqual({ status: "already-attempted", runId: "stage-a-1", previous: { result: "sent" } });
       expect(exitCodeFor(again)).toBe(0); // normal deploys continue
       expect(sent).toHaveLength(1);
     });
-    it("an interrupted run (claimed, no result) also blocks a resend", async () => {
+    it("the marker is claimed (status attempting) before the send starts", async () => {
+      let seen: unknown;
+      await runSmtpDeliveryTest(deps({ send: async () => { seen = JSON.parse(readFileSync(markerPath(), "utf8")); } }));
+      expect(seen).toMatchObject({ runId: "stage-a-1", status: "attempting" });
+    });
+    it("an interrupted run (attempting, no result) blocks a resend and says so", async () => {
       mkdirSync(path.dirname(markerPath()), { recursive: true });
-      writeFileSync(markerPath(), JSON.stringify({ runId: "stage-a-1", status: "claimed" }));
-      expect((await runSmtpDeliveryTest(deps())).status).toBe("already-done");
+      writeFileSync(markerPath(), JSON.stringify({ runId: "stage-a-1", status: "attempting" }));
+      const out = await runSmtpDeliveryTest(deps());
+      expect(out).toEqual({ status: "already-attempted", runId: "stage-a-1", previous: { result: "attempting" } });
+      expect(describeOutcome(out)).toMatch(/NEW run id/);
       expect(sent).toHaveLength(0);
     });
-    it("a failed run is not retried with the same run id", async () => {
+    it("an unreadable or foreign marker still blocks a resend", async () => {
+      mkdirSync(path.dirname(markerPath()), { recursive: true });
+      for (const content of ["", "not json", JSON.stringify({ status: "claimed" }), JSON.stringify({ status: "failed", errorCode: "x@gmail.com" })]) {
+        writeFileSync(markerPath(), content);
+        const out = await runSmtpDeliveryTest(deps());
+        expect(out.status).toBe("already-attempted");
+        expect(describeOutcome(out)).not.toContain("@");
+      }
+      expect(sent).toHaveLength(0);
+    });
+    it("a failed attempt is never retried with the same run id, even after the cause is fixed", async () => {
       const failing = deps({ send: async () => { throw Object.assign(new Error("535 bad credentials for x@gmail.com"), { code: "EAUTH", responseCode: 535 }); } });
       expect((await runSmtpDeliveryTest(failing)).status).toBe("failed");
-      expect((await runSmtpDeliveryTest(deps())).status).toBe("already-done");
+      const again = await runSmtpDeliveryTest(deps());
+      expect(again).toEqual({ status: "already-attempted", runId: "stage-a-1", previous: { result: "failed", errorCode: "EAUTH:535" } });
+      expect(exitCodeFor(again)).toBe(0);
+      expect(describeOutcome(again)).toMatch(/FAILED \(EAUTH:535\).*NEW run id/);
       expect(sent).toHaveLength(0);
+    });
+    it("an attempt that throws unexpectedly after the claim still spends the run id", async () => {
+      expect((await runSmtpDeliveryTest(deps({ send: () => { throw new TypeError("boom"); } }))).status).toBe("failed");
+      expect((await runSmtpDeliveryTest(deps())).status).toBe("already-attempted");
+      expect(sent).toHaveLength(0);
+    });
+    it("a refusal is correctable: after fixing the cause the SAME run id sends once", async () => {
+      const refused = await runSmtpDeliveryTest(deps({ env: approvedEnv({ SMTP_FROM: "wrong@gmail.com" }) }));
+      expect(refused.status).toBe("refused");
+      expect(describeOutcome(refused)).toMatch(/before any attempt.*same run id may be used/);
+      expect(() => readdirSync(path.join(home, "nltag-data"))).toThrow();
+      expect((await runSmtpDeliveryTest(deps())).status).toBe("sent");
+      expect(sent).toHaveLength(1);
+    });
+    it("a refusal for a non-SMTP transport is also correctable with the same run id", async () => {
+      expect((await runSmtpDeliveryTest(deps({ transportName: "dev-outbox" }))).status).toBe("refused");
+      expect((await runSmtpDeliveryTest(deps())).status).toBe("sent");
     });
     it("concurrent builds with the same run id send at most once", async () => {
       const results = await Promise.all([runSmtpDeliveryTest(deps()), runSmtpDeliveryTest(deps()), runSmtpDeliveryTest(deps())]);

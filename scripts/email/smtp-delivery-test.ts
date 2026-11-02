@@ -21,7 +21,9 @@ try {
     send: (mail) => getTransport().send(mail),
   });
 } catch (error) {
-  // e.g. "Invalid server environment: SMTP_PORT: ..." — names and rules only, never values.
+  // Only reachable before the run id is claimed (runSmtpDeliveryTest never throws after the claim),
+  // e.g. "Invalid server environment: SMTP_PORT: ..." from the transport — a correctable refusal.
+  // Names and rules only, never values.
   const message = error instanceof Error ? error.message.split("\n")[0] : "unexpected error";
   outcome = { status: "refused", reason: message.replace(/[^\s@]+@[^\s@]+/g, "[address]") };
 }

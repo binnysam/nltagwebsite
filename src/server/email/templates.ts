@@ -14,10 +14,10 @@ const KEYS: Record<EmailKind, { subject: UiStringKey; body: UiStringKey }> = {
   reset: { subject: "email.reset.subject", body: "email.reset.body" },
 };
 
-const escapeHtml = (s: string) =>
+export const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
-const withChurch = (s: string, locale: Locale) => s.replaceAll("{church}", churchName[locale]);
+export const withChurch = (s: string, locale: Locale) => s.replaceAll("{church}", churchName[locale]);
 
 /**
  * Bilingual account emails: Tamil first (default language), English second. The only personal
