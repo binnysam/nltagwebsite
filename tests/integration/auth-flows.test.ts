@@ -191,7 +191,10 @@ describe("audit log privacy", () => {
     await call("/sign-in/email", { body: { email: "who.am.i@nltag.test", password: "nope-nope-nope" }, ip: freshIp() });
     const rows = await getDb().select().from(auditLog).where(eq(auditLog.action, "auth.sign_in.fail"));
     expect(rows.length).toBeGreaterThan(0);
-    expect(rows.every((r) => r.ipHash && /^[0-9a-f]{64}$/.test(r.ipHash))).toBe(true);
+    // Keyed hash of the resolved address, or no IP at all when it cannot be trusted
+    // (client-ip-rate-limit.test.ts) — never a raw address.
+    expect(rows.every((r) => r.ipHash === null || /^[0-9a-f]{64}$/.test(r.ipHash))).toBe(true);
+    expect(rows.some((r) => r.ipHash !== null)).toBe(true);
   });
 
   it("never contains emails, tokens or raw IP addresses anywhere in the audit table", async () => {

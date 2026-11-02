@@ -27,11 +27,13 @@ src/server/                 server-only (import "server-only"); never reaches th
   policy/permissions.ts     permission matrix (pure data), can(), session lengths
   services/roles.ts         bootstrapFirstAdmin, grantRole, revokeRole
   services/audit.ts         audit(), action names
-  services/rate-limit.ts    consume() fixed-window counters
+  services/rate-limit.ts    consume()/peek() fixed-window counters, per-account sign-in limit
   email/templates.ts        bilingual verify/reset emails (Tamil first)
   email/transport.ts        smtp | dev outbox (.data/mail) | memory (tests)
   email/send.ts             per-address and 24-hour caps, background send
   security/hash.ts          HMAC of IPs and emails
+  security/client-ip.ts     client IP behind the CDN (one resolver) + header-shape capture (docs/backend/client-ip.md)
+src/proxy.ts                sets the internal x-nltag-client-ip header on every request (never from the client)
   security/log.ts           redacting JSON logger
 src/app/api/auth/[...all]   Better Auth HTTP handler
 src/app/[locale]/(account)  sign-in, sign-up, forgot/reset password, verify-email, account,
@@ -49,10 +51,10 @@ drizzle/                    versioned SQL migrations + meta
 | `session` | DB sessions | token `ascii_bin` unique; 7 days; staff ended after 12 h |
 | `account` | password hash (scrypt) or Google link | OAuth tokens encrypted at rest |
 | `verification` | reset tokens | identifiers stored hashed |
-| `rate_limit` | Better Auth counters | per IP + path |
+| `rate_limit` | Better Auth counters | per resolved client IP + path (`no-trusted-ip` = shared, see `client-ip.md`) |
 | `staff_role` | `CHURCH_ADMIN` / `CONTENT_EDITOR` | unique (user, role) |
 | `audit_log` | append-only trail | ids, action, outcome, HMAC'd IP; no names/emails/tokens |
-| `rate_limit_bucket` | our counters | email per address, 24-hour mail cap |
+| `rate_limit_bucket` | our counters | email per address, 24-hour mail cap, wrong passwords per account (HMAC keys) |
 
 Database default and every table: `utf8mb4` / `utf8mb4_uca1400_ai_ci` (Tamil). Ids, tokens and hashes: `ascii_bin` (case-sensitive).
 
@@ -85,7 +87,7 @@ An unverified email removes every permission except reading published content an
 ## Limits
 | What | Limit | Where |
 |---|---|---|
-| Sign-in | 5 / 15 min per client | Better Auth |
+| Sign-in | 5 / 15 min per client IP, **and** 10 wrong passwords / 15 min per account from any IP (refused before the password check; same for addresses without an account) | Better Auth + `auth.ts` hooks |
 | Sign-up | 5 / hour per client | Better Auth |
 | Verification email request | 3 / hour per client | Better Auth |
 | Password reset request | 3 / hour per client | Better Auth |
@@ -168,5 +170,5 @@ npm run test:integration        MariaDB-backed tests (TEST_DATABASE_URL, *_test 
 ## Open items
 - Two-factor: built in Phase 6b (above); migration `0003_two_factor` not yet applied to production.
 - Google OAuth client (D3): church-owned Google Cloud project; until then the button is hidden.
-- `TRUSTED_PROXIES`: confirm Hostinger's proxy chain on staging so rate limits key on the real client IP.
+- Client IP behind Hostinger's CDN: resolver built (Nov 2026 security fix); `CLIENT_IP_SOURCE` stays unset until the header-shape capture confirms the hop count (`docs/backend/client-ip.md` §5). `TRUSTED_PROXIES` is no longer used.
 - Tamil: the 38 Phase 4b account/email strings and 45 Phase 6b two-factor strings were approved by the owner on 2 Nov 2026. `auth.google` and `auth.or` stay `draft-review` (shown only once Google sign-in is configured).

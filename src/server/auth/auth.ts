@@ -13,7 +13,10 @@ import { googleConfigured, serverEnv } from "../env";
 import { sendInBackground } from "../email/send";
 import { SESSION_MAX_AGE_SECONDS } from "../policy/permissions";
 import { audit } from "../services/audit";
-import { consume } from "../services/rate-limit";
+import { consume, LIMITS, peek, signInAccountKey } from "../services/rate-limit";
+import { log } from "../security/log";
+import { hashEmail } from "../security/hash";
+import { CLIENT_IP_HEADER, clientIpConfig, clientIpOf } from "../security/client-ip";
 import { signupAllowed, signupPolicy, warnIfMisconfigured } from "./signup-allowlist";
 import {
   BLOCKED_TWO_FACTOR_PATHS,
@@ -46,12 +49,17 @@ import {
  *   current code; "trust this device" is refused; the secret is never shown again after
  *   enrollment; no endpoint other than the challenge can create a session for an enrolled
  *   account; enrollment signs out every other device; every step is audited.
+ * - Client IP (security fix, Nov 2026, docs/backend/client-ip.md): Better Auth keys its limits on
+ *   x-nltag-client-ip only, which src/server/security/client-ip.ts sets from the CDN's headers (or leaves
+ *   out, so the request is counted in the shared per-path bucket: fail closed). Wrong-password
+ *   sign-ins are also limited per account (HMAC of the address), whatever the IP.
  */
 function createAuth() {
   const env = serverEnv();
   const google = googleConfigured(env);
   const isProd = env.NODE_ENV === "production";
   const rateLimitOn = env.AUTH_RATE_LIMIT === "on";
+  warnAboutClientIp(isProd);
 
   return betterAuth({
     appName: "NLTAG",
@@ -155,10 +163,8 @@ function createAuth() {
       disableCSRFCheck: false,
       useSecureCookies: isProd,
       defaultCookieAttributes: { httpOnly: true, sameSite: "lax", secure: isProd, path: "/" },
-      ipAddress: {
-        ipAddressHeaders: ["x-forwarded-for"],
-        ...(env.TRUSTED_PROXIES ? { trustedProxies: env.TRUSTED_PROXIES.split(",").map((s) => s.trim()) } : {}),
-      },
+      // Only the internal header set by client-ip.ts. No trustedProxies: the chain is walked there.
+      ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
       database: { generateId: "uuid" },
     },
 
@@ -219,6 +225,10 @@ function createAuth() {
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
         const path = ctx.path;
+        if (path === "/sign-in/email") {
+          await refuseIfAccountLimited(ctx.body, clientIpOf(ctx.headers));
+          return;
+        }
         if (!path?.startsWith("/two-factor/")) return;
         if (BLOCKED_TWO_FACTOR_PATHS.has(path)) throw new APIError("NOT_FOUND");
         const body = (ctx.body ?? {}) as Record<string, unknown>;
@@ -260,6 +270,8 @@ function createAuth() {
           await audit({ actorUserId: sessionUserId, action: "auth.2fa.manage_fail", outcome: "DENIED", entity: "user", entityId: sessionUserId, ip, reason: failureReason(ctx.path, returned) });
         }
         if (ctx.path === "/sign-in/email" && returned instanceof APIError) {
+          // Only a wrong address/password counts towards the per-account limit (never our own 429).
+          if (returned.statusCode === 401) await countAccountFailure(ctx.body);
           // No email in the audit row: the attempt is recorded by IP hash only.
           await audit({ action: "auth.sign_in.fail", outcome: "DENIED", entity: "auth", ip, reason: String(returned.status) });
         }
@@ -294,8 +306,38 @@ function createAuth() {
   });
 }
 
-function clientIpOf(headers: Headers | undefined): string | null {
-  return headers?.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+/** The address from a sign-in body, or null when there is none to key on. */
+function signInEmail(body: unknown): string | null {
+  const email = (body as { email?: unknown } | null)?.email;
+  return typeof email === "string" && email.trim() !== "" && email.length <= 320 ? email : null;
+}
+
+/**
+ * Refuses a sign-in before the password is checked when this address already has too many wrong
+ * passwords in the window. Same 429 for addresses with and without an account (no discovery).
+ */
+async function refuseIfAccountLimited(body: unknown, ip: string | null) {
+  const email = signInEmail(body);
+  if (!email) return;
+  const failures = await peek(signInAccountKey(hashEmail(email)), LIMITS.signInFailuresPerAccount);
+  if (failures < LIMITS.signInFailuresPerAccount.max) return;
+  await audit({ action: "auth.sign_in.account_limited", outcome: "DENIED", entity: "auth", ip, reason: "429" });
+  throw new APIError("TOO_MANY_REQUESTS", { message: "Too many attempts. Please try again later.", code: "TOO_MANY_ATTEMPTS" });
+}
+
+async function countAccountFailure(body: unknown) {
+  const email = signInEmail(body);
+  if (email) await consume(signInAccountKey(hashEmail(email)), LIMITS.signInFailuresPerAccount);
+}
+
+let clientIpWarned = false;
+/** Once per process: say (without values) when per-visitor limits cannot work. */
+function warnAboutClientIp(isProd: boolean) {
+  if (clientIpWarned) return;
+  clientIpWarned = true;
+  const c = clientIpConfig();
+  if (c.invalid) log("warn", "client_ip.config_invalid", { note: "CLIENT_IP_* not understood; every visitor shares one rate-limit bucket per path" });
+  else if (isProd && c.source === "none") log("warn", "client_ip.resolution_off", { note: "CLIENT_IP_SOURCE unset; every visitor shares one rate-limit bucket per path" });
 }
 
 /** "two-factor/verify-totp:401:INVALID_CODE" — status and Better Auth error code only, no input. */

@@ -13,7 +13,7 @@ Live since 2 Nov 2026 (owner-approved replacement of the old trial site). Produc
 - Shared resource limits; ~120s request timeout; no inbound WebSockets; no always-running workers. Use cron/external scheduling.
 - Build script in Hostinger: `build:hostinger` (runs `next build`; migrates only with the one-time approval variable); Hostinger runs the standalone server. Never set `NLTAG_DESIGN_SYSTEM_GALLERY` or `NLTAG_LOCAL_MAIL_OUTBOX` in production.
 - Database: MariaDB 11.8.9 at `127.0.0.1:3306`. Migrations are a separate owner-approved step: set `NLTAG_APPROVED_PRODUCTION_MIGRATION=1` for one build, then remove it. Never on boot.
-- Environment variables (names in `.env.example`): `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, optional `GOOGLE_CLIENT_ID/SECRET`, `SMTP_*`, `EMAIL_DAILY_CAP`, `TRUSTED_PROXIES`, `NLTAG_ACCOUNTS_ENABLED`, and at account activation `AUTH_RATE_LIMIT=on`, `NLTAG_SIGNUP_ALLOWLIST` and (one build only) `NLTAG_BOOTSTRAP_ADMIN_EMAIL` — `docs/operations/admin-activation.md`.
+- Environment variables (names in `.env.example`): `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, optional `GOOGLE_CLIENT_ID/SECRET`, `SMTP_*`, `EMAIL_DAILY_CAP`, `CLIENT_IP_*` (docs/backend/client-ip.md; set only after the header-shape capture), `NLTAG_ACCOUNTS_ENABLED`, and at account activation `AUTH_RATE_LIMIT=on`, `NLTAG_SIGNUP_ALLOWLIST` and (one build only) `NLTAG_BOOTSTRAP_ADMIN_EMAIL` — `docs/operations/admin-activation.md`.
 - Hostinger links one GitHub account per provider per hPanel account (now `binnysam`). Use the Node.js GitHub integration, never the generic Websites → Git clone/webhook tool.
 
 ## Rules

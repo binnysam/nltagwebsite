@@ -13,6 +13,8 @@ export const AUDIT_ACTIONS = [
   "auth.session.create",
   "auth.session.revoke",
   "auth.sign_in.fail",
+  // Sign-in refused before the password check: too many wrong passwords for one address (any IP).
+  "auth.sign_in.account_limited",
   "auth.password.reset",
   "auth.password.change",
   "auth.staff_session.expire",

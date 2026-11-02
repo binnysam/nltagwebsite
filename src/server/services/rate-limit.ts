@@ -41,6 +41,18 @@ export async function consume(key: string, rule: RateRule, now = Date.now(), ret
   };
 }
 
+/** Current count in this window without adding a hit (0 when nothing has been counted yet). */
+export async function peek(key: string, rule: RateRule, now = Date.now()): Promise<number> {
+  if (key.length > 191) throw new Error("rate-limit key too long");
+  const windowMs = rule.window * 1000;
+  const windowStart = Math.floor(now / windowMs) * windowMs;
+  const [row] = await getDb()
+    .select({ count: rateLimitBucket.count })
+    .from(rateLimitBucket)
+    .where(sql`${rateLimitBucket.bucketKey} = ${key} AND ${rateLimitBucket.windowStart} = ${windowStart}`);
+  return row?.count ?? 0;
+}
+
 /** Nightly cleanup (called by the cron route in Phase 4e). */
 export async function purgeExpiredBuckets(now = new Date()) {
   await getDb().delete(rateLimitBucket).where(lt(rateLimitBucket.expiresAt, now));
@@ -50,4 +62,13 @@ export async function purgeExpiredBuckets(now = new Date()) {
 export const LIMITS = {
   /** Verification or reset emails to one address. */
   emailPerAddress: { window: 3600, max: 3 },
+  /**
+   * Wrong-password sign-ins per account (keyed by an HMAC of the address, never the address),
+   * whatever IP they come from. Independent of client-IP resolution: rotating or forged IPs
+   * cannot brute-force one account. Applies equally to addresses with no account.
+   */
+  signInFailuresPerAccount: { window: 15 * 60, max: 10 },
 } as const satisfies Record<string, RateRule>;
+
+/** Bucket key for LIMITS.signInFailuresPerAccount. `emailHash` is hashEmail(address). */
+export const signInAccountKey = (emailHash: string) => `signin-fail:${emailHash}`;
