@@ -11,7 +11,7 @@ New Life Tamil AG Church (NLTAG), Kuwait. Bilingual (Tamil default `/ta`, Englis
 Report conflicts; never resolve them silently.
 
 ## Current phase
-Phase 2 (design system) complete, awaiting owner approval. Phase 3 (hero motion) not started. CMS, membership, homepage, deployment: **not authorised**.
+Phase 2 (design system) integrated. Phase 3 (motion system, homepage hero) approved by the owner on 1 Nov 2026 (120s preset cycle, 0.35 hero field opacity, Tamil font preload on both locales). Phase 4a (Hostinger check) done: MariaDB 11.8.9. Phase 4b (database, auth, roles, audit, rate limits, account emails) approved and merged on 2 Nov 2026, with the **accounts gate**: account pages and `/api/auth` return 404 until SMTP is configured, tested and `NLTAG_ACCOUNTS_ENABLED=1` is set (`docs/backend/data-and-auth.md`). The owner approved replacing the old trial site on nltagkuwait.com with this site. Phase 4c CMS, 4d membership interface and the rest of the homepage (Phase 5): **not authorised**.
 
 ## Skills — use the matching one
 | Task | Skill |
@@ -24,6 +24,7 @@ Phase 2 (design system) complete, awaiting owner approval. Phase 3 (hero motion)
 | Metadata, sitemap, hreflang | `nl-tag-seo` |
 | Content models, CMS roles | `nl-tag-cms-content` |
 | Membership | `nl-tag-membership` |
+| Database, auth, roles, audit, emails | `nl-tag-data-and-auth` |
 | Testing | `nl-tag-quality-assurance` |
 | GitHub, Hostinger | `nl-tag-hostinger-deployment` |
 
@@ -33,7 +34,7 @@ Read: `docs/design-system/foundations/foundations.md` → `docs/design-system/to
 ## Hard rules
 - Look up, don't make up: tokens only (layers 2–3); never edit `tokens.css`; new tokens go in `component-tokens.css` as `[ADDITION]` and need approval.
 - Reuse components; no parallel visual language for any feature.
-- Only the homepage hero animates a gradient. Everything else is static.
+- Only the homepage hero (`Hero` component) animates a gradient. Everything else is static.
 - All text on gradients is `--color-text-on-gradient`. 44px minimum targets. Tamil never gets negative tracking or uppercase.
 - Never invent church content: names, history, beliefs, times, addresses, contacts, events, testimonies, Bible wording, social accounts. Missing → `CONTENT REQUIRED`, unpublished.
 - Schedule facts only from `src/content/schedule.ts` (Gate 0). Sunday School is on **Friday**. Write **NECK** exactly. No address.
@@ -42,4 +43,4 @@ Read: `docs/design-system/foundations/foundations.md` → `docs/design-system/to
 - Ask before changing tokens, membership policy, security, SEO strategy, dependencies with cost, or deployment. Never deploy, push to `main`, change repo visibility or touch DNS without explicit approval.
 
 ## Definition of done
-`npm run verify` (token audit, lint, typecheck, unit tests, build) and `scripts/serve-gallery.sh && npm run test:e2e` pass; docs/specs updated when behaviour or rules change; report changes, tests and remaining risks.
+`npm run verify` (token audit, lint, typecheck, unit tests, build), `npm run test:integration` (MariaDB) and `scripts/serve-gallery.sh && npm run test:e2e` pass (account pages: `E2E_AUTH=1`, see `tests/e2e/auth.spec.ts`); docs/specs updated when behaviour or rules change; report changes, tests and remaining risks.

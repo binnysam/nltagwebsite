@@ -34,6 +34,9 @@ const OWNER_SUPPLIED: Record<string, string> = {
   "verse.placeholderChip": "மாதிரி",
 };
 
+/** Phase 4b account and email wording (1 Nov 2026), Tamil awaiting owner review. */
+const PENDING_PREFIXES = /^(auth|account|email)\./;
+
 /** The 26 recommended drafts the owner approved unchanged ("rest all is fine"). */
 const APPROVED_AS_RECOMMENDED: [string, string][] = [
   ["time.evening", "மாலை"],
@@ -67,8 +70,12 @@ const APPROVED_AS_RECOMMENDED: [string, string][] = [
 describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
   it("approves all 48 reviewed items: 22 owner-supplied and 26 recommended", () => {
     const items = reviewItems();
-    expect(items).toHaveLength(48);
-    expect(items.filter((i) => i.status !== "confirmed").map((i) => i.id)).toEqual([]);
+    expect(items.filter((i) => i.status === "confirmed")).toHaveLength(48);
+    // Everything else is new Phase 4b account wording, awaiting owner review.
+    for (const i of items.filter((x) => x.status !== "confirmed")) {
+      expect(i.id, i.id).toMatch(PENDING_PREFIXES);
+      expect(i.status, i.id).toBe("draft-review");
+    }
     expect(items.filter((i) => i.source === "owner-supplied")).toHaveLength(22);
     expect(items.filter((i) => i.source === "recommended")).toHaveLength(26);
   });
@@ -94,9 +101,9 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
     }
   });
 
-  it("leaves no draft-review Tamil or open alternatives in the source", () => {
+  it("leaves no draft-review Tamil outside the new Phase 4b account wording, and no open alternatives", () => {
     for (const [key, v] of Object.entries(uiStrings)) {
-      expect(v.taStatus, key).toBe("confirmed");
+      if (v.taStatus !== "confirmed") expect(key).toMatch(PENDING_PREFIXES);
       expect((v as { taAlternatives?: unknown }).taAlternatives, key).toBeUndefined();
       expect((v as { taShortAlternative?: unknown }).taShortAlternative, key).toBeUndefined();
     }
@@ -110,7 +117,10 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
   it("keeps the generated approval record in sync with the source strings", () => {
     const { md } = buildTamilReview();
     expect(readFileSync(REVIEW_SHEET, "utf8")).toBe(md);
-    expect(md).toContain("48 of 48 items approved (22 owner-supplied, 26 recommended drafts approved)");
-    expect(md).not.toContain("draft-review");
+    const pending = reviewItems().filter((i) => i.status !== "confirmed").length;
+    expect(md).toContain(`48 of ${48 + pending} items approved (22 owner-supplied, 26 recommended drafts approved)`);
+    for (const line of md.split("\n").filter((l) => l.includes("draft-review") && l.startsWith("| "))) {
+      expect(line.split("|")[1]!.trim()).toMatch(PENDING_PREFIXES);
+    }
   });
 });

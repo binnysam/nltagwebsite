@@ -1,0 +1,16 @@
+/* Account and sign-in pages: one narrow editorial column on paper (page-composition: lists before grids). */
+.column {
+  max-width: var(--measure-en);
+}
+.column:lang(ta) {
+  max-width: var(--measure-ta);
+}
+.sessionList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+/* Form-level error: same colour token as the TextField error message, so it reads as an error. */
+.formError {
+  color: var(--color-status-error-text);
+}

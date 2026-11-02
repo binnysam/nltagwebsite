@@ -52,6 +52,8 @@ These carry numbers written in the Phase 1 document; they add names, not new dec
 | `--verse-*` (radius 28, shadow-2, padding, rule 40px, measures 34ch/40ch, leading 1.75/1.45, 64px export margin) | | §7 |
 | `--meeting-art-ratio` | 16 / 10 | §6 Special meeting card |
 | `--color-glass-fill`, `-fill-solid`, `-edge` | aliases of `glass-*` | §3.1, §8.2 |
+| `--home-hero-surface`, `--home-hero-field-1…4` | aliases of `hero-base`, `hero-field-1…4` | §3.4, §8 (Phase 3) |
+| `--home-hero-radius` | `var(--radius-xl)` 28px | §5 (hero radius) |
 
 ## Additions awaiting owner sign-off
 
@@ -66,6 +68,8 @@ Phase 1 did not specify these values. They were needed to implement the approved
 | `--z-behind/base/raised/header/menu/skip-link` | −1 / 0 / 1 / 10 / 20 / 30 | Stacking order |
 | `--verse-social-text-ta/en`, `--verse-social-meta` | 4.2 / 3.4 / 2.2 cqi (≈45 / 37 / 24px at 1080) | Type sizes for the square and portrait export compositions |
 | `--verse-landscape-text-ta/en` | 3 / 2.4 cqi, clamped to h3…h1 and body-l…h2 | Fluid sizing for the landscape feature card |
+| `--motion-hero-preset-cycle` (Phase 3) | `calc(var(--motion-hero-cycle) * 2.5)` = 120s | One pass through the five presets in the hero: 24s each (≈17s hold, ≈7s crossfade). Derived from the approved 48s cycle. **Approved by owner, 1 Nov 2026** |
+| `--home-hero-field-opacity` (Phase 3) | 0.35 | The approved hero fields drift over the presets at this strength; at full strength they muddied Kadal and Andhi (review screenshots in the Phase 3 report). **Approved by owner, 1 Nov 2026** |
 
 ## Rules
 

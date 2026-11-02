@@ -6,7 +6,7 @@ description: Use for NLTAG membership: individual and family applications, email
 # NLTAG membership
 
 ## Status
-Not implemented. No production membership data may be collected until Gate 4 approves the data model, privacy notice, consent and retention.
+Foundation only (Phase 4b): accounts, email verification, sessions, `membership.*` permissions (Church Admin only) and audit log exist — see `nl-tag-data-and-auth`. Membership tables, applications and IDs are Phase 4d. No production membership data may be collected until Gate 4 approves the data model, privacy notice, consent and retention.
 
 ## Approved model (Gate 0)
 - Individual: independent person record; membership ID after approval.

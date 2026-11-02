@@ -88,7 +88,7 @@ Grain: deterministic pre-rendered SVG `feTurbulence` tile (seed 7), multiply ble
 | English body | Inter | 400, 500 |
 | Scripture | Noto Serif Tamil 400 + Newsreader 400 | verse card only |
 
-All SIL OFL. Self-hosted via `next/font` with only the listed weights and the `tamil` + `latin` subsets, `display: swap`, size-adjusted fallbacks. Tamil faces preload on `/ta` pages only.
+All SIL OFL. Self-hosted via `next/font` with only the listed weights and the `tamil` + `latin` subsets, `display: swap`, size-adjusted fallbacks. Tamil faces preload on `/ta` pages only. *(Superseded 1 Nov 2026, owner-approved in Phase 3: next/font preloads per layout, so the above-the-fold Tamil faces preload on both locales — CLS 0.080 → 0.001 at 390px.)*
 
 ### 4.2 Fallback stacks
 - Tamil display: Anek Tamil → Noto Sans Tamil → Tamil Sangam MN → Nirmala UI → Latha → sans-serif

@@ -1,0 +1,28 @@
+/* Homepage composition (Phase 3: hero + worship schedule). Tokens only. */
+.heroWrap { padding-top: var(--space-3); }
+
+.heroInner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  max-width: var(--measure-en);
+}
+.heroInner:lang(ta) { max-width: var(--measure-ta); }
+
+.altName {
+  font-family: var(--font-stack-en-body);
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--leading-small-en);
+  letter-spacing: var(--tracking-small-en);
+}
+.altName:lang(ta) {
+  font-family: var(--font-stack-ta-body);
+  line-height: var(--leading-small-ta);
+  letter-spacing: var(--tracking-ta);
+}
+
+.actions { margin-top: var(--space-3); }
+
+.note { margin-top: var(--space-5); }

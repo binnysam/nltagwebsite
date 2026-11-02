@@ -6,7 +6,7 @@ description: Use for NLTAG content models, bilingual editorial workflow, CMS rol
 # NLTAG CMS and content
 
 ## Status
-Not implemented. Approved decisions only (Gate 0); infrastructure needs Phase 4 approval (recommended: Hostinger Business MySQL, zero added cost).
+Not implemented (Phase 4c). Foundation ready (Phase 4b): MariaDB 11.8, Better Auth, the two roles in `staff_role`, and `content.*`/`media.upload` permissions in `src/server/policy/permissions.ts` — see `nl-tag-data-and-auth`.
 
 ## Roles (server-enforced)
 | Capability | Church Admin | Content Editor |

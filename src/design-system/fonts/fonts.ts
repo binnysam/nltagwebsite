@@ -25,7 +25,7 @@ const anekTa = localFont({
   ],
   variable: "--nf-anek-ta",
   display: "swap",
-  preload: false,
+  preload: true, // Phase 3: above-the-fold Tamil faces (hero h1, header, body) — prevents a font-swap layout shift on /ta
   adjustFontFallback: false,
   declarations: [{ prop: "unicode-range", value: "U+0964-0965,U+0B82-0BFA,U+200C-200D,U+20B9,U+25CC" }],
 });
@@ -48,7 +48,7 @@ const notoSansTa = localFont({
   ],
   variable: "--nf-noto-sans-ta",
   display: "swap",
-  preload: false,
+  preload: true, // Phase 3: above-the-fold Tamil faces (hero h1, header, body) — prevents a font-swap layout shift on /ta
   adjustFontFallback: false,
   declarations: [{ prop: "unicode-range", value: "U+0964-0965,U+0B82-0BFA,U+200C-200D,U+20B9,U+25CC" }],
 });

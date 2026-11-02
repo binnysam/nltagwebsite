@@ -16,7 +16,17 @@ const config: NextConfig = {
     return [{ source: "/", destination: "/ta", permanent: false }];
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    // Account pages and the auth API are per-user: never cached, never indexed (architecture §4).
+    const privateHeaders = [
+      { key: "Cache-Control", value: "private, no-store" },
+      { key: "X-Robots-Tag", value: "noindex, nofollow" },
+    ];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      { source: "/:locale(ta|en)/:page(sign-in|sign-up|forgot-password|reset-password|verify-email|account)", headers: privateHeaders },
+      { source: "/:locale(ta|en)/account/:rest*", headers: privateHeaders },
+      { source: "/api/auth/:rest*", headers: privateHeaders },
+    ];
   },
 };
 
