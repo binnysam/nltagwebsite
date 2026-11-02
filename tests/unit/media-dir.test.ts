@@ -49,16 +49,9 @@ describe("probeMediaStorage", () => {
   });
 });
 
-describe("account home and markers", () => {
+describe("account home", () => {
   it("reads the account home from the user database", async () => {
     const { accountHome } = await import("@/server/storage/media-dir");
     expect(accountHome()).toBe(os.userInfo().homedir);
-  });
-  it("reports a missing marker without creating anything", async () => {
-    const { readMarker } = await import("@/server/storage/media-dir");
-    const dir = mkdtempSync(path.join(os.tmpdir(), "nltag-marker-"));
-    expect(await readMarker(dir)).toEqual({ dir, markerExisted: false, markerCreatedAt: null });
-    expect(readdirSync(dir)).toEqual([]);
-    rmSync(dir, { recursive: true, force: true });
   });
 });

@@ -32,13 +32,13 @@ Request path: page or server action → `requireStaffPage` / `actionCtx` (accoun
 | `bible_translation` | `bsi-ta`, `nkjv-en` (seeded `NOT_VERIFIED`): credit line, permission reference, verified by/at, downloads allowed |
 | `verse_detail`, `verse_text` | card variant and preset; reference and text per translation |
 | `verse_schedule` | one verse per Kuwait date (`YYYY-MM-DD`) |
-| `media_asset` | JPEG/PNG/WebP up to 2 MB, stored as `MEDIUMBLOB` with SHA-256, alt text in both languages |
+| `media_asset` | JPEG/PNG/WebP up to 2 MB: type, size, SHA-256, alt text in both languages and `storage_key`; the bytes are a file in the persistent media folder (migration `0002_media_file_storage`) |
 
 All text columns use `utf8mb4_uca1400_ai_ci` (Tamil); ids, slugs and hashes are `ascii_bin`. Foreign keys cascade from `content_item` to its rows; user references are `SET NULL` so content outlives an account. Soft delete on `content_item` and `media_asset`.
 
 **Not in the database:** the regular weekly schedule. It stays the Gate 0 record in `src/content/schedule.ts`; the admin shows it read-only. Only individually announced special meetings are CMS events.
 
-**Media storage — owner decision (2 Nov 2026):** uploaded images move to persistent storage outside the deployment, `/home/u339364475/nltag-data/media` (`<home>/nltag-data/media`, or `NLTAG_MEDIA_DIR`), never in Git, the app folder or `public_html`. The switch is made only after a production check proves the folder is writable by the Node.js app and survives a fresh Hostinger deployment: `src/instrumentation.ts` runs the probe in `src/server/storage/media-dir.ts` at every server start and logs one `[nltag-media-storage]` line (writable, read-back, folder mode, and whether the marker from an earlier deployment is still there). Until that check passes the `media_asset` table keeps the `MEDIUMBLOB` design above; no image can be uploaded in production meanwhile (the admin is behind the accounts gate and `0001_cms_content` is not applied).
+**Media storage — owner decision (2 Nov 2026):** image files live in `/home/u339364475/nltag-data/media`, outside the deployment, Git and `public_html`; verified writable by the Node.js app and persistent across a fresh Hostinger deployment on 2 Nov 2026. Rules, backup and restore: `docs/operations/media-storage.md`.
 
 ## Authorization (enforced in `rules.ts` + `service.ts`; the permission matrix is unchanged)
 | Action | Content Editor | Church Admin | Permission used |
@@ -68,7 +68,7 @@ Special rules: a testimony cannot be published without Granted permission, and r
 - Server-side Zod on every write: NFC normalisation, length limits, no control characters, **no HTML tags** in any field, links only `https:`, `http:`, `mailto:` or `/path`. Video links must be https.
 - Rendering: `Markdown` builds React elements; anything that looks like HTML is shown as text. External links get `rel="noopener noreferrer"`.
 - Events: members' homes and NECK never carry an address; `OTHER` needs a place name; public queries blank the place unless `OTHER`.
-- Uploads: type detected from bytes (no SVG, HTML or PDF), 2 MB, served only to staff from `/admin/media/<id>` with `nosniff`, `no-store` and a sandbox CSP.
+- Uploads: type detected from bytes (no SVG, HTML or PDF), 2 MB, written as private extension-less files outside the deployment (fail closed if the folder is unusable), served only to staff from `/admin/media/<id>` with `nosniff`, `no-store` and a sandbox CSP; a file that no longer matches its SHA-256 is not served.
 - Audit rows: ids, action names and status changes only — never titles, text, names or emails. IPs are HMAC'd.
 - Redirect results use fixed keys (`?done=publish`, `?error=forbidden`), never text from the URL.
 - Concurrency: every save names the version it edited; a stale save is refused with a message.
@@ -79,8 +79,7 @@ Special rules: a testimony cannot be published without Granted permission, and r
 
 ## Migrations
 - Local / CI: `npm run db:migrate` (CI applies it to MariaDB 11.8.9 on every run).
-- Production: **not run by this PR**. After the owner approves the merge and the migration, set `NLTAG_APPROVED_PRODUCTION_MIGRATION=1` in Hostinger for one build (see `data-and-auth.md`), confirm the build log shows `0001_cms_content` applied, then remove the variable. The migration only creates tables and inserts the two `bible_translation` rows; it does not touch identity, access or audit tables.
-- Rollback: the tables are new; dropping them (in reverse foreign-key order) returns the database to the 4b state. Take a Hostinger database backup before applying.
+- Production: **not applied.** `0001_cms_content` and `0002_media_file_storage` run together, once, after the owner's explicit approval: backup, exact steps, checks and rollback in `docs/operations/production-migration-cms.md`. They only create the CMS tables and insert the two `bible_translation` rows; identity, access and audit tables are untouched.
 
 ## Testing
 | Command | Covers |

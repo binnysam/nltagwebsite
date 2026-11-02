@@ -13,6 +13,9 @@ Site: `https://nltagkuwait.com` · Hostinger Business, account `u339364475`, one
 `DATABASE_URL` (MariaDB `u339364475_nltag` on 127.0.0.1:3306) · `BETTER_AUTH_SECRET` · `BETTER_AUTH_URL=https://nltagkuwait.com` · `EMAIL_DAILY_CAP=300` · `NLTAG_ACCOUNTS_ENABLED=0`.
 Changing variables restarts the app; Hostinger's replace operation replaces the whole set.
 
+## Persistent data outside the deployment
+Uploaded images: `/home/u339364475/nltag-data/media` (survives deploys; verified 2 Nov 2026). Backup and restore with the database: `docs/operations/media-storage.md`. Each start logs `[nltag-media-storage]` in the runtime log.
+
 ## Accounts
 Account pages and `/api/auth` return 404 while `NLTAG_ACCOUNTS_ENABLED=0`. Enabling: `docs/backend/data-and-auth.md`.
 
@@ -26,3 +29,4 @@ Domain, HTTPS certificate, nameservers, MX `mx1/mx2.hostinger.com`, SPF, DKIM `h
 ## History
 - 2 Nov 2026: new site replaced the old trial app (report in the claude.ai project: `NLTAG-PRODUCTION-REPLACEMENT-REPORT.md`). First release deployed from a `git archive` of `main` because Hostinger's GitHub link only reached another account.
 - 2 Nov 2026: Hostinger's GitHub connection moved to `binnysam`; auto-deploy from `main` set up and verified with this document's commit.
+- 2 Nov 2026: Phase 4c merged (#4, #5); media folder verified across a fresh rebuild. Migrations `0001`/`0002` not applied to production.

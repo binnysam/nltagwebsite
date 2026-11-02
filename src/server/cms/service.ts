@@ -14,6 +14,8 @@ import { grantRole, revokeRole } from "../services/roles";
 import { canPerform, publishBlocker, STATUS_AFTER, type ContentAction } from "./rules";
 import type { ContentInput, DetailInput, TranslationInput } from "./schemas";
 import { invalidatePublicContent } from "./cache";
+import { discardMediaFile, readMediaFile, writeMediaFile } from "../storage/media-store";
+import { log } from "../security/log";
 
 /**
  * CMS services. Every function takes the signed-in staff member (from requirePermission /
@@ -31,7 +33,7 @@ export interface Ctx {
 
 export class CmsError extends Error {
   constructor(
-    readonly code: "NOT_FOUND" | "CONFLICT" | "SLUG_TAKEN" | "NOT_ALLOWED_IN_STATE" | "INVALID",
+    readonly code: "NOT_FOUND" | "CONFLICT" | "SLUG_TAKEN" | "NOT_ALLOWED_IN_STATE" | "INVALID" | "UNAVAILABLE",
     message: string,
     readonly fieldErrors?: Record<string, string>,
   ) {
@@ -520,10 +522,23 @@ export async function uploadMedia(ctx: Ctx, file: { bytes: Uint8Array }, alt: { 
   if (!mimeType) throw new CmsError("INVALID", "Only JPEG, PNG or WebP images can be uploaded.", { file: "Only JPEG, PNG or WebP images can be uploaded." });
   const id = randomUUID();
   const sha256 = createHash("sha256").update(file.bytes).digest("hex");
-  await getDb().transaction(async (tx) => {
-    await tx.insert(mediaAsset).values({ id, mimeType, byteSize: file.bytes.length, sha256, altTa: alt.ta, altEn: alt.en, data: Buffer.from(file.bytes), createdByUserId: ctx.actor.userId, createdAt: new Date() });
-    await audit({ actorUserId: ctx.actor.userId, action: "media.upload", entity: "media", entityId: id, reason: mimeType, ip: ctx.ip }, { db: tx });
-  });
+  // File first (outside the deployment), then the row; if the row is not committed the file goes.
+  let storageKey: string;
+  try {
+    storageKey = await writeMediaFile(id, file.bytes);
+  } catch (error) {
+    log("error", "media.write_failed", { error });
+    throw new CmsError("UNAVAILABLE", "Images cannot be saved right now. Please try again later.", { file: "Images cannot be saved right now. Please try again later." });
+  }
+  try {
+    await getDb().transaction(async (tx) => {
+      await tx.insert(mediaAsset).values({ id, mimeType, byteSize: file.bytes.length, sha256, storageKey, altTa: alt.ta, altEn: alt.en, createdByUserId: ctx.actor.userId, createdAt: new Date() });
+      await audit({ actorUserId: ctx.actor.userId, action: "media.upload", entity: "media", entityId: id, reason: mimeType, ip: ctx.ip }, { db: tx });
+    });
+  } catch (e) {
+    await discardMediaFile(storageKey);
+    throw e;
+  }
   return { id, mimeType };
 }
 
@@ -540,8 +555,10 @@ export async function listMedia(ctx: Ctx) {
 /** Staff-only image bytes for previews. Public serving arrives with the public pages (later phase). */
 export async function getMediaForStaff(ctx: Ctx, id: string) {
   await authorize(ctx, "admin.access");
-  const [row] = await getDb().select({ data: mediaAsset.data, mimeType: mediaAsset.mimeType, sha256: mediaAsset.sha256 }).from(mediaAsset).where(and(eq(mediaAsset.id, id), isNull(mediaAsset.deletedAt)));
-  return row ?? null;
+  const [row] = await getDb().select({ storageKey: mediaAsset.storageKey, mimeType: mediaAsset.mimeType, sha256: mediaAsset.sha256 }).from(mediaAsset).where(and(eq(mediaAsset.id, id), isNull(mediaAsset.deletedAt)));
+  if (!row) return null;
+  const data = await readMediaFile(row.storageKey, row.sha256); // null if missing or altered
+  return data ? { data, mimeType: row.mimeType, sha256: row.sha256 } : null;
 }
 
 export async function deleteMedia(ctx: Ctx, id: string) {
