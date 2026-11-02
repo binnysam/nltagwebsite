@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { buildTamilReview, reviewItems, REVIEW_SHEET } from "../../scripts/tamil-review.ts";
 import { uiStrings } from "@/content/ui-strings";
 import { schedule } from "@/content/schedule";
-import { ownerSuppliedTamil, gate0ConfirmedTamil } from "@/content/tamil-approvals";
+import { ownerSuppliedTamil, gate0ConfirmedTamil, phase5ApprovedTamil } from "@/content/tamil-approvals";
 
 /**
  * Owner sign-off of 1 Nov 2026. The 22 owner-supplied strings are written out again here,
@@ -35,16 +35,29 @@ const OWNER_SUPPLIED: Record<string, string> = {
 };
 
 /**
- * Tamil awaiting owner review: Phase 4b account and email wording (1 Nov 2026) and the Phase 5
- * public-site wording (2 Nov 2026, listed exactly so nothing else can slip in). The Phase 5 PR
- * must not merge until the owner approves or replaces these (docs/content/tamil-content-review.md).
+ * Phase 5 public-site wording, approved by the owner on 2 Nov 2026 exactly as shown in PR #8.
+ * Written out again here, character for character, so a change in either place fails the test.
  */
-const PHASE5_PENDING = [
-  "nav.ministries", "nav.testimonies", "footer.nav", "section.announcements", "section.specialMeetings", "section.visit",
-  "section.comingSoon", "action.viewAll", "action.readMore", "sermon.watch", "testimony.anonymous", "ministry.contact",
-  "special.location.tba", "visit.where", "visit.when",
-];
-const PENDING_PREFIXES = new RegExp(`^((auth|account|email)\\.|(${PHASE5_PENDING.map((k) => k.replace(".", "\\.")).join("|")})$)`);
+const PHASE5_APPROVED: Record<string, string> = {
+  "nav.ministries": "ஊழியங்கள்",
+  "nav.testimonies": "சாட்சிகள்",
+  "footer.nav": "இணையதள இணைப்புகள்",
+  "section.announcements": "அறிவிப்புகள்",
+  "section.specialMeetings": "வரவிருக்கும் விசேஷ ஆராதனைகள்",
+  "section.visit": "எங்களைச் சந்திக்க வாருங்கள்",
+  "section.comingSoon": "இந்தப் பகுதி விரைவில் புதுப்பிக்கப்படும்.",
+  "action.viewAll": "அனைத்தையும் காண்க",
+  "action.readMore": "மேலும் வாசிக்க",
+  "sermon.watch": "தேவ செய்தியைப் பார்க்க",
+  "testimony.anonymous": "பெயர் குறிப்பிடப்படவில்லை",
+  "ministry.contact": "தொடர்பு கொள்ள",
+  "special.location.tba": "இடம் பின்னர் அறிவிக்கப்படும்",
+  "visit.where": "நாங்கள் கூடும் இடம்",
+  "visit.when": "சபை ஆராதனை",
+};
+
+/** Tamil still awaiting owner review: only the Phase 4b account and email wording. */
+const PENDING_PREFIXES = /^(auth|account|email)\./;
 
 /** The 26 recommended drafts the owner approved unchanged ("rest all is fine"). */
 const APPROVED_AS_RECOMMENDED: [string, string][] = [
@@ -77,16 +90,31 @@ const APPROVED_AS_RECOMMENDED: [string, string][] = [
 ];
 
 describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
-  it("approves all 48 reviewed items: 22 owner-supplied and 26 recommended", () => {
+  it("approves 63 items: 22 owner-supplied, 26 recommended (1 Nov) and 15 Phase 5 (2 Nov)", () => {
     const items = reviewItems();
-    expect(items.filter((i) => i.status === "confirmed")).toHaveLength(48);
-    // Everything else is new Phase 4b account wording, awaiting owner review.
+    expect(items.filter((i) => i.status === "confirmed")).toHaveLength(63);
+    // Everything else is Phase 4b account and email wording, awaiting owner review.
     for (const i of items.filter((x) => x.status !== "confirmed")) {
       expect(i.id, i.id).toMatch(PENDING_PREFIXES);
       expect(i.status, i.id).toBe("draft-review");
     }
     expect(items.filter((i) => i.source === "owner-supplied")).toHaveLength(22);
     expect(items.filter((i) => i.source === "recommended")).toHaveLength(26);
+    expect(items.filter((i) => i.source === "phase5-approved")).toHaveLength(15);
+  });
+
+  it("reproduces every Phase 5 approved string exactly (owner sign-off, 2 Nov 2026)", () => {
+    expect(Object.keys(phase5ApprovedTamil).sort()).toEqual(Object.keys(PHASE5_APPROVED).sort());
+    const byId = Object.fromEntries(reviewItems().map((i) => [i.id, i]));
+    for (const [id, ta] of Object.entries(PHASE5_APPROVED)) {
+      expect(phase5ApprovedTamil[id as keyof typeof phase5ApprovedTamil], id).toBe(ta);
+      const v = uiStrings[id as keyof typeof uiStrings];
+      expect(v.ta, id).toBe(ta);
+      expect(v.taStatus, id).toBe("confirmed");
+      expect(byId[id]?.source, id).toBe("phase5-approved");
+      expect(ta, id).toBe(ta.normalize("NFC"));
+      expect(ta, id).toBe(ta.trim());
+    }
   });
 
   it("reproduces every owner-supplied string exactly", () => {
@@ -110,7 +138,7 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
     }
   });
 
-  it("leaves no draft-review Tamil outside the new Phase 4b account wording, and no open alternatives", () => {
+  it("leaves no draft-review Tamil outside the Phase 4b account and email wording, and no open alternatives", () => {
     for (const [key, v] of Object.entries(uiStrings)) {
       if (v.taStatus !== "confirmed") expect(key).toMatch(PENDING_PREFIXES);
       expect((v as { taAlternatives?: unknown }).taAlternatives, key).toBeUndefined();
@@ -127,7 +155,8 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
     const { md } = buildTamilReview();
     expect(readFileSync(REVIEW_SHEET, "utf8")).toBe(md);
     const pending = reviewItems().filter((i) => i.status !== "confirmed").length;
-    expect(md).toContain(`48 of ${48 + pending} items approved (22 owner-supplied, 26 recommended drafts approved)`);
+    expect(md).toContain("(22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings)");
+    expect(md).toContain(`63 of ${63 + pending} items approved`);
     for (const line of md.split("\n").filter((l) => l.includes("draft-review") && l.startsWith("| "))) {
       expect(line.split("|")[1]!.trim()).toMatch(PENDING_PREFIXES);
     }

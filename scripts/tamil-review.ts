@@ -5,11 +5,18 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { uiStrings, type ReviewStatus } from "../src/content/ui-strings.ts";
 import { schedule } from "../src/content/schedule.ts";
-import { gate0ConfirmedTamil, ownerSuppliedTamil, TAMIL_APPROVAL_DATE, type OwnerSuppliedTamil } from "../src/content/tamil-approvals.ts";
+import {
+  gate0ConfirmedTamil,
+  ownerSuppliedTamil,
+  phase5ApprovedTamil,
+  PHASE5_APPROVAL_DATE,
+  TAMIL_APPROVAL_DATE,
+  type OwnerSuppliedTamil,
+} from "../src/content/tamil-approvals.ts";
 
 export const REVIEW_SHEET = fileURLToPath(new URL("../docs/content/tamil-content-review.md", import.meta.url));
 
-export type ApprovalSource = "owner-supplied" | "recommended";
+export type ApprovalSource = "owner-supplied" | "recommended" | "phase5-approved";
 
 export interface ReviewItem {
   id: string;
@@ -25,7 +32,7 @@ export interface ReviewItem {
 
 const owner = ownerSuppliedTamil as Record<string, OwnerSuppliedTamil>;
 const sourceOf = (id: string, status: ReviewStatus): ApprovalSource | undefined =>
-  status !== "confirmed" ? undefined : id in owner ? "owner-supplied" : "recommended";
+  status !== "confirmed" ? undefined : id in owner ? "owner-supplied" : id in phase5ApprovedTamil ? "phase5-approved" : "recommended";
 const previousOf = (id: string, ta: string) => {
   const p = owner[id]?.previousDraft;
   return p && p !== ta ? p : undefined;
@@ -71,13 +78,21 @@ export const notYetReviewed: readonly { where: string; ta: string }[] = [
 
 const esc = (s: string) => s.replace(/\|/g, "\\|");
 const statusLabel = (s: ReviewStatus) => (s === "draft-review" ? "Awaiting church review (`draft-review`)" : s === "confirmed" ? "Approved (`confirmed`)" : s);
-const sourceLabel = (s?: ApprovalSource) => (s === "owner-supplied" ? "Owner-supplied" : s === "recommended" ? "Recommended draft approved" : "—");
+const sourceLabel = (s?: ApprovalSource) =>
+  s === "owner-supplied"
+    ? "Owner-supplied"
+    : s === "recommended"
+      ? "Recommended draft approved"
+      : s === "phase5-approved"
+        ? `Approved ${PHASE5_APPROVAL_DATE} (Phase 5)`
+        : "—";
 
 export function buildTamilReview(): { md: string; count: number } {
   const items = reviewItems();
   const confirmed = items.filter((i) => i.status === "confirmed");
   const ownerCount = items.filter((i) => i.source === "owner-supplied").length;
   const recommendedCount = items.filter((i) => i.source === "recommended").length;
+  const phase5Count = items.filter((i) => i.source === "phase5-approved").length;
   const pending = items.length - confirmed.length;
   const rows = items.map(
     (i) => `| ${i.id} | ${esc(i.en)} | ${esc(i.ta)} | ${sourceLabel(i.source)} | ${i.previousDraft ? esc(i.previousDraft) : "—"} | ${esc(i.note)} | ${statusLabel(i.status)} |`,
@@ -85,7 +100,7 @@ export function buildTamilReview(): { md: string; count: number } {
   const md = `# Tamil content approval record
 
 **Generated from** \`src/content/ui-strings.ts\`, \`src/content/schedule.ts\` and \`src/content/tamil-approvals.ts\` by \`node scripts/tamil-review.ts\`. Do not edit by hand; \`npm run verify\` fails if this file is out of date.
-**Approved by the owner on ${TAMIL_APPROVAL_DATE}.** ${confirmed.length} of ${items.length} items approved (${ownerCount} owner-supplied, ${recommendedCount} recommended drafts approved)${pending ? `; ${pending} still awaiting review` : "; none awaiting review"}. Times, days and NECK were confirmed at Gate 0.
+**Approved by the owner on ${TAMIL_APPROVAL_DATE}** (${ownerCount} owner-supplied, ${recommendedCount} recommended drafts approved) **and on ${PHASE5_APPROVAL_DATE}** (${phase5Count} Phase 5 public-site strings). ${confirmed.length} of ${items.length} items approved${pending ? `; ${pending} still awaiting review` : "; none awaiting review"}. Times, days and NECK were confirmed at Gate 0.
 
 Owner-supplied Tamil is approved content and is reproduced exactly as supplied. Do not rephrase, re-spell or "correct" it; a unit test compares every character. Any change needs new owner approval. The language names தமிழ் and English were confirmed at Gate 0 and are not listed.
 
