@@ -13,6 +13,9 @@ export const AUDIT_ACTIONS = [
   "auth.session.create",
   "auth.session.revoke",
   "auth.sign_in.fail",
+  // Sign-in refused before the password check because the address is in its progressive delay
+  // (any IP). At most one row per address per hour; reason "account" or "recognised-browser".
+  "auth.sign_in.throttled",
   "auth.password.reset",
   "auth.password.change",
   "auth.staff_session.expire",

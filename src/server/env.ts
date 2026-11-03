@@ -32,8 +32,9 @@ const schema = z
     SMTP_FROM: optional,
     /** Daily cap on outgoing mail, kept below Gmail's 500 recipients per rolling 24 h. */
     EMAIL_DAILY_CAP: z.coerce.number().int().positive().max(450).default(300),
-    /** Comma-separated reverse-proxy IPs/CIDRs. Leave empty until confirmed on Hostinger staging. */
-    TRUSTED_PROXIES: optional,
+    // Client IP resolution (CLIENT_IP_SOURCE, CLIENT_IP_PROXY_HOPS, CLIENT_IP_CROSSCHECK,
+    // CLIENT_IP_SHAPE_LOG) is read by src/server/security/client-ip.ts, which also runs in the
+    // request proxy, so it is not part of this schema. TRUSTED_PROXIES is no longer used.
     /** Rate limiting is on everywhere; tests may lower it only through this explicit switch. */
     AUTH_RATE_LIMIT: z.enum(["on", "off"]).default("on"),
   })

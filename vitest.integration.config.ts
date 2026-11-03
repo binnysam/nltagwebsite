@@ -26,6 +26,11 @@ export default defineConfig({
       BETTER_AUTH_SECRET: "test-only-secret-not-used-anywhere-else-0123456789",
       BETTER_AUTH_URL: "http://localhost:3000",
       AUTH_RATE_LIMIT: "on",
+      // The layout Hostinger documents for its CDN (docs/backend/client-ip.md).
+      CLIENT_IP_SOURCE: "forwarded-chain",
+      CLIENT_IP_PROXY_HOPS: "0",
+      CLIENT_IP_CROSSCHECK: "x-real-ip",
+      CLIENT_IP_SHAPE_LOG: "off",
       EMAIL_DAILY_CAP: "300",
     },
   },

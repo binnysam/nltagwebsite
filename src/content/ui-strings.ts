@@ -312,6 +312,17 @@ export const uiStrings = {
     "இந்தச் செய்தி {church} இணையதளத்தால் தானாக அனுப்பப்பட்டது.",
   ),
 
+  // Sign-in protection alert (M1 security fix, Nov 2026). English proposed; Tamil is a draft for
+  // owner review. Until the Tamil is confirmed the alert is sent in English only (templates.ts).
+  "email.signInThrottled.subject": s(
+    "Repeated wrong sign-in attempts on your account",
+    "உங்கள் கணக்கில் பலமுறை தவறான உள்நுழைவு முயற்சிகள்",
+  ),
+  "email.signInThrottled.body": s(
+    "Someone has tried several times to sign in to your account with a wrong password, so sign-in attempts from browsers you have not used before are being slowed down for a while. You can still sign in from a browser you have signed in with before. Your password and, for Church Admins, your authenticator code are still required. If this was not you, consider changing your password after you sign in.",
+    "யாரோ தவறான கடவுச்சொல்லுடன் உங்கள் கணக்கில் பலமுறை உள்நுழைய முயன்றுள்ளனர். அதனால், நீங்கள் இதுவரை பயன்படுத்தாத உலாவிகளிலிருந்து வரும் உள்நுழைவு முயற்சிகள் சிறிது நேரம் மெதுவாக்கப்பட்டுள்ளன. நீங்கள் முன்பு உள்நுழைந்த உலாவியிலிருந்து இன்னும் உள்நுழையலாம். உங்கள் கடவுச்சொல்லும், சபை நிர்வாகிகளுக்கு அங்கீகரிப்புச் செயலியின் குறியீடும் தொடர்ந்து தேவைப்படும். இது நீங்கள் இல்லையென்றால், உள்நுழைந்த பின் உங்கள் கடவுச்சொல்லை மாற்றுவதைக் கருத்தில் கொள்ளுங்கள்.",
+  ),
+
 } as const satisfies Record<string, UiString>;
 
 export type UiStringKey = keyof typeof uiStrings;

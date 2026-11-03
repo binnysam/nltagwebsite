@@ -3,6 +3,7 @@ import { getAuth } from "@/server/auth/auth";
 import { getDb } from "@/server/db/client";
 import { flushEmailQueueForTests } from "@/server/email/send";
 import { memoryOutbox } from "@/server/email/transport";
+import { withTrustedClientIpRequest } from "@/server/security/client-ip";
 import { SEED_TOTP_SECRET, SEED_USERS } from "../../scripts/db/seed";
 import { base32Decode, freshStep, totp } from "../support/totp";
 
@@ -18,17 +19,28 @@ export interface CallOptions {
   cookie?: string;
   origin?: string | null;
   headers?: Record<string, string>;
+  /** Send only `headers` (no CDN-style X-Forwarded-For / X-Real-IP). For spoofing tests. */
+  rawForwarding?: boolean;
 }
 
+/**
+ * Calls Better Auth exactly as the /api/auth route does (withTrustedClientIpRequest first). By
+ * default the request carries the headers Hostinger's CDN adds for a visitor at `ip`: X-Forwarded-For
+ * ending in that address and X-Real-IP set to it (vitest.integration.config.ts sets
+ * CLIENT_IP_SOURCE=forwarded-chain, CLIENT_IP_PROXY_HOPS=0).
+ */
 export async function call(path: string, opts: CallOptions = {}) {
-  const headers = new Headers({ "x-forwarded-for": opts.ip ?? "198.51.100.1" });
+  const ip = opts.ip ?? "198.51.100.1";
+  const headers = new Headers(opts.rawForwarding ? {} : { "x-forwarded-for": ip, "x-real-ip": ip });
   if (opts.origin !== null) headers.set("origin", opts.origin ?? ORIGIN);
   if (opts.cookie) headers.set("cookie", opts.cookie);
   if (opts.body !== undefined) headers.set("content-type", "application/json");
   for (const [k, v] of Object.entries(opts.headers ?? {})) headers.set(k, v);
   const url = path.startsWith("http") ? path : `${ORIGIN}/api/auth${path}`;
   const res = await getAuth().handler(
-    new Request(url, { method: opts.method ?? (opts.body !== undefined ? "POST" : "GET"), headers, body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined, redirect: "manual" }),
+    withTrustedClientIpRequest(
+      new Request(url, { method: opts.method ?? (opts.body !== undefined ? "POST" : "GET"), headers, body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined, redirect: "manual" }),
+    ),
   );
   await flushEmailQueueForTests();
   return res;
@@ -107,5 +119,5 @@ export async function clearRateLimits() {
 }
 
 export function headersWith(cookie: string, ip = "198.51.100.1") {
-  return new Headers({ cookie, "x-forwarded-for": ip });
+  return new Headers({ cookie, "x-forwarded-for": ip, "x-real-ip": ip });
 }

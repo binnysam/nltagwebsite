@@ -10,10 +10,21 @@ import { getDb } from "../db/client";
 import * as schema from "../db/schema";
 import { session as sessionTable, user as userTable } from "../db/schema";
 import { googleConfigured, serverEnv } from "../env";
-import { sendInBackground } from "../email/send";
+import { sendAlertInBackground, sendInBackground } from "../email/send";
 import { SESSION_MAX_AGE_SECONDS } from "../policy/permissions";
 import { audit } from "../services/audit";
-import { consume } from "../services/rate-limit";
+import { claimOncePerWindow, consume, LIMITS, releaseAttempt, reserveAttempt, signInAccountKey, signInBrowserKey, THROTTLES } from "../services/rate-limit";
+import { log } from "../security/log";
+import { hashEmail } from "../security/hash";
+import { CLIENT_IP_HEADER, clientIpConfig, clientIpOf } from "../security/client-ip";
+import {
+  addRecognisedBrowserToken,
+  issueRecognisedBrowserToken,
+  readCookie,
+  recognisedBrowserCookieName,
+  recognisedBrowserCookieOptions,
+  recognisedBrowserId,
+} from "./recognised-browser";
 import { signupAllowed, signupPolicy, warnIfMisconfigured } from "./signup-allowlist";
 import {
   BLOCKED_TWO_FACTOR_PATHS,
@@ -46,12 +57,20 @@ import {
  *   current code; "trust this device" is refused; the secret is never shown again after
  *   enrollment; no endpoint other than the challenge can create a session for an enrolled
  *   account; enrollment signs out every other device; every step is audited.
+ * - Client IP (security fix, Nov 2026, docs/backend/client-ip.md): Better Auth keys its limits on
+ *   x-nltag-client-ip only, which src/server/security/client-ip.ts sets from the CDN's headers (or leaves
+ *   out, so the request is counted in the shared per-path bucket: fail closed).
+ * - Sign-in protection (Nov 2026, docs/backend/data-and-auth.md → "Sign-in protection"): every
+ *   password check is reserved atomically per account BEFORE it runs, on a progressive-delay
+ *   schedule (never an indefinite lock). A recognised browser has its own budget, so knowing an
+ *   address is not enough to lock its owner out. Correct passwords give the reservation back.
  */
 function createAuth() {
   const env = serverEnv();
   const google = googleConfigured(env);
   const isProd = env.NODE_ENV === "production";
   const rateLimitOn = env.AUTH_RATE_LIMIT === "on";
+  warnAboutClientIp(isProd);
 
   return betterAuth({
     appName: "NLTAG",
@@ -155,10 +174,8 @@ function createAuth() {
       disableCSRFCheck: false,
       useSecureCookies: isProd,
       defaultCookieAttributes: { httpOnly: true, sameSite: "lax", secure: isProd, path: "/" },
-      ipAddress: {
-        ipAddressHeaders: ["x-forwarded-for"],
-        ...(env.TRUSTED_PROXIES ? { trustedProxies: env.TRUSTED_PROXIES.split(",").map((s) => s.trim()) } : {}),
-      },
+      // Only the internal header set by client-ip.ts. No trustedProxies: the chain is walked there.
+      ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
       database: { generateId: "uuid" },
     },
 
@@ -219,6 +236,10 @@ function createAuth() {
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
         const path = ctx.path;
+        if (path === "/sign-in/email") {
+          await reserveSignInAttempt(ctx.context, ctx.body, ctx.headers, clientIpOf(ctx.headers), isProd);
+          return;
+        }
         if (!path?.startsWith("/two-factor/")) return;
         if (BLOCKED_TWO_FACTOR_PATHS.has(path)) throw new APIError("NOT_FOUND");
         const body = (ctx.body ?? {}) as Record<string, unknown>;
@@ -259,6 +280,15 @@ function createAuth() {
         if ((ctx.path === "/two-factor/disable" || ctx.path === "/two-factor/generate-backup-codes" || ctx.path === "/two-factor/enable") && failed) {
           await audit({ actorUserId: sessionUserId, action: "auth.2fa.manage_fail", outcome: "DENIED", entity: "user", entityId: sessionUserId, ip, reason: failureReason(ctx.path, returned) });
         }
+        if (ctx.path === "/sign-in/email") await settleSignInAttempt(ctx.context, returned);
+        // A complete sign-in (the password alone is not complete for an enrolled account) makes
+        // this browser recognised for that address.
+        const signedIn = ctx.context.newSession?.user;
+        if (!failed && signedIn && (COMPLETE_SIGN_IN_PATHS.has(ctx.path ?? "") || (ctx.path === "/sign-in/email" && !(signedIn as { twoFactorEnabled?: boolean | null }).twoFactorEnabled))) {
+          const name = recognisedBrowserCookieName(isProd);
+          const value = addRecognisedBrowserToken(readCookie(ctx.headers?.get("cookie"), name), issueRecognisedBrowserToken(hashEmail(signedIn.email)));
+          ctx.setCookie(name, value, recognisedBrowserCookieOptions(isProd));
+        }
         if (ctx.path === "/sign-in/email" && returned instanceof APIError) {
           // No email in the audit row: the attempt is recorded by IP hash only.
           await audit({ action: "auth.sign_in.fail", outcome: "DENIED", entity: "auth", ip, reason: String(returned.status) });
@@ -294,8 +324,81 @@ function createAuth() {
   });
 }
 
-function clientIpOf(headers: Headers | undefined): string | null {
-  return headers?.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+/** The address from a sign-in body, or null when there is none to key on. */
+function signInEmail(body: unknown): string | null {
+  const email = (body as { email?: unknown } | null)?.email;
+  return typeof email === "string" && email.trim() !== "" && email.length <= 320 ? email : null;
+}
+
+/** Sign-in paths that create the session itself (the end of a complete sign-in). */
+const COMPLETE_SIGN_IN_PATHS = new Set(["/two-factor/verify-totp", "/two-factor/verify-backup-code"]);
+
+/** Reservation made by the before hook, keyed on this request's context object (same in both hooks). */
+const reservations = new WeakMap<object, string>();
+
+/**
+ * Reserves this password check BEFORE Better Auth runs it (H1): one conditional UPDATE under a row
+ * lock, so a burst of any size gets at most `free` checks. Refused → 429 before any password work.
+ * The budget is the recognised browser's own when this browser holds a valid token for this
+ * address, otherwise the address's shared budget. Same behaviour for addresses with no account.
+ */
+async function reserveSignInAttempt(context: object, body: unknown, headers: Headers | undefined, ip: string | null, isProd: boolean) {
+  const email = signInEmail(body);
+  if (!email) return; // Better Auth refuses the request (400) before any password check.
+  const emailHash = hashEmail(email);
+  const browserId = recognisedBrowserId(readCookie(headers?.get("cookie"), recognisedBrowserCookieName(isProd)), emailHash);
+  const budget = browserId ? "recognised-browser" : "account";
+  const key = browserId ? signInBrowserKey(browserId) : signInAccountKey(emailHash);
+  const result = await reserveAttempt(key, browserId ? THROTTLES.signInRecognisedBrowser : THROTTLES.signInAccount);
+  if (result.allowed) {
+    reservations.set(context, key);
+    return;
+  }
+  // L3: one audit row (and one alert) per address per hour, however many refusals.
+  if (await claimOncePerWindow(`signin-refused:${emailHash}`, LIMITS.signInRefusalAudit)) {
+    await audit({ action: "auth.sign_in.throttled", outcome: "DENIED", entity: "auth", ip, reason: budget });
+    log("warn", "security.sign_in_throttled", { account: emailHash.slice(0, 12), budget, retryAfterSeconds: result.retryAfterSeconds });
+    if (budget === "account") await alertAccountHolder(email, emailHash);
+  }
+  throw new APIError(
+    "TOO_MANY_REQUESTS",
+    { message: "Too many attempts. Please try again later.", code: "TOO_MANY_ATTEMPTS" },
+    { "Retry-After": String(result.retryAfterSeconds) },
+  );
+}
+
+/**
+ * Keeps the reservation only when the password check failed (401: wrong address or password).
+ * Anything else — a correct password (with or without a two-factor step), unverified email,
+ * validation error — gives it back, so the account holder's own sign-ins cost nothing.
+ */
+async function settleSignInAttempt(context: object, returned: unknown) {
+  const key = reservations.get(context);
+  if (!key) return;
+  reservations.delete(context);
+  if (returned instanceof APIError && returned.statusCode === 401) return;
+  await releaseAttempt(key);
+}
+
+/**
+ * Tells the account holder (at most once a day, only if the account exists) that unfamiliar
+ * browsers are being slowed down. In the background, so the response does not depend on it.
+ */
+async function alertAccountHolder(email: string, emailHash: string) {
+  const first = await claimOncePerWindow(`signin-alert-mail:${emailHash}`, LIMITS.signInAlertEmail);
+  const [row] = await getDb().select({ id: userTable.id, email: userTable.email }).from(userTable).where(eq(userTable.email, email.trim().toLowerCase())).limit(1);
+  if (first && row) sendAlertInBackground("signin-throttled", row.email, row.id);
+}
+
+let clientIpWarned = false;
+/** Once per process: say (without values) when per-visitor limits cannot work. */
+function warnAboutClientIp(isProd: boolean) {
+  if (clientIpWarned) return;
+  clientIpWarned = true;
+  const c = clientIpConfig();
+  if (c.problem === "crosscheck-none-in-production") log("warn", "client_ip.config_invalid", { problem: c.problem, note: "CLIENT_IP_CROSSCHECK=none is not allowed in production; every visitor shares one rate-limit bucket per path" });
+  else if (c.invalid) log("warn", "client_ip.config_invalid", { problem: c.problem, note: "CLIENT_IP_* not understood; every visitor shares one rate-limit bucket per path" });
+  else if (isProd && c.source === "none") log("warn", "client_ip.resolution_off", { note: "CLIENT_IP_SOURCE unset; every visitor shares one rate-limit bucket per path" });
 }
 
 /** "two-factor/verify-totp:401:INVALID_CODE" — status and Better Auth error code only, no input. */

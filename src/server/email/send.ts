@@ -6,7 +6,7 @@ import { hashEmail } from "../security/hash";
 import { log } from "../security/log";
 import { audit } from "../services/audit";
 import { consume, LIMITS } from "../services/rate-limit";
-import { renderEmail, type EmailKind } from "./templates";
+import { renderAlertEmail, renderEmail, type AlertKind, type EmailKind, type RenderedEmail } from "./templates";
 import { getTransport } from "./transport";
 
 const HOUR = 3600;
@@ -33,6 +33,15 @@ export type SendOutcome = "sent" | "suppressed" | "failed";
  * same either way (no account discovery).
  */
 export async function sendAccountEmail(kind: EmailKind, to: string, url: string, userId?: string): Promise<SendOutcome> {
+  return deliver(kind, to, () => renderEmail(kind, url), userId);
+}
+
+/** Security alert to an account holder, under the same per-address and daily caps. */
+export async function sendAlertEmail(kind: AlertKind, to: string, userId?: string): Promise<SendOutcome> {
+  return deliver(kind, to, () => renderAlertEmail(kind), userId);
+}
+
+async function deliver(kind: EmailKind | AlertKind, to: string, render: () => RenderedEmail, userId?: string): Promise<SendOutcome> {
   const now = Date.now();
   const perAddress = await consume(`email:${kind}:${hashEmail(to)}`, LIMITS.emailPerAddress, now);
   if (!perAddress.allowed) {
@@ -46,7 +55,7 @@ export async function sendAccountEmail(kind: EmailKind, to: string, url: string,
   }
   await consume(GLOBAL_KEY, { window: HOUR, max: Number.MAX_SAFE_INTEGER }, now, 24 * HOUR);
   try {
-    await getTransport().send({ to, ...renderEmail(kind, url) });
+    await getTransport().send({ to, ...render() });
     await audit({ actorUserId: userId, action: "email.send", entity: "email", reason: kind });
     return "sent";
   } catch (error) {
@@ -64,6 +73,13 @@ const pending = new Set<Promise<unknown>>();
 
 export function sendInBackground(kind: EmailKind, to: string, url: string, userId?: string) {
   const p = sendAccountEmail(kind, to, url, userId).catch((error) => log("error", "email.background_failed", { kind, error }));
+  pending.add(p);
+  void p.finally(() => pending.delete(p));
+}
+
+/** Background alert (same reason as above: the caller's response time must not depend on it). */
+export function sendAlertInBackground(kind: AlertKind, to: string, userId?: string) {
+  const p = sendAlertEmail(kind, to, userId).catch((error) => log("error", "email.background_failed", { kind, error }));
   pending.add(p);
   void p.finally(() => pending.delete(p));
 }

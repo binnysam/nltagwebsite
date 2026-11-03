@@ -7,6 +7,7 @@ import { audit } from "../services/audit";
 import { rolesOf } from "../services/roles";
 import { getAuth } from "./auth";
 import { needsTwoFactorEnrollment } from "./two-factor-policy";
+import { clientIpOf } from "../security/client-ip";
 
 export interface CurrentUser {
   principal: Extract<Principal, { kind: "user" }>;
@@ -87,6 +88,7 @@ export async function requirePermission(headers: Headers, permission: Permission
   return current;
 }
 
+/** The visitor's address for audit rows: the shared resolver, never the leftmost forwarded entry. */
 export function clientIp(headers: Headers): string | null {
-  return headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+  return clientIpOf(headers);
 }

@@ -1,5 +1,5 @@
 import { churchName } from "@/content/church";
-import { t, type Locale, type UiStringKey } from "@/content/ui-strings";
+import { t, uiStrings, type Locale, type UiStringKey } from "@/content/ui-strings";
 
 export type EmailKind = "verify" | "reset";
 
@@ -50,6 +50,35 @@ export function renderEmail(kind: EmailKind, url: string): RenderedEmail {
     section(en, "en"),
     `<p lang="ta"><small>${escapeHtml(ta.footer)}</small></p>`,
     `<p lang="en"><small>${escapeHtml(en.footer)}</small></p>`,
+    "</body></html>",
+  ].join("");
+  return { subject, text, html };
+}
+
+export type AlertKind = "signin-throttled";
+
+const ALERT_KEYS: Record<AlertKind, { subject: UiStringKey; body: UiStringKey }> = {
+  "signin-throttled": { subject: "email.signInThrottled.subject", body: "email.signInThrottled.body" },
+};
+
+/**
+ * Security alerts to an account holder (no link: an alert should never ask anyone to click).
+ * Tamil first once its wording is confirmed by the owner; until then English only, because
+ * draft Tamil must not go live (src/content/ui-strings.ts → review status).
+ */
+export function renderAlertEmail(kind: AlertKind): RenderedEmail {
+  const k = ALERT_KEYS[kind];
+  const tamilApproved = uiStrings[k.subject].taStatus === "confirmed" && uiStrings[k.body].taStatus === "confirmed";
+  const locales: Locale[] = tamilApproved ? ["ta", "en"] : ["en"];
+  const subject = locales.map((l) => t(k.subject, l)).join(" · ");
+  const footer = (l: Locale) => withChurch(t("email.footer", l), l);
+  const text = [...locales.flatMap((l, i) => [...(i ? ["", "—", ""] : []), t(k.body, l)]), "", ...locales.map(footer)].join("\n");
+  const html = [
+    "<!doctype html>",
+    `<html lang="${locales[0]}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">`,
+    `<title>${escapeHtml(subject)}</title></head><body>`,
+    locales.map((l) => `<div lang="${l}"><p>${escapeHtml(t(k.body, l))}</p></div>`).join("<hr>"),
+    ...locales.map((l) => `<p lang="${l}"><small>${escapeHtml(footer(l))}</small></p>`),
     "</body></html>",
   ].join("");
   return { subject, text, html };
