@@ -7,11 +7,15 @@ import { CLIENT_IP_HEADER } from "@/server/security/client-ip";
 
 describe("sign-in throttle alert email", () => {
   it("is English only while its Tamil wording awaits owner approval, and has no link", () => {
+    // Owner decision (3 Nov 2026): English only for now; both Tamil strings stay draft-review.
+    expect(uiStrings["email.signInThrottled.subject"].taStatus).toBe("draft-review");
     expect(uiStrings["email.signInThrottled.body"].taStatus).toBe("draft-review");
     const m = renderAlertEmail("signin-throttled");
     expect(m.subject).toBe(uiStrings["email.signInThrottled.subject"].en);
     expect(m.text).not.toContain(uiStrings["email.signInThrottled.body"].ta);
     expect(m.html).not.toContain('lang="ta"');
+    // No Tamil script anywhere in the message (subject, body, footer), not only the draft body.
+    for (const part of [m.subject, m.text, m.html]) expect(part).not.toMatch(/[\u0B80-\u0BFF]/);
     expect(m.text).not.toMatch(/https?:\/\//);
     expect(m.html).not.toMatch(/<a\s/i);
   });

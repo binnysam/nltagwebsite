@@ -21,9 +21,8 @@ import {
   addRecognisedBrowserToken,
   issueRecognisedBrowserToken,
   readCookie,
-  RECOGNISED_BROWSER_COOKIE_PATH,
-  RECOGNISED_BROWSER_MAX_AGE_SECONDS,
   recognisedBrowserCookieName,
+  recognisedBrowserCookieOptions,
   recognisedBrowserId,
 } from "./recognised-browser";
 import { signupAllowed, signupPolicy, warnIfMisconfigured } from "./signup-allowlist";
@@ -288,7 +287,7 @@ function createAuth() {
         if (!failed && signedIn && (COMPLETE_SIGN_IN_PATHS.has(ctx.path ?? "") || (ctx.path === "/sign-in/email" && !(signedIn as { twoFactorEnabled?: boolean | null }).twoFactorEnabled))) {
           const name = recognisedBrowserCookieName(isProd);
           const value = addRecognisedBrowserToken(readCookie(ctx.headers?.get("cookie"), name), issueRecognisedBrowserToken(hashEmail(signedIn.email)));
-          ctx.setCookie(name, value, { httpOnly: true, secure: isProd, sameSite: "lax", path: RECOGNISED_BROWSER_COOKIE_PATH, maxAge: RECOGNISED_BROWSER_MAX_AGE_SECONDS });
+          ctx.setCookie(name, value, recognisedBrowserCookieOptions(isProd));
         }
         if (ctx.path === "/sign-in/email" && returned instanceof APIError) {
           // No email in the audit row: the attempt is recorded by IP hash only.

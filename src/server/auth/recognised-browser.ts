@@ -17,10 +17,14 @@ import { serverEnv } from "../env";
  * Stateless (no table, no migration): `1.<issued-at>.<random id>.<HMAC>` where the HMAC covers the
  * account's keyed email hash, so a token is useless for any other address and reveals nothing.
  * Up to MAX_TOKENS tokens per browser (people who look after more than one staff account).
- * Rotating BETTER_AUTH_SECRET invalidates every token.
+ *
+ * Owner decision (3 Nov 2026): approved with a 30-day maximum lifetime, enforced twice — the
+ * cookie's Max-Age and the issued-at check below, so a cookie kept past its Max-Age is refused.
+ * There is no individual revocation (no table to revoke from): rotating BETTER_AUTH_SECRET
+ * invalidates every token at once (and, with it, every session and rate-limit key).
  */
 
-export const RECOGNISED_BROWSER_MAX_AGE_SECONDS = 180 * 24 * 3600;
+export const RECOGNISED_BROWSER_MAX_AGE_SECONDS = 30 * 24 * 3600;
 const MAX_TOKENS = 4;
 const VERSION = "1";
 const ID_PATTERN = /^[A-Za-z0-9_-]{22}$/;
@@ -28,6 +32,14 @@ const ID_PATTERN = /^[A-Za-z0-9_-]{22}$/;
 /** `__Secure-` prefix in production (HTTPS only). Path /api/auth: never sent to pages. */
 export const recognisedBrowserCookieName = (isProd: boolean) => (isProd ? "__Secure-nltag_rb" : "nltag_rb");
 export const RECOGNISED_BROWSER_COOKIE_PATH = "/api/auth";
+
+/**
+ * HttpOnly (no script can read it), Secure in production (the `__Secure-` name also requires it),
+ * SameSite=Strict (never sent on a request started by another site; it is only needed on the
+ * site's own sign-in calls), narrow path, 30 days.
+ */
+export const recognisedBrowserCookieOptions = (isProd: boolean) =>
+  ({ httpOnly: true, secure: isProd, sameSite: "strict", path: RECOGNISED_BROWSER_COOKIE_PATH, maxAge: RECOGNISED_BROWSER_MAX_AGE_SECONDS }) as const;
 
 function mac(emailHash: string, issuedAt: number, id: string): string {
   return createHmac("sha256", serverEnv().BETTER_AUTH_SECRET).update(`recognised-browser:v${VERSION}|${emailHash}|${issuedAt}|${id}`).digest("base64url").slice(0, 32);

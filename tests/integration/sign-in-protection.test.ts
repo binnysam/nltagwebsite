@@ -5,8 +5,10 @@ import { auditLog, rateLimitBucket } from "@/server/db/schema";
 import { memoryOutbox } from "@/server/email/transport";
 import { hashEmail } from "@/server/security/hash";
 import { releaseAttempt, reserveAttempt, signInAccountKey, THROTTLES, throttleDelaySeconds } from "@/server/services/rate-limit";
+import { issueRecognisedBrowserToken } from "@/server/auth/recognised-browser";
+import { resetServerEnvForTests } from "@/server/env";
 import { call, clearRateLimits, cookiesFrom, enrollTwoFactor, freshIp, mailTo, verifiedUser } from "./helpers";
-import { freshStep, totp } from "../support/totp";
+import { freshStep, totp, wrongCode } from "../support/totp";
 
 /**
  * Sign-in protection (PR #11 follow-up, Nov 2026; docs/backend/data-and-auth.md → "Sign-in protection").
@@ -123,6 +125,10 @@ describe("M1 + L1: progressive delay, never an indefinite block, no window bound
   const key = "test:schedule";
 
   it("follows the documented schedule: 5 free, then 30 s, 1, 2, 4, 8 min, then every 15 min", async () => {
+    // Owner-approved values (3 Nov 2026); both budgets use the same schedule and the 1-hour reset.
+    const approved = { free: 5, baseDelay: 30, maxDelay: 15 * 60, resetSeconds: 3600 };
+    expect(THROTTLES.signInAccount).toEqual(approved);
+    expect(THROTTLES.signInRecognisedBrowser).toEqual(approved);
     expect([0, 4, 5, 6, 7, 8, 9, 10, 11, 50].map((c) => throttleDelaySeconds(c, RULE))).toEqual([0, 0, 30, 60, 120, 240, 480, 900, 900, 900]);
     let t = Date.UTC(2026, 10, 3, 9, 0, 0);
     for (let i = 0; i < FREE; i++) expect((await reserveAttempt(key, RULE, t)).allowed).toBe(true);
@@ -192,8 +198,8 @@ describe("M1: a recognised browser cannot be locked out by someone who knows the
     const set = rbCookie(ok)!;
     expect(set).toMatch(/HttpOnly/i);
     expect(set).toMatch(/Path=\/api\/auth/);
-    expect(set).toMatch(/SameSite=Lax/i);
-    expect(set).toMatch(/Max-Age=15552000/);
+    expect(set).toMatch(/SameSite=Strict/i);
+    expect(set).toMatch(/Max-Age=2592000/); // 30 days (owner decision, 3 Nov 2026)
     expect(set).not.toContain(email);
   });
 
@@ -257,6 +263,97 @@ describe("M1: a recognised browser cannot be locked out by someone who knows the
   });
 });
 
+describe("Owner decisions (3 Nov 2026): 30-day lifetime, revocation by secret rotation, no bypass", () => {
+  const DAY = 24 * 3600 * 1000;
+  /** A token this server would have issued `ageMs` ago for `email`, as the browser would send it. */
+  const agedCookie = (email: string, ageMs: number) => `${RB}=${issueRecognisedBrowserToken(hashEmail(email), Date.now() - ageMs)}`;
+
+  it("a recognised browser is honoured through 30 days and expires after, through the sign-in route", async () => {
+    const email = "rb.expiry@nltag.test";
+    await verifiedUser(email, PASSWORD);
+    await Promise.all(Array.from({ length: 30 }, () => attempt(email))); // the address is delayed
+    expect((await attempt(email, { password: PASSWORD, cookie: agedCookie(email, 29 * DAY) })).status).toBe(200);
+    expect((await attempt(email, { password: PASSWORD, cookie: agedCookie(email, 30 * DAY - 60_000) })).status).toBe(200);
+    expect((await attempt(email, { password: PASSWORD, cookie: agedCookie(email, 30 * DAY + 60_000) })).status).toBe(429);
+    expect((await attempt(email, { password: PASSWORD, cookie: agedCookie(email, 179 * DAY) })).status).toBe(429); // old 180-day lifetime gone
+  });
+
+  it("rotating BETTER_AUTH_SECRET revokes every recognised browser at once", async () => {
+    const a = "rb.rotate.a@nltag.test";
+    const b = "rb.rotate.b@nltag.test";
+    await verifiedUser(a, PASSWORD);
+    await verifiedUser(b, PASSWORD);
+    const cookies: Record<string, string> = { [a]: onlyRb(await attempt(a, { password: PASSWORD })), [b]: onlyRb(await attempt(b, { password: PASSWORD })) };
+    const original = process.env.BETTER_AUTH_SECRET!;
+    try {
+      process.env.BETTER_AUTH_SECRET = `${original}-rotated`;
+      resetServerEnvForTests();
+      await clearRateLimits();
+      for (const email of [a, b]) {
+        await Promise.all(Array.from({ length: 30 }, () => attempt(email)));
+        // Before rotation this cookie would have used its own budget (see "signs in with the right
+        // password while attackers keep the address delayed"); now it is an unrecognised browser.
+        expect((await attempt(email, { password: PASSWORD, cookie: cookies[email] })).status).toBe(429);
+      }
+    } finally {
+      process.env.BETTER_AUTH_SECRET = original;
+      resetServerEnvForTests();
+    }
+  });
+
+  it("concurrent wrong passwords sent WITH a stolen recognised-browser cookie still get exactly the schedule's checks", async () => {
+    const email = "rb.race@nltag.test";
+    await verifiedUser(email, PASSWORD);
+    const mine = onlyRb(await attempt(email, { password: PASSWORD }));
+    const results = await Promise.all(Array.from({ length: 40 }, () => attempt(email, { cookie: mine })));
+    expect(results.filter((r) => r.status === 401)).toHaveLength(FREE);
+    expect(results.filter((r) => r.status === 429)).toHaveLength(40 - FREE);
+    // And the shared budget for unrecognised browsers was untouched, and is itself bounded.
+    const shared = await Promise.all(Array.from({ length: 40 }, () => attempt(email)));
+    expect(shared.filter((r) => r.status === 401)).toHaveLength(FREE);
+  });
+
+  it("a recognised browser skips nothing: a wrong password is still 401, and two-factor still needs the code", async () => {
+    const email = "rb.noskip@nltag.test";
+    const { secret } = await enrollTwoFactor(await verifiedUser(email, PASSWORD));
+    const ip = freshIp();
+    const step1 = await call("/sign-in/email", { body: { email, password: PASSWORD }, ip });
+    await freshStep();
+    const mine = onlyRb(await call("/two-factor/verify-totp", { body: { code: totp(secret) }, ip, cookie: cookiesFrom(step1) }));
+    expect((await attempt(email, { cookie: mine })).status).toBe(401);
+    const again = await attempt(email, { password: PASSWORD, cookie: mine });
+    expect(again.status).toBe(200);
+    expect((await json(again)).twoFactorRedirect).toBe(true);
+    expect(cookiesFrom(again)).not.toMatch(/session_token=[^;]/);
+    // A wrong code after the password is refused; only the right code completes sign-in.
+    const challenge = cookiesFrom(again, mine);
+    expect((await call("/two-factor/verify-totp", { body: { code: wrongCode(secret) }, ip, cookie: challenge })).status).not.toBe(200);
+    // The next step's code (the server accepts ±1 step), so it is never the code already used above.
+    const done = await call("/two-factor/verify-totp", { body: { code: totp(secret, Date.now(), 1) }, ip, cookie: challenge });
+    expect(done.status).toBe(200);
+    expect(cookiesFrom(done)).toContain("session_token");
+  });
+
+  it("recovery: once the delay has passed, the correct password plus TOTP from a new browser signs in and makes it recognised", async () => {
+    const email = "rb.recover@nltag.test";
+    const { secret } = await enrollTwoFactor(await verifiedUser(email, PASSWORD));
+    await Promise.all(Array.from({ length: FREE + 3 }, () => attempt(email)));
+    expect((await attempt(email, { password: PASSWORD })).status).toBe(429); // delayed, no oracle
+    // Jump past the longest delay the schedule can impose at this point (well under the 1-hour
+    // reset). One fixed instant, a different TOTP step from enrollment, so no replay concerns.
+    vi.useFakeTimers({ toFake: ["Date"], now: Date.now() + 16 * 60_000 });
+    const ip = freshIp();
+    const step1 = await call("/sign-in/email", { body: { email, password: PASSWORD }, ip });
+    expect(step1.status).toBe(200);
+    expect((await json(step1)).twoFactorRedirect).toBe(true);
+    expect(cookiesFrom(step1)).not.toMatch(/session_token=[^;]/);
+    const step2 = await call("/two-factor/verify-totp", { body: { code: totp(secret) }, ip, cookie: cookiesFrom(step1) });
+    expect(step2.status).toBe(200);
+    expect(cookiesFrom(step2)).toContain("session_token");
+    expect(rbCookie(step2)).toBeDefined();
+  });
+});
+
 describe("M1 alerting and L3: bounded audit rows, one email, no account discovery", () => {
   it("writes one audit row per address per hour however many refusals, and one warning email to an existing account", async () => {
     const email = "alert.owner@nltag.test";
@@ -273,6 +370,7 @@ describe("M1 alerting and L3: bounded audit rows, one email, no account discover
     expect(mails[0]!.subject).toBe("Repeated wrong sign-in attempts on your account");
     expect(mails[0]!.text).not.toMatch(/https?:\/\//);
     expect(mails[0]!.text).toContain("browser you have signed in with before");
+    expect(`${mails[0]!.subject}\n${mails[0]!.text}`).not.toMatch(/[\u0B80-\u0BFF]/); // no Tamil at all, as actually sent
   });
 
   it("sends nothing for an address with no account, and the responses cannot tell the two apart", async () => {
