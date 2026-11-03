@@ -13,7 +13,11 @@ export interface AuthRoute {
   /** Better Auth path, with :param segments (matched as one segment of [A-Za-z0-9]{1,64}). */
   path: string;
   policy: Policy;
-  /** What the request must already carry. Better Auth enforces it; listed for review. */
+  /**
+   * What the request must already carry. "two-factor challenge cookie" is enforced by the gate
+   * itself (v6.1 G1: no challenge cookie → the gate's 404, and session cookies are stripped so
+   * Better Auth can only take its challenge path); the others are enforced by Better Auth.
+   */
   requires: "nothing" | "reset token" | "two-factor challenge cookie" | "session";
   /** Query string allowed (only where Better Auth needs one). */
   query?: boolean;

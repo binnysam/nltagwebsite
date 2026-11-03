@@ -20,6 +20,7 @@ import {
   signInBrowserKey,
   THROTTLES,
 } from "../services/rate-limit";
+import { getAuth } from "../auth/auth";
 import { readCookie, recognisedBrowserCookieName, recognisedBrowserId } from "../auth/recognised-browser";
 import { normaliseEmail, signupAllowed, signupPolicy } from "../auth/signup-allowlist";
 import { clientIpOf } from "./client-ip";
@@ -212,14 +213,103 @@ const rebuild = (req: Request, text?: string) =>
 
 const badRequest = () => json(400, { message: "Invalid request", code: "INVALID_REQUEST" });
 
+/**
+ * v6.1 B (enumeration oracle): the address is validated with Better Auth's own rule — z.email(),
+ * exactly as given, no trimming or case folding — BEFORE the known-address lookup and before any
+ * reservation. A malformed address (padded, no @, wrong type…) therefore gets the gate's one 400 for
+ * every address, account or not, and never spends the real address's budget (hashEmail normalises,
+ * so " member@x " would otherwise count against "member@x").
+ */
+const emailField = z.email().max(254);
 const signInSchema = z.strictObject({
-  email: z.string().min(3).max(254),
+  email: emailField,
   password: z.string().min(1).max(128),
   callbackURL: z.string().max(512).optional(),
   rememberMe: z.boolean().optional(),
 });
-const resetRequestSchema = z.strictObject({ email: z.string().min(3).max(254), redirectTo: z.string().max(512).optional() });
+const resetRequestSchema = z.strictObject({ email: emailField, redirectTo: z.string().max(512).optional() });
 const resetSchema = z.strictObject({ token: z.string().max(64), newPassword: z.string().max(256) });
+
+/**
+ * v6.1 B (audit parity): every wrong-address-or-password answer writes the same
+ * `auth.sign_in.fail` row, known address or not (b48261d audited every failure). The insert is
+ * fire-and-forget so it cannot make one kind of answer slower than the other, and capped per
+ * process (5 rows a second) so a flood cannot turn into an audit-table flood: the excess is counted
+ * and reported in one summary log line a minute. Tests flush the pending inserts (helpers.call).
+ */
+export const SIGN_IN_FAIL_AUDIT_LIMIT = { ratePerSecond: 5, burst: 5 } as const;
+let auditLimiter = new ProcessLimiter(SIGN_IN_FAIL_AUDIT_LIMIT);
+const pendingAudits = new Set<Promise<unknown>>();
+let auditsSuppressed = 0;
+let auditsSuppressedReported = 0;
+let lastAuditSummary = 0;
+
+function auditSignInFailure(req: Request) {
+  if (!auditLimiter.take()) {
+    auditsSuppressed += 1;
+    const now = Date.now();
+    if (now - lastAuditSummary >= 60_000) {
+      log("warn", "security.sign_in_fail_audit_capped", { suppressedSinceLastLine: auditsSuppressed - auditsSuppressedReported, perSecond: SIGN_IN_FAIL_AUDIT_LIMIT.ratePerSecond });
+      lastAuditSummary = now;
+      auditsSuppressedReported = auditsSuppressed;
+    }
+    return;
+  }
+  const job = audit({ action: "auth.sign_in.fail", outcome: "DENIED", entity: "auth", ip: clientIpOf(req.headers), reason: "UNAUTHORIZED" }).catch(() => undefined);
+  pendingAudits.add(job);
+  void job.finally(() => pendingAudits.delete(job));
+}
+
+/** Tests: wait for queued sign-in failure audits. */
+export async function flushGateAuditsForTests() {
+  while (pendingAudits.size) await Promise.all([...pendingAudits]);
+}
+/** Tests: a fresh audit cap. */
+export function resetGateAuditCapForTests() {
+  auditLimiter = new ProcessLimiter(SIGN_IN_FAIL_AUDIT_LIMIT);
+}
+export const gateAuditCounters = () => ({ suppressed: auditsSuppressed });
+
+/**
+ * v6.1 G1: the two verify routes exist for the sign-in challenge only. Better Auth 1.7.15 also
+ * accepts a SESSION cookie on /two-factor/verify-totp and then switches two-factor on for a pending
+ * enrollment — an HTTP enrollment lane outside the server action's `2fa-manage` limit. The gate
+ * therefore (1) forwards these routes only when the plugin's challenge cookie is present, else its
+ * own 404, and (2) strips the session cookies from what it forwards, so Better Auth can only take
+ * its challenge path (which then checks the signed challenge cookie itself). Presence alone is not
+ * trusted: a forged cookie name with a session would otherwise still reach the session path.
+ * Enrollment confirmation exists only as the server action (account/two-factor/actions.ts).
+ */
+async function authCookieNames() {
+  const ctx = await getAuth().$context;
+  return {
+    challenge: ctx.createAuthCookie("two_factor").name,
+    session: [ctx.authCookies.sessionToken.name, ctx.authCookies.sessionData.name, ctx.authCookies.accountData.name],
+  };
+}
+
+function withoutCookies(req: Request, drop: readonly string[]): Request {
+  const header = req.headers.get("cookie");
+  if (!header) return req;
+  const kept = header
+    .split(";")
+    .map((p) => p.trim())
+    .filter((p) => p && !drop.includes(p.slice(0, Math.max(0, p.indexOf("="))).trim()));
+  const headers = new Headers(req.headers);
+  if (kept.length) headers.set("cookie", kept.join("; "));
+  else headers.delete("cookie");
+  return new Request(req, { headers, duplex: "half" } as RequestInit);
+}
+
+async function secondFactor(req: Request, next: Next): Promise<Response> {
+  const names = await authCookieNames();
+  if (!readCookie(req.headers.get("cookie"), names.challenge)) {
+    gateCounters.notFound += 1;
+    return gateNotFound();
+  }
+  if (!limiters.secondFactor.take()) return tooMany(limiters.secondFactor.retryAfterSeconds());
+  return next(withoutCookies(req, names.session));
+}
 
 export async function gateAuthRequest(req: Request, next: Next): Promise<Response> {
   void purgeExpiredBucketsSometimes().catch(() => undefined);
@@ -237,6 +327,7 @@ export async function gateAuthRequest(req: Request, next: Next): Promise<Respons
     case "token":
       return token(req, route, url, next);
     case "secondFactor":
+      return secondFactor(req, next);
     case "session": {
       const limiter = limiters[route.policy];
       if (!limiter.take()) return tooMany(limiter.retryAfterSeconds());
@@ -289,6 +380,7 @@ async function signIn(req: Request, next: Next): Promise<Response> {
       return holdUntil(started, TIMING_FLOOR_MS.signInFailure, tooMany(full), "sign-in-ceiling", commonMs);
     }
     await maybeCalibrate();
+    auditSignInFailure(req);
     return holdUntil(started, TIMING_FLOOR_MS.signInFailure, invalidCredentials(), "sign-in-unknown", commonMs);
   }
 
@@ -313,8 +405,8 @@ async function signIn(req: Request, next: Next): Promise<Response> {
     for (const h of cls.held) await releaseWindow(h.key, h.windowStart);
     return res;
   }
-  // Not awaited: the audit insert must not make known-address answers slower than unknown ones.
-  void audit({ action: "auth.sign_in.fail", outcome: "DENIED", entity: "auth", ip: clientIpOf(req.headers), reason: "UNAUTHORIZED" }).catch(() => undefined);
+  // Same queued row as the unknown-address path (v6.1 audit parity); never awaited here.
+  auditSignInFailure(req);
   return holdUntil(started, TIMING_FLOOR_MS.signInFailure, res, "sign-in-known", commonMs);
 }
 

@@ -8,6 +8,7 @@ import { inArray } from "drizzle-orm";
 import { getDb } from "@/server/db/client";
 import { flushEmailQueueForTests } from "@/server/email/send";
 import { memoryOutbox } from "@/server/email/transport";
+import { flushGateAuditsForTests } from "@/server/security/auth-abuse-gate";
 import { SEED_TOTP_SECRET, SEED_USERS } from "../../scripts/db/seed";
 import { base32Decode, freshStep, totp } from "../support/totp";
 
@@ -45,6 +46,7 @@ export async function call(path: string, opts: CallOptions = {}) {
   // getAuth().handler directly: protection that lives in the route must be under test.
   const req = new Request(url, { method: opts.method ?? (opts.body !== undefined ? "POST" : "GET"), headers, body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined, redirect: "manual" });
   const res = await (req.method === "GET" ? routeGET : routePOST)(req);
+  await flushGateAuditsForTests();
   await flushEmailQueueForTests();
   return res;
 }
@@ -129,11 +131,11 @@ export async function signIn(email: string, password: string, ip = freshIp(), op
   return { res: verified, cookie: cookiesFrom(verified, cookie) };
 }
 
-/** Enrolls an authenticator for a signed-in account over HTTP; returns the new session and secret. */
 /**
- * Enrolls an authenticator the way the site does: enable through the server API (as the account
- * page's server action does; /two-factor/enable is closed over HTTP, D6), then confirm the first
- * code over HTTP. Returns the new session and secret.
+ * Enrolls an authenticator the way the site does: enable and confirm the first code through the
+ * server API, exactly as the account page's server actions startEnrollment / confirmEnrollment do.
+ * Neither step exists over HTTP: /two-factor/enable is denied (D6) and the gate forwards
+ * /two-factor/verify-totp only for a sign-in challenge (v6.1 G1). Returns the new session and secret.
  */
 export async function enrollTwoFactor(cookie: string, password = "correct-horse-battery", ip = freshIp()) {
   const enabled = await getAuth().api.enableTwoFactor({ headers: headersWith(cookie, ip), body: { password, method: "totp" } as never });
@@ -141,7 +143,7 @@ export async function enrollTwoFactor(cookie: string, password = "correct-horse-
   const { totpURI, backupCodes } = enabled;
   const secret = base32Decode(new URL(totpURI).searchParams.get("secret")!);
   await freshStep();
-  const verify = await call("/two-factor/verify-totp", { body: { code: totp(secret) }, ip, cookie });
+  const verify = await getAuth().api.verifyTOTP({ headers: headersWith(cookie, ip), body: { code: totp(secret) }, asResponse: true });
   if (verify.status !== 200) throw new Error(`verify failed (${verify.status})`);
   return { cookie: cookiesFrom(verify, cookie), secret, backupCodes, totpURI };
 }
