@@ -91,7 +91,7 @@ export function AuthForm({ mode, locale, token, googleEnabled }: Props) {
       }
       const result =
         mode === "signIn"
-          ? await authClient.signIn.email({ email, password, callbackURL: `/${locale}/verify-email` })
+          ? await authClient.signIn.email({ email, password }) // no callbackURL: the form routes below (/two-factor or /account)
           : mode === "forgot"
             ? await authClient.requestPasswordReset({ email, redirectTo: `/${locale}/reset-password` })
             : await authClient.resetPassword({ newPassword: password, token: token ?? "" });
