@@ -1,8 +1,8 @@
 import "server-only";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../db/client";
-import { user as userTable } from "../db/schema";
+import { account as accountTable, user as userTable } from "../db/schema";
 import { serverEnv } from "../env";
 import { hashEmail } from "../security/hash";
 import { log } from "../security/log";
@@ -72,5 +72,12 @@ async function provision(email: string, locale: "ta" | "en") {
       if (!again) throw error;
     }
   }
-  await getAuth().api.requestPasswordReset({ body: { email: address, redirectTo: `/${locale}/reset-password` } });
+  // No password yet → the set-password page (D9 wording); an existing password → the reset page.
+  // auth.ts sendResetPassword makes the same distinction for the email itself.
+  const [row] = await getDb().select({ id: userTable.id }).from(userTable).where(eq(userTable.email, address)).limit(1);
+  const [cred] = row
+    ? await getDb().select({ id: accountTable.id }).from(accountTable).where(and(eq(accountTable.userId, row.id), eq(accountTable.providerId, "credential"))).limit(1)
+    : [];
+  const page = cred ? "reset-password" : "set-password";
+  await getAuth().api.requestPasswordReset({ body: { email: address, redirectTo: `/${locale}/${page}` } });
 }
