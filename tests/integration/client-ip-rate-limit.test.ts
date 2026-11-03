@@ -4,7 +4,7 @@ import { closeDb, getDb } from "@/server/db/client";
 import { auditLog, rateLimit, rateLimitBucket } from "@/server/db/schema";
 import { hashEmail, hashIp } from "@/server/security/hash";
 import { CLIENT_IP_HEADER } from "@/server/security/client-ip";
-import { LIMITS, signInAccountKey } from "@/server/services/rate-limit";
+import { signInAccountKey, THROTTLES } from "@/server/services/rate-limit";
 import { ORIGIN, call, clearRateLimits, freshIp, verifiedUser } from "./helpers";
 
 /**
@@ -68,7 +68,8 @@ describe("per-visitor sign-in limit behind the CDN", () => {
   it("IPv6 visitors are counted per /64: same /64 shares, another /64 does not", async () => {
     const s = await statuses(6, (i) => attempt("v6@nltag.test", { ip: `2001:db8:aa:1::${i + 1}` }));
     expect(s).toEqual([401, 401, 401, 401, 401, 429]);
-    expect((await attempt("v6@nltag.test", { ip: "2001:db8:aa:2::1" })).status).toBe(401);
+    // Another address, so the per-account delay (5 free checks) is not what is being measured.
+    expect((await attempt("v6.other@nltag.test", { ip: "2001:db8:aa:2::1" })).status).toBe(401);
   });
 });
 
@@ -91,13 +92,13 @@ describe("unresolved client IP fails closed", () => {
   });
 });
 
-describe("per-account sign-in limit (any IP)", () => {
-  const max = LIMITS.signInFailuresPerAccount.max;
+describe("per-account sign-in protection (any IP) — see sign-in-protection.test.ts for H1 and M1", () => {
+  const free = THROTTLES.signInAccount.free;
 
-  it("blocks an account after too many wrong passwords from different addresses, even with the right password", async () => {
+  it("throttles an address after its free attempts from different addresses, the right password included", async () => {
     const email = "acct.target@nltag.test";
     await verifiedUser(email, "correct-horse-battery");
-    expect(await statuses(max, () => attempt(email, { ip: freshIp() }))).toEqual(Array(max).fill(401));
+    expect(await statuses(free, () => attempt(email, { ip: freshIp() }))).toEqual(Array(free).fill(401));
     const blocked = await attempt(email, { ip: freshIp(), password: "correct-horse-battery" });
     expect(blocked.status).toBe(429);
     expect(((await blocked.json()) as { code?: string }).code).toBe("TOO_MANY_ATTEMPTS");
@@ -105,41 +106,26 @@ describe("per-account sign-in limit (any IP)", () => {
     expect((await attempt("someone.else@nltag.test", { ip: freshIp() })).status).toBe(401);
   });
 
-  it("treats an address with no account exactly the same (no account discovery)", async () => {
-    const email = "no.such.account@nltag.test";
-    expect(await statuses(max, () => attempt(email, { ip: freshIp() }))).toEqual(Array(max).fill(401));
-    const res = await attempt(email, { ip: freshIp() });
-    expect(res.status).toBe(429);
-    expect(((await res.json()) as { code?: string }).code).toBe("TOO_MANY_ATTEMPTS");
-  });
-
   it("matches the address regardless of letter case", async () => {
     const email = "Case.Mix@nltag.test";
-    expect(await statuses(max, (i) => attempt(i % 2 ? email.toUpperCase() : email.toLowerCase(), { ip: freshIp() }))).toEqual(Array(max).fill(401));
+    expect(await statuses(free, (i) => attempt(i % 2 ? email.toUpperCase() : email.toLowerCase(), { ip: freshIp() }))).toEqual(Array(free).fill(401));
     expect((await attempt("case.mix@NLTAG.test", { ip: freshIp() })).status).toBe(429);
   });
 
   it("does not count malformed requests (refused before any password check)", async () => {
     const email = "malformed@nltag.test";
-    const bad = await statuses(max, () => attempt(` ${email} `, { ip: freshIp() }));
+    const bad = await statuses(free + 2, () => attempt(` ${email} `, { ip: freshIp() }));
     expect(bad.every((s) => s === 400)).toBe(true);
-    expect((await attempt(email, { ip: freshIp() })).status).toBe(401);
-  });
-
-  it("does not count correct passwords", async () => {
-    const email = "acct.ok@nltag.test";
-    await verifiedUser(email, "correct-horse-battery");
-    for (let i = 0; i < max + 2; i++) expect((await attempt(email, { ip: freshIp(), password: "correct-horse-battery" })).status).toBe(200);
     expect((await attempt(email, { ip: freshIp() })).status).toBe(401);
   });
 
   it("stores only a keyed hash of the address and audits the refusal without it", async () => {
     const email = "acct.privacy@nltag.test";
-    await statuses(max + 1, () => attempt(email, { ip: freshIp() }));
+    await statuses(free + 1, () => attempt(email, { ip: freshIp() }));
     const buckets = await getDb().select({ k: rateLimitBucket.bucketKey }).from(rateLimitBucket);
     expect(buckets.map((b) => b.k)).toContain(signInAccountKey(hashEmail(email)));
     expect(buckets.some((b) => b.k.includes("@") || b.k.includes("privacy"))).toBe(false);
-    const [row] = await getDb().select().from(auditLog).where(eq(auditLog.action, "auth.sign_in.account_limited")).orderBy(desc(auditLog.createdAt)).limit(1);
+    const [row] = await getDb().select().from(auditLog).where(eq(auditLog.action, "auth.sign_in.throttled")).orderBy(desc(auditLog.createdAt)).limit(1);
     expect(row).toBeDefined();
     expect(JSON.stringify(row)).not.toContain("@");
   });

@@ -25,6 +25,68 @@ const h = (o: Record<string, string>) => new Headers(o);
 const viaCdn = (client: string, spoofedLeft?: string) =>
   h({ "x-forwarded-for": spoofedLeft ? `${spoofedLeft}, ${client}` : client, "x-real-ip": client });
 
+describe("M3: incorrect configurations fail closed", () => {
+  const prodEnv = (e: Record<string, string>) => env({ NODE_ENV: "production", ...e });
+
+  it("refuses CLIENT_IP_CROSSCHECK=none in production (resolution off, every visitor shares the bucket)", () => {
+    for (const hops of ["0", "1", "2"]) {
+      const c = clientIpConfig(prodEnv({ CLIENT_IP_SOURCE: "forwarded-chain", CLIENT_IP_PROXY_HOPS: hops, CLIENT_IP_CROSSCHECK: "none" }));
+      expect(c).toMatchObject({ source: "none", invalid: true, problem: "crosscheck-none-in-production" });
+      expect(resolveClientIp(viaCdn("203.0.113.9"), c)).toEqual({ ip: null, reason: "config-invalid" });
+    }
+    // With the source off, CROSSCHECK=none changes nothing and is not an error.
+    expect(clientIpConfig(prodEnv({ CLIENT_IP_CROSSCHECK: "none" })).invalid).toBe(false);
+    // The production default is accepted.
+    expect(clientIpConfig(prodEnv({ CLIENT_IP_SOURCE: "forwarded-chain" })).invalid).toBe(false);
+  });
+
+  it("refuses unknown values with a reason and no value in it", () => {
+    const bad: Record<string, string>[] = [{ CLIENT_IP_SOURCE: "forwarded" }, { CLIENT_IP_SOURCE: "forwarded-chain", CLIENT_IP_PROXY_HOPS: "one" }, { CLIENT_IP_SOURCE: "forwarded-chain", CLIENT_IP_CROSSCHECK: "X-Real-IP " + "x" }];
+    for (const e of bad) {
+      expect(clientIpConfig(prodEnv(e))).toMatchObject({ source: "none", invalid: true, problem: "unknown-value" });
+    }
+  });
+
+  // Every wrong hop count × CDN behaviour × cross-check combination, as a caller would attack it.
+  // Real layout: the CDN appends the connecting address (public) to X-Forwarded-For and sets X-Real-IP.
+  const client = "203.0.113.9";
+  const attacker = "192.0.2.66";
+  const cases: { name: string; headers: Record<string, string>; config: ClientIpConfig; expected: string }[] = [
+    // Hops too high (configured 1, real 0).
+    { name: "hops too high, normal visit", headers: { "x-forwarded-for": client, "x-real-ip": client }, config: CHAIN_ONE_HOP, expected: "too-few-entries" },
+    { name: "hops too high, caller adds an XFF entry (CDN overwrites X-Real-IP)", headers: { "x-forwarded-for": `${attacker}, ${client}`, "x-real-ip": client }, config: CHAIN_ONE_HOP, expected: "untrusted-hop" },
+    { name: "hops too high, caller forges XFF + X-Real-IP (CDN keeps X-Real-IP, A4 false)", headers: { "x-forwarded-for": `${attacker}, ${client}`, "x-real-ip": attacker }, config: CHAIN_ONE_HOP, expected: "untrusted-hop" },
+    { name: "hops too high, no cross-check (non-production)", headers: { "x-forwarded-for": `${attacker}, ${client}` }, config: { ...CHAIN_ONE_HOP, crossCheck: "none" }, expected: "untrusted-hop" },
+    { name: "hops two too high", headers: { "x-forwarded-for": `${attacker}, 198.51.100.4, ${client}`, "x-real-ip": attacker }, config: { ...CHAIN, proxyHops: 2 }, expected: "untrusted-hop" },
+    // Hops too low (configured 0, real 1: an internal hop follows the client entry).
+    { name: "hops too low, normal visit", headers: { "x-forwarded-for": `${client}, 10.0.0.5`, "x-real-ip": client }, config: CHAIN, expected: "internal-candidate" },
+    { name: "hops too low, no cross-check (non-production)", headers: { "x-forwarded-for": `${client}, 10.0.0.5` }, config: { ...CHAIN, crossCheck: "none" }, expected: "internal-candidate" },
+    { name: "hops too low, internal X-Real-IP agrees", headers: { "x-forwarded-for": `${client}, 10.0.0.5`, "x-real-ip": "10.0.0.5" }, config: CHAIN, expected: "internal-candidate" },
+    // Mismatched or malformed headers with the right hop count.
+    { name: "X-Real-IP differs", headers: { "x-forwarded-for": client, "x-real-ip": attacker }, config: CHAIN, expected: "real-ip-mismatch" },
+    { name: "X-Real-IP missing", headers: { "x-forwarded-for": client }, config: CHAIN, expected: "real-ip-missing" },
+    { name: "X-Real-IP has two values", headers: { "x-forwarded-for": client, "x-real-ip": `${client}, ${attacker}` }, config: CHAIN, expected: "real-ip-mismatch" },
+    { name: "skipped hop malformed", headers: { "x-forwarded-for": `${client}, not-an-ip`, "x-real-ip": client }, config: CHAIN_ONE_HOP, expected: "invalid-entry" },
+    { name: "skipped hop empty", headers: { "x-forwarded-for": `${client}, `, "x-real-ip": client }, config: CHAIN_ONE_HOP, expected: "invalid-entry" },
+    { name: "loopback as the visitor", headers: { "x-forwarded-for": "127.0.0.1", "x-real-ip": "127.0.0.1" }, config: CHAIN, expected: "internal-candidate" },
+    { name: "CGNAT as the visitor", headers: { "x-forwarded-for": "100.64.1.1", "x-real-ip": "100.64.1.1" }, config: CHAIN, expected: "internal-candidate" },
+    { name: "IPv6 unique-local as the visitor", headers: { "x-forwarded-for": "fd12::1", "x-real-ip": "fd12::1" }, config: CHAIN, expected: "internal-candidate" },
+  ];
+  for (const c of cases) {
+    it(`fails closed: ${c.name}`, () => {
+      expect(resolveClientIp(h(c.headers), c.config)).toEqual({ ip: null, reason: c.expected });
+      expect(withTrustedClientIp(h({ ...c.headers, [CLIENT_IP_HEADER]: attacker }), c.config).has(CLIENT_IP_HEADER)).toBe(false);
+    });
+  }
+
+  it("accepts the correct configurations", () => {
+    expect(resolveClientIp(viaCdn(client, attacker), CHAIN)).toEqual({ ip: client, reason: "ok" });
+    for (const hop of ["10.0.0.5", "172.20.1.1", "192.168.1.1", "100.100.0.1", "127.0.0.1", "fd00::5", "fe80::1"]) {
+      expect(resolveClientIp(h({ "x-forwarded-for": `${attacker}, ${client}, ${hop}`, "x-real-ip": client }), CHAIN_ONE_HOP)).toEqual({ ip: client, reason: "ok" });
+    }
+  });
+});
+
 describe("configuration (fails closed)", () => {
   it("is off unless explicitly set", () => {
     expect(clientIpConfig(env({}))).toEqual({ source: "none", proxyHops: 0, crossCheck: "x-real-ip", invalid: false });
@@ -123,10 +185,10 @@ describe("resolveClientIp — one extra infrastructure hop", () => {
     expect(resolveClientIp(h({ "x-forwarded-for": "203.0.113.9, garbage", "x-real-ip": "203.0.113.9" }), CHAIN_ONE_HOP).reason).toBe("invalid-entry");
   });
 
-  it("refuses a request that skipped the CDN (one hop short): X-Real-IP no longer matches", () => {
-    // Direct to origin: the caller writes XFF; only the origin hop is appended.
+  it("refuses a request that skipped the CDN (one hop short): the skipped hop is a public address", () => {
+    // Direct to origin: the caller writes XFF; only the origin hop (the caller's own public address) is appended.
     const headers = h({ "x-forwarded-for": "192.0.2.66, 198.51.100.200", "x-real-ip": "198.51.100.200" });
-    expect(resolveClientIp(headers, CHAIN_ONE_HOP).reason).toBe("real-ip-mismatch");
+    expect(resolveClientIp(headers, CHAIN_ONE_HOP).reason).toBe("untrusted-hop");
   });
 });
 
@@ -185,7 +247,7 @@ describe("header-shape capture (no addresses)", () => {
       realIpFromRight: 1,
       present: ["x-real-ip", "x-forwarded-proto"],
       markerNames: ["x-hcdn-request-id"],
-      resolution: "real-ip-mismatch",
+      resolution: "internal-candidate",
       source: "forwarded-chain",
       proxyHops: 0,
     });
@@ -206,14 +268,44 @@ describe("header-shape capture (no addresses)", () => {
     expect(JSON.parse(line)).toMatchObject({ event: "client_ip.shape", xffCount: 2, realIpFromRight: 0, resolution: "ok" });
   });
 
-  it("logs each distinct shape once, at most a fixed number per process, and can be switched off", () => {
+  it("logs each distinct shape once, again at 10/100/… occurrences, and can be switched off", () => {
     const lines: string[] = [];
     const w = (l: string) => lines.push(l);
     expect(noteHeaderShape(viaCdn("203.0.113.9"), CHAIN, env({}), w)).toBe(true);
     expect(noteHeaderShape(viaCdn("198.51.100.3"), CHAIN, env({}), w)).toBe(false); // same shape, different visitor
-    for (let i = 0; i < 40; i++) noteHeaderShape(h({ "x-forwarded-for": Array(i + 2).fill("203.0.113.1").join(", ") }), CHAIN, env({}), w);
-    expect(lines.length).toBe(MAX_SHAPES_LOGGED);
+    for (let i = 0; i < 8; i++) noteHeaderShape(viaCdn(`203.0.113.${i + 20}`), CHAIN, env({}), w);
+    expect(lines.length).toBe(2); // 1st and 10th sighting
+    expect(JSON.parse(lines[1]!).seen).toBe(10);
     resetHeaderShapeLogForTests();
     expect(noteHeaderShape(viaCdn("203.0.113.9"), CHAIN, env({ CLIENT_IP_SHAPE_LOG: "off" }), w)).toBe(false);
+  });
+
+  it("L2: entries and headers a visitor adds cannot create new shapes or fill the slots", () => {
+    const lines: string[] = [];
+    const w = (l: string) => lines.push(l);
+    noteHeaderShape(viaCdn("203.0.113.9"), CHAIN, env({}), w);
+    // Prepended entries of every length and class, extra marker-like headers, forwarded headers.
+    for (let i = 0; i < 60; i++) {
+      const left = Array.from({ length: (i % 7) + 1 }, (_, j) => (j % 2 ? "10.1.2.3" : `192.0.2.${j}`)).join(", ");
+      noteHeaderShape(
+        h({ "x-forwarded-for": `${left}, 203.0.113.${i}`, "x-real-ip": `203.0.113.${i}`, [`x-cdn-junk-${i}`]: "1", forwarded: "for=1.2.3.4", "cf-connecting-ip": "1.2.3.4" }),
+        CHAIN,
+        env({}),
+        w,
+      );
+    }
+    // Only two keys: "nothing to the left" and "something to the left"; logged at 1st and 10th sighting.
+    expect(lines.map((l) => JSON.parse(l).seen)).toEqual([1, 1, 10]);
+    // A genuinely different CDN-side shape is still recorded after all that noise.
+    expect(noteHeaderShape(h({ "x-forwarded-for": "203.0.113.9, 10.0.0.5", "x-real-ip": "203.0.113.9" }), CHAIN, env({}), w)).toBe(true);
+  });
+
+  it("stops recording new shapes after a fixed number per process", () => {
+    const lines: string[] = [];
+    const w = (l: string) => lines.push(l);
+    // Different CDN-side tails (hop classes) are distinct keys; beyond the cap nothing new is logged.
+    const classes = ["10.0.0.1", "127.0.0.1", "100.64.0.1", "169.254.0.1", "fd00::1", "fe80::1", "::1", "172.16.0.1", "192.168.0.1", "203.0.113.1", "2001:db8::1", "garbage", ""];
+    for (const a of classes) for (const b of classes) noteHeaderShape(h({ "x-forwarded-for": `${a}, ${b}` }), { ...CHAIN, proxyHops: 1 }, env({}), w);
+    expect(lines.length).toBe(MAX_SHAPES_LOGGED);
   });
 });

@@ -157,7 +157,9 @@ const PHASE6B_APPROVED: Record<string, string> = {
 };
 
 /** Still awaiting owner review: shown only when Google sign-in is configured (it is not). */
-const PENDING = ["auth.google", "auth.or"];
+// Awaiting owner review: Google sign-in (shown only if configured) and the sign-in throttle alert
+// email (PR #11 follow-up, Nov 2026; sent in English only until its Tamil is confirmed).
+const PENDING = ["auth.google", "auth.or", "email.signInThrottled.subject", "email.signInThrottled.body"];
 
 /** The 26 recommended drafts the owner approved unchanged ("rest all is fine"). */
 const APPROVED_AS_RECOMMENDED: [string, string][] = [
@@ -262,7 +264,7 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
     }
   });
 
-  it("leaves no draft-review Tamil outside the two Google sign-in strings, and no open alternatives", () => {
+  it("leaves no draft-review Tamil outside the Google sign-in and throttle-alert strings, and no open alternatives", () => {
     for (const [key, v] of Object.entries(uiStrings)) {
       if (v.taStatus !== "confirmed") expect(PENDING, key).toContain(key);
       expect((v as { taAlternatives?: unknown }).taAlternatives, key).toBeUndefined();
@@ -282,8 +284,8 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
     expect(md).toContain(
       "(22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings; 38 Phase 4b account and email strings and 45 Phase 6b two-factor strings, 2026-11-02)",
     );
-    expect(pending).toBe(2);
-    expect(md).toContain("146 of 148 items approved; 2 still awaiting review");
+    expect(pending).toBe(PENDING.length);
+    expect(md).toContain("146 of 150 items approved; 4 still awaiting review");
     for (const line of md.split("\n").filter((l) => l.includes("draft-review") && l.startsWith("| "))) {
       expect(PENDING).toContain(line.split("|")[1]!.trim());
     }

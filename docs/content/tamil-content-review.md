@@ -1,7 +1,7 @@
 # Tamil content approval record
 
 **Generated from** `src/content/ui-strings.ts`, `src/content/schedule.ts` and `src/content/tamil-approvals.ts` by `node scripts/tamil-review.ts`. Do not edit by hand; `npm run verify` fails if this file is out of date.
-**Approved by the owner on 2026-11-01** (22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings; 38 Phase 4b account and email strings and 45 Phase 6b two-factor strings, 2026-11-02). 146 of 148 items approved; 2 still awaiting review. Times, days and NECK were confirmed at Gate 0.
+**Approved by the owner on 2026-11-01** (22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings; 38 Phase 4b account and email strings and 45 Phase 6b two-factor strings, 2026-11-02). 146 of 150 items approved; 4 still awaiting review. Times, days and NECK were confirmed at Gate 0.
 
 Owner-supplied Tamil is approved content and is reproduced exactly as supplied. Do not rephrase, re-spell or "correct" it; a unit test compares every character. Any change needs new owner approval. The language names தமிழ் and English were confirmed at Gate 0 and are not listed.
 
@@ -157,6 +157,8 @@ Owner-supplied Tamil is approved content and is reproduced exactly as supplied. 
 | email.reset.body | Open the link below to choose a new password. It works for 1 hour. | புதிய கடவுச்சொல்லைத் தேர்ந்தெடுக்க கீழே உள்ள இணைப்பைத் திறக்கவும். அது 1 மணி நேரம் செல்லுபடியாகும். | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
 | email.ignore | If you did not ask for this, you can ignore this email. | நீங்கள் இதைக் கோரவில்லை என்றால், இந்த மின்னஞ்சலைப் புறக்கணிக்கலாம். | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
 | email.footer | This message was sent automatically by the {church} website. | இந்தச் செய்தி {church} இணையதளத்தால் தானாக அனுப்பப்பட்டது. | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
+| email.signInThrottled.subject | Repeated wrong sign-in attempts on your account | உங்கள் கணக்கில் பலமுறை தவறான உள்நுழைவு முயற்சிகள் | — | — |  | Awaiting church review (`draft-review`) |
+| email.signInThrottled.body | Someone has tried several times to sign in to your account with a wrong password, so sign-in attempts from browsers you have not used before are being slowed down for a while. You can still sign in from a browser you have signed in with before. Your password and, for Church Admins, your authenticator code are still required. If this was not you, consider changing your password after you sign in. | யாரோ தவறான கடவுச்சொல்லுடன் உங்கள் கணக்கில் பலமுறை உள்நுழைய முயன்றுள்ளனர். அதனால், நீங்கள் இதுவரை பயன்படுத்தாத உலாவிகளிலிருந்து வரும் உள்நுழைவு முயற்சிகள் சிறிது நேரம் மெதுவாக்கப்பட்டுள்ளன. நீங்கள் முன்பு உள்நுழைந்த உலாவியிலிருந்து இன்னும் உள்நுழையலாம். உங்கள் கடவுச்சொல்லும், சபை நிர்வாகிகளுக்கு அங்கீகரிப்புச் செயலியின் குறியீடும் தொடர்ந்து தேவைப்படும். இது நீங்கள் இல்லையென்றால், உள்நுழைந்த பின் உங்கள் கடவுச்சொல்லை மாற்றுவதைக் கருத்தில் கொள்ளுங்கள். | — | — |  | Awaiting church review (`draft-review`) |
 
 ## Not yet in the record
 

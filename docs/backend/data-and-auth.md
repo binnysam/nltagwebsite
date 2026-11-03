@@ -27,7 +27,8 @@ src/server/                 server-only (import "server-only"); never reaches th
   policy/permissions.ts     permission matrix (pure data), can(), session lengths
   services/roles.ts         bootstrapFirstAdmin, grantRole, revokeRole
   services/audit.ts         audit(), action names
-  services/rate-limit.ts    consume()/peek() fixed-window counters, per-account sign-in limit
+  services/rate-limit.ts    consume() fixed-window counters; reserveAttempt()/releaseAttempt() progressive-delay throttle (sign-in)
+  auth/recognised-browser.ts  signed recognised-browser token (sign-in protection; skips nothing)
   email/templates.ts        bilingual verify/reset emails (Tamil first)
   email/transport.ts        smtp | dev outbox (.data/mail) | memory (tests)
   email/send.ts             per-address and 24-hour caps, background send
@@ -54,7 +55,7 @@ drizzle/                    versioned SQL migrations + meta
 | `rate_limit` | Better Auth counters | per resolved client IP + path (`no-trusted-ip` = shared, see `client-ip.md`) |
 | `staff_role` | `CHURCH_ADMIN` / `CONTENT_EDITOR` | unique (user, role) |
 | `audit_log` | append-only trail | ids, action, outcome, HMAC'd IP; no names/emails/tokens |
-| `rate_limit_bucket` | our counters | email per address, 24-hour mail cap, wrong passwords per account (HMAC keys) |
+| `rate_limit_bucket` | our counters | email per address, 24-hour mail cap, sign-in delay per account and per recognised browser (HMAC keys; `window_start = 0` rows are delay episodes) |
 
 Database default and every table: `utf8mb4` / `utf8mb4_uca1400_ai_ci` (Tamil). Ids, tokens and hashes: `ascii_bin` (case-sensitive).
 
@@ -87,7 +88,7 @@ An unverified email removes every permission except reading published content an
 ## Limits
 | What | Limit | Where |
 |---|---|---|
-| Sign-in | 5 / 15 min per client IP, **and** 10 wrong passwords / 15 min per account from any IP (refused before the password check; same for addresses without an account) | Better Auth + `auth.ts` hooks |
+| Sign-in | 5 / 15 min per client IP, **and** a progressive delay per account from any IP: 5 password checks at once, then 30 s, 1, 2, 4, 8 min, then one per 15 min; resets after 1 hour without a wrong password. A recognised browser has its own budget. See "Sign-in protection" | Better Auth + `auth.ts` hooks |
 | Sign-up | 5 / hour per client | Better Auth |
 | Verification email request | 3 / hour per client | Better Auth |
 | Password reset request | 3 / hour per client | Better Auth |
@@ -96,6 +97,19 @@ An unverified email removes every permission except reading published content an
 | Two-factor code at sign-in (authenticator) | 10 / 15 min per client; 5 tries per challenge; account locked 15 min after 5 wrong codes in a row | Better Auth + plugin |
 | Two-factor recovery code at sign-in | 5 / 15 min per client (same per-challenge and account lockout) | Better Auth + plugin |
 | Enable / disable / new recovery codes | 5 / hour per client (HTTP) and 5 / 15 min per account (all callers) | Better Auth + `auth.ts`, server actions |
+
+## Sign-in protection (PR #11 follow-up, Nov 2026)
+Code: `reserveSignInAttempt` / `settleSignInAttempt` in `auth.ts`, `reserveAttempt` / `releaseAttempt` / `claimOncePerWindow` in `services/rate-limit.ts`, `auth/recognised-browser.ts`. Tests: `tests/integration/sign-in-protection.test.ts`. No migration (uses `rate_limit_bucket`).
+
+**Reserve before the password check (H1).** Every `/sign-in/email` reserves one attempt for the address in the before hook, with a single conditional `UPDATE` under the row lock. Only if a row changed does Better Auth check the password. A burst of any size, from any number of IPs, gets at most 5 password checks (tested with 40 concurrent requests). The after hook keeps the reservation only for a wrong address or password (`401`); a correct password — including one that continues to the authenticator step — an unverified email or a malformed request gives it back.
+
+**Progressive delay, never a hard lock (M1, L1).** `THROTTLES.signInAccount`: 5 checks at once, then each further check must wait 30 s, 1, 2, 4, 8 minutes, then 15 minutes, after the previous counted one. Refused requests do not push the next slot further away. The episode ends one hour after the last counted check (no fixed window, so no boundary to exploit). At most about 100 password checks per day per address from all IPs together. Refused requests get `429` / `TOO_MANY_ATTEMPTS` with `Retry-After`, identical for addresses with and without an account, and the password is not checked (a correct password is refused too — otherwise the response would confirm the password).
+
+**Recognised browser (M1).** After a complete sign-in (password, plus the authenticator code when two-factor is on) the browser gets an HttpOnly cookie (`__Secure-nltag_rb` in production, `nltag_rb` locally; path `/api/auth`; 180 days; up to 4 tokens). Each token is `1.<issued-at>.<random id>.<HMAC>`, the HMAC covering the keyed hash of that address (secret `BETTER_AUTH_SECRET`). When that browser signs in to that address, its password checks use `THROTTLES.signInRecognisedBrowser` — the same schedule in a budget of its own — so someone who only knows the address cannot lock its owner out of a browser they have used. It is **not** a trusted device: password and authenticator code are still required every time (the "no trusted devices" decision stands). Tokens are stateless: they expire after 180 days, and only rotating `BETTER_AUTH_SECRET` revokes them early. A stolen token gives only a separate, equally slow guessing budget for that one address.
+
+**Alerting.** The first refusal for an address in an hour writes one `auth.sign_in.throttled` audit row (`reason` = `account` or `recognised-browser`, no address) and a `security.sign_in_throttled` warning in the runtime log (12-character prefix of the keyed hash, the budget, the wait). Later refusals in that hour only increment a counter (no new rows; L3). For the shared budget, the account holder also gets one email per day (`email.signInThrottled.*`, no link), only if the account exists, sent in the background so responses and timing do not depend on it; it goes through the normal per-address and daily mail caps. Until the owner approves its Tamil wording (`draft-review`) the alert is sent in English only.
+
+**Remaining limit.** From a browser that has never completed a sign-in to that address, an attacker who keeps trying can take each 15-minute slot first. The account holder signs in from a browser they have used before; if none is available, the attack shows up in the audit log and the alert email.
 
 ## Production migrations on Hostinger
 There is no SSH step in the deployment, so Hostinger builds use `npm run build:hostinger` (`scripts/hostinger-build.mjs`). It runs `next build`, and only when `NLTAG_APPROVED_PRODUCTION_MIGRATION=1` is set in the Hostinger environment it first applies the reviewed `drizzle/*.sql` to `DATABASE_URL` (127.0.0.1). Set that variable for one owner-approved build, then remove it. Migrations already applied are skipped (drizzle journal). The same script runs the one-time first-admin bootstrap (`NLTAG_BOOTSTRAP_ADMIN_EMAIL`, below); the two are refused in one build.

@@ -31,8 +31,10 @@ export interface ClientIpConfig {
   /** X-Forwarded-For entries appended by our own infrastructure after the client entry. */
   proxyHops: number;
   crossCheck: CrossCheck;
-  /** True when a variable was set to something we do not understand (then source is "none"). */
+  /** True when a variable was set to something we do not understand or do not allow (then source is "none"). */
   invalid: boolean;
+  /** Why the configuration was refused (for the start-up warning; never contains a value). */
+  problem?: "unknown-value" | "crosscheck-none-in-production";
 }
 
 export const MAX_PROXY_HOPS = 4;
@@ -41,6 +43,8 @@ const OFF: ClientIpConfig = { source: "none", proxyHops: 0, crossCheck: "x-real-
 /**
  * Reads CLIENT_IP_SOURCE, CLIENT_IP_PROXY_HOPS and CLIENT_IP_CROSSCHECK. Unset → resolution off
  * (fail closed). Any invalid value → off and `invalid: true`, never a guess.
+ * CLIENT_IP_CROSSCHECK=none is refused in production (M3): without the second header a wrong hop
+ * count would silently trust a caller-written entry. It remains available for local experiments.
  */
 export function clientIpConfig(env: NodeJS.ProcessEnv = process.env): ClientIpConfig {
   const source = (env.CLIENT_IP_SOURCE ?? "").trim() || "none";
@@ -48,7 +52,10 @@ export function clientIpConfig(env: NodeJS.ProcessEnv = process.env): ClientIpCo
   const cross = (env.CLIENT_IP_CROSSCHECK ?? "").trim() || "x-real-ip";
   const hops = /^\d$/.test(hopsRaw) ? Number(hopsRaw) : NaN;
   if ((source !== "none" && source !== "forwarded-chain") || !(hops >= 0 && hops <= MAX_PROXY_HOPS) || (cross !== "x-real-ip" && cross !== "none")) {
-    return { ...OFF, invalid: true };
+    return { ...OFF, invalid: true, problem: "unknown-value" };
+  }
+  if (cross === "none" && source !== "none" && (env.NODE_ENV ?? "").trim() === "production") {
+    return { ...OFF, invalid: true, problem: "crosscheck-none-in-production" };
   }
   return { source, proxyHops: hops, crossCheck: cross, invalid: false };
 }
@@ -98,6 +105,8 @@ export type ResolveReason =
   | "no-forwarded-for"
   | "too-few-entries"
   | "invalid-entry"
+  | "untrusted-hop"
+  | "internal-candidate"
   | "real-ip-missing"
   | "real-ip-mismatch";
 
@@ -120,10 +129,18 @@ export function resolveClientIp(headers: Headers, config: ClientIpConfig = clien
   if (!entries) return { ip: null, reason: "no-forwarded-for" };
   const index = entries.length - 1 - config.proxyHops;
   if (index < 0) return { ip: null, reason: "too-few-entries" };
-  // The hops we skip are our own infrastructure's; they must at least be well-formed addresses.
-  for (let i = entries.length - 1; i > index; i--) if (!normalizeIp(entries[i])) return { ip: null, reason: "invalid-entry" };
+  // The hops we skip are our own infrastructure's: well-formed AND internal (private, loopback,
+  // CGNAT, link-local, unique-local). A public address there means the hop count is too high for
+  // this request (for example a caller's own X-Forwarded-For entry), so fail closed (M3).
+  for (let i = entries.length - 1; i > index; i--) {
+    if (!normalizeIp(entries[i])) return { ip: null, reason: "invalid-entry" };
+    if (!isInternalClass(classifyAddress(entries[i]))) return { ip: null, reason: "untrusted-hop" };
+  }
   const candidate = normalizeIp(entries[index]);
   if (!candidate) return { ip: null, reason: "invalid-entry" };
+  // A visitor reaches the CDN from a public address. An internal one here means the hop count is
+  // too low (we are looking at our own infrastructure), so fail closed instead of sharing it.
+  if (isInternalClass(classifyAddress(candidate))) return { ip: null, reason: "internal-candidate" };
   if (config.crossCheck === "x-real-ip") {
     const real = headers.get("x-real-ip");
     if (real === null || real.trim() === "") return { ip: null, reason: "real-ip-missing" };
@@ -172,6 +189,11 @@ export type AddressClass =
   | "ipv6-link-local"
   | "empty"
   | "not-an-ip";
+
+/** Address classes that can only belong to our own (or the CDN's) internal network. */
+export function isInternalClass(c: AddressClass): boolean {
+  return c !== "ipv4-public" && c !== "ipv6-public" && c !== "empty" && c !== "not-an-ip";
+}
 
 export function classifyAddress(raw: string | null | undefined): AddressClass {
   if (!raw || raw.trim() === "") return "empty";
@@ -264,21 +286,48 @@ export function describeHeaderShape(headers: Headers, config: ClientIpConfig = c
 
 /** Distinct shapes logged per process, then silence (the capture is a diagnostic, not a log stream). */
 export const MAX_SHAPES_LOGGED = 20;
-const seen = new Set<string>();
+/** Occurrence counts at which a shape is logged again, so its share of traffic is visible. */
+const RELOG_AT = new Set([10, 100, 1000, 10_000, 100_000]);
+const seen = new Map<string, number>();
 
 /**
- * Logs each distinct header shape once per process (at most MAX_SHAPES_LOGGED), as one JSON line
- * `{"level":"info","event":"client_ip.shape",...}`. On by default; CLIENT_IP_SHAPE_LOG=off stops it.
+ * Dedupe key built only from what our infrastructure and the CDN write (L2): the classes of the
+ * client entry and the skipped hops (the last proxyHops + 1 X-Forwarded-For entries), whether
+ * anything stands to their left, X-Real-IP's class and position (clamped to that tail), and the
+ * resolver's decision. Entries a caller prepends, extra headers and header names cannot create new
+ * keys, so visitors cannot fill the slots or hide the real shape. They are still logged.
+ */
+export function headerShapeKey(shape: HeaderShape): string {
+  const tailLen = shape.proxyHops + 1;
+  const tail = shape.xffClasses.slice(-tailLen);
+  const pos = shape.realIpFromRight;
+  return JSON.stringify({
+    tail,
+    more: (shape.xffCount ?? 0) > tailLen,
+    realIpClass: shape.realIpClass,
+    realIpFromRight: pos === null || pos < tailLen ? pos : "left",
+    resolution: shape.resolution,
+    source: shape.source,
+    proxyHops: shape.proxyHops,
+  });
+}
+
+/**
+ * Logs each distinct header shape (headerShapeKey) when first seen and again after 10, 100, 1000…
+ * occurrences, as one JSON line `{"level":"info","event":"client_ip.shape","seen":n,...}`. At most
+ * MAX_SHAPES_LOGGED distinct shapes per process. On by default; CLIENT_IP_SHAPE_LOG=off stops it.
  * Returns whether a line was written.
  */
 export function noteHeaderShape(headers: Headers, config?: ClientIpConfig, env: NodeJS.ProcessEnv = process.env, write: (line: string) => void = console.info): boolean {
   if ((env.CLIENT_IP_SHAPE_LOG ?? "").trim() === "off") return false;
-  if (seen.size >= MAX_SHAPES_LOGGED) return false;
   const shape = describeHeaderShape(headers, config);
-  const key = JSON.stringify(shape);
-  if (seen.has(key)) return false;
-  seen.add(key);
-  write(JSON.stringify({ level: "info", event: "client_ip.shape", at: new Date().toISOString(), ...shape }));
+  const key = headerShapeKey(shape);
+  const before = seen.get(key);
+  if (before === undefined && seen.size >= MAX_SHAPES_LOGGED) return false;
+  const count = (before ?? 0) + 1;
+  seen.set(key, count);
+  if (count !== 1 && !RELOG_AT.has(count)) return false;
+  write(JSON.stringify({ level: "info", event: "client_ip.shape", at: new Date().toISOString(), seen: count, ...shape }));
   return true;
 }
 
