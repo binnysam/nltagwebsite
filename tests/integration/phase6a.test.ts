@@ -4,7 +4,8 @@ import { closeDb, getDb } from "@/server/db/client";
 import { account, auditLog, staffRole, twoFactor as twoFactorTable, user } from "@/server/db/schema";
 import { runEnvBootstrap } from "@/server/services/env-bootstrap";
 import { bootstrapFirstAdmin, RoleError } from "@/server/services/roles";
-import { call, clearRateLimits, enrollTwoFactor, freshIp, mailTo, signIn, signUp, verifiedUser } from "./helpers";
+import { ACCOUNT_REQUEST_LIMIT, resetAccountRequestLimiterForTests } from "@/server/auth/request-account";
+import { call, clearRateLimits, enrollTwoFactor, freshIp, mailTo, requestAccount, signIn, verifiedUser } from "./helpers";
 
 /**
  * Phase 6a against MariaDB through the real Better Auth handler:
@@ -15,46 +16,54 @@ const LISTED = "listed.staff@nltag.test";
 const OTHER = "not.listed@nltag.test";
 
 afterAll(closeDb);
-beforeEach(clearRateLimits);
+// Isolation: the account-request limiter is per process (5/s, burst 20) and the burst test below
+// empties it; every test starts with a fresh one.
+beforeEach(async () => {
+  await clearRateLimits();
+  resetAccountRequestLimiterForTests();
+});
 afterEach(() => {
   delete process.env.NLTAG_SIGNUP_ALLOWLIST;
 });
 
 const usersWith = (email: string) => getDb().select().from(user).where(eq(user.email, email));
 
-describe("staff-only sign-up allowlist", () => {
+// R4 class C (D1): the allowlist now decides who an account request provisions. Requests go
+// through the real /api/account-request route; the answer is decided before the address is read.
+describe("staff-only account-request allowlist", () => {
   it("creates an account and sends mail for a listed address", async () => {
     process.env.NLTAG_SIGNUP_ALLOWLIST = `Listed.Staff@NLTAG.test, editor@nltag.test`;
-    const res = await signUp(LISTED);
-    expect(res.status).toBe(200);
+    const res = await requestAccount(LISTED);
+    expect(res.status).toBe(202);
     expect(await usersWith(LISTED)).toHaveLength(1);
     expect(mailTo(LISTED)).toHaveLength(1);
   });
 
-  it("answers an unlisted address exactly like a real sign-up, with no row, no credential and no email", async () => {
+  it("answers an unlisted address exactly like a listed one, with no row, no credential and no email", async () => {
     process.env.NLTAG_SIGNUP_ALLOWLIST = `${LISTED},second.listed@nltag.test`;
-    const real = await signUp("second.listed@nltag.test");
-    const refused = await signUp(OTHER);
-    expect(refused.status).toBe(real.status);
-    const a = (await real.json()) as { token: unknown; user: Record<string, unknown> };
-    const b = (await refused.json()) as { token: unknown; user: Record<string, unknown> };
-    expect(Object.keys(b).sort()).toEqual(Object.keys(a).sort());
-    expect(Object.keys(b.user).sort()).toEqual(Object.keys(a.user).sort());
-    expect(b.token).toBeNull();
-    expect(b.user.emailVerified).toBe(false);
-    expect(refused.headers.getSetCookie()).toEqual(real.headers.getSetCookie());
+    const observe = async (res: Response) => ({ status: res.status, body: await res.text(), headers: [...res.headers].filter(([k]) => k !== "date").sort(), cookies: res.headers.getSetCookie() });
+    const real = await observe(await requestAccount("second.listed@nltag.test"));
+    const refused = await observe(await requestAccount(OTHER));
+    expect(refused).toEqual(real);
+    expect(real.status).toBe(202);
+    expect(real.cookies).toEqual([]);
     expect(await usersWith(OTHER)).toHaveLength(0);
     expect(mailTo(OTHER)).toHaveLength(0);
-    const creds = await getDb().select().from(account).where(eq(account.accountId, String(b.user.id)));
-    expect(creds).toHaveLength(0);
+    expect(await usersWith("second.listed@nltag.test")).toHaveLength(1);
+    const creds = await getDb().select().from(account).where(eq(account.userId, (await usersWith("second.listed@nltag.test"))[0]!.id));
+    expect(creds).toHaveLength(0); // even a listed address gets no credential until the link is used
   });
 
   it("refuses everyone when the list contains an invalid entry (fail closed)", async () => {
-    process.env.NLTAG_SIGNUP_ALLOWLIST = `${LISTED},not-an-email`;
-    const res = await signUp("fail.closed@nltag.test");
-    expect(res.status).toBe(200); // same generic answer
+    process.env.NLTAG_SIGNUP_ALLOWLIST = `fail.closed.listed@nltag.test,not-an-email`;
+    const res = await requestAccount("fail.closed@nltag.test");
+    expect(res.status).toBe(202); // same generic answer
     expect(await usersWith("fail.closed@nltag.test")).toHaveLength(0);
     expect(mailTo("fail.closed@nltag.test")).toHaveLength(0);
+    const listed = await requestAccount("fail.closed.listed@nltag.test");
+    expect(listed.status).toBe(202);
+    expect(await usersWith("fail.closed.listed@nltag.test")).toHaveLength(0); // listed entries are refused too
+    expect(mailTo("fail.closed.listed@nltag.test")).toHaveLength(0);
   });
 
   it("does not affect sign-in or password reset for existing accounts", async () => {
@@ -67,13 +76,21 @@ describe("staff-only sign-up allowlist", () => {
     expect(mailTo("existing.staff@nltag.test").length).toBeGreaterThanOrEqual(2);
   });
 
-  it("still rate-limits refused sign-ups like real ones", async () => {
+  it("still rate-limits refused requests like real ones (identical status sequences)", async () => {
     process.env.NLTAG_SIGNUP_ALLOWLIST = LISTED;
-    const ip = freshIp();
-    const statuses: number[] = [];
-    for (let i = 0; i < 6; i++) statuses.push((await signUp(`probe${i}@nltag.test`, "correct-horse-battery", ip)).status);
-    expect(statuses.slice(0, 5)).toEqual([200, 200, 200, 200, 200]);
-    expect(statuses[5]).toBe(429);
+    // A concurrent burst, so the per-process limiter's refill cannot depend on how long the
+    // (listed-only) background work takes: the answer must not depend on the address at all.
+    const burst = async (address: (i: number) => string) => {
+      resetAccountRequestLimiterForTests();
+      const res = await Promise.all(Array.from({ length: ACCOUNT_REQUEST_LIMIT.burst + 2 }, (_, i) => requestAccount(address(i))));
+      return res.map((r) => r.status).sort();
+    };
+    const listed = await burst(() => LISTED);
+    const refused = await burst((i) => `probe${i}@nltag.test`);
+    expect(refused).toEqual(listed);
+    expect(listed.filter((s) => s === 202)).toHaveLength(ACCOUNT_REQUEST_LIMIT.burst);
+    expect(listed.filter((s) => s === 429)).toHaveLength(2);
+    expect(await usersWith("probe0@nltag.test")).toHaveLength(0);
   });
 });
 
@@ -122,7 +139,9 @@ describe("first Church Admin bootstrap from NLTAG_BOOTSTRAP_ADMIN_EMAIL", () => 
 
   it("refuses an existing but unverified account", async () => {
     process.env.NLTAG_SIGNUP_ALLOWLIST = base.NLTAG_SIGNUP_ALLOWLIST;
-    await signUp("boot.unverified@nltag.test");
+    // Mailbox-first fixture: the account was requested, but the emailed link was never used.
+    await requestAccount("boot.unverified@nltag.test");
+    expect((await usersWith("boot.unverified@nltag.test"))[0]!.emailVerified).toBe(false);
     const r = await run({ NLTAG_BOOTSTRAP_ADMIN_EMAIL: "boot.unverified@nltag.test" });
     expect(r).toEqual({ granted: false, message: "Admin bootstrap not done: UNVERIFIED" });
     expect(await admins()).toHaveLength(0);

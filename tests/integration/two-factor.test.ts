@@ -5,7 +5,7 @@ import { closeDb, getDb } from "@/server/db/client";
 import { auditLog, session, staffRole, twoFactor, user, verification } from "@/server/db/schema";
 import { bootstrapFirstAdmin, RoleError } from "@/server/services/roles";
 import { base32Decode, freshStep, totp, wrongCode } from "../support/totp";
-import { call, clearRateLimits, cookiesFrom, enrollTwoFactor, freshIp, headersWith, linkIn, mailTo, signIn, signUp, verifiedUser } from "./helpers";
+import { call, clearRateLimits, cookiesFrom, enrollTwoFactor, freshIp, headersWith, linkIn, mailTo, requestAccount, signIn, verifiedUser } from "./helpers";
 
 /**
  * Phase 6b against MariaDB 11.8 through the real Better Auth handler: authenticator enrollment,
@@ -322,18 +322,33 @@ describe("turning two-factor off", () => {
 });
 
 describe("sessions for enrolled accounts only through the challenge", () => {
-  it("blocks the automatic sign-in after an emailed verification link", async () => {
+  // R4 class C (D1): verification links are gone (/verify-email is denied); the only emailed link is
+  // the set-password/reset link. It never signs anyone in, and an enrolled account still needs the
+  // challenge after using it.
+  it("blocks any sign-in from an emailed link: a set-password/reset link never creates a session, and an enrolled account still gets the challenge", async () => {
     const address = email("bypass");
     const ip = freshIp();
-    await signUp(address, PASSWORD, ip);
+    await requestAccount(address);
     const id = await idOf(address);
     // Simulate an account that already has two-factor on when an emailed link is used.
     await getDb().update(user).set({ twoFactorEnabled: true }).where(eq(user.id, id));
     const link = linkIn(mailTo(address).at(-1)!.text);
-    const res = await call(link, { method: "GET", ip });
-    expect(cookiesFrom(res)).not.toMatch(/session_token=[^;]+/);
+    const opened = await call(link, { method: "GET", ip });
+    expect(opened.status).toBe(302);
+    expect(cookiesFrom(opened)).not.toMatch(/session_token=[^;]+/);
+    const token = new URL(opened.headers.get("location")!, "http://localhost:3000").searchParams.get("token")!;
+    const set = await call("/reset-password", { body: { token, newPassword: PASSWORD }, ip });
+    expect(set.status).toBe(200);
+    expect(cookiesFrom(set)).not.toMatch(/session_token=[^;]+/);
     expect(await getDb().select().from(session).where(eq(session.userId, id))).toHaveLength(0);
-    expect(await audits("auth.2fa.bypass_blocked", id)).toHaveLength(1);
+    // The old verification route is closed, so its auto sign-in cannot be reached at all.
+    expect((await call("/verify-email?token=x&callbackURL=%2Fen", { method: "GET", ip })).status).toBe(404);
+    // With the password now set, a correct password alone still stops at the challenge.
+    const step1 = await signIn(address, PASSWORD, freshIp(), { secondFactor: false });
+    expect(step1.res.status).toBe(200);
+    expect(await step1.res.json()).toMatchObject({ twoFactorRedirect: true });
+    expect(step1.cookie).not.toMatch(/session_token=[^;]+/);
+    expect(await getDb().select().from(session).where(eq(session.userId, id))).toHaveLength(0);
   });
 });
 

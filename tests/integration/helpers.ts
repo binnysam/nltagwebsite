@@ -177,11 +177,3 @@ export function restoreEnv(name: string, value: string | undefined) {
   if (value === undefined) delete process.env[name];
   else process.env[name] = value;
 }
-
-/**
- * SCRATCH ONLY (v6 review): the b48261d password sign-up, kept so the unrewritten class C tests
- * compile and fail honestly (the route answers 404). Desktop deletes it when those tests are rewritten.
- */
-export async function signUp(email: string, password = "correct-horse-battery", ip = freshIp(), name = "Test Person A") {
-  return call("/sign-up/email", { body: { email, password, name }, ip });
-}

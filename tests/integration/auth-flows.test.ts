@@ -1,72 +1,101 @@
+import { createHash } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/server/db/client";
-import { auditLog, session, user, verification } from "@/server/db/schema";
+import { account, auditLog, session, user, verification } from "@/server/db/schema";
 import { memoryOutbox } from "@/server/email/transport";
-import { call, clearRateLimits, cookiesFrom, freshIp, linkIn, mailTo, signIn, signUp, verifiedUser } from "./helpers";
+import { call, clearRateLimits, cookiesFrom, freshIp, linkIn, mailTo, newestLinkToken, requestAccount, restoreEnv, signIn, verifiedUser } from "./helpers";
 
 afterAll(closeDb);
 beforeEach(clearRateLimits);
 
-describe("registration and email verification", () => {
-  it("creates an unverified account and sends one bilingual verification email", async () => {
-    const res = await signUp("new.person@nltag.test");
-    expect(res.status).toBe(200);
-    expect(res.headers.getSetCookie().some((c) => c.includes("session_token"))).toBe(false); // no session before verification
+// R4 class C (D1 mailbox-first): registration is an account request through /api/account-request;
+// the emailed set-password link proves the mailbox and sets the first password. Same security
+// properties as the b48261d password sign-up tests, on the surviving mechanism.
+describe("registration (mailbox-first) and email verification", () => {
+  it("an account request creates an unverified account with no password and sends one bilingual set-password email", async () => {
+    const res = await requestAccount("new.person@nltag.test");
+    expect(res.status).toBe(202);
+    expect(res.headers.getSetCookie().some((c) => c.includes("session_token"))).toBe(false); // no session from a request
     const [u] = await getDb().select().from(user).where(eq(user.email, "new.person@nltag.test"));
     expect(u?.emailVerified).toBe(false);
+    expect(await getDb().select().from(account).where(eq(account.userId, u!.id))).toHaveLength(0); // no credential
     const mails = mailTo("new.person@nltag.test");
     expect(mails).toHaveLength(1);
-    expect(mails[0]!.subject).toMatch(/சரிபார்க்கவும்.*Verify your email address/);
-    expect(mails[0]!.text).toContain("/api/auth/verify-email?token=");
+    expect(mails[0]!.subject).toMatch(/அமைக்கவும்.*Set your password/);
+    expect(mails[0]!.text).toMatch(/\/api\/auth\/reset-password\/[A-Za-z0-9]{24}\?callbackURL=%2Fen%2Fset-password/);
+    expect(mails[0]!.html).toContain('lang="ta"');
+    expect(mails[0]!.html).toContain('lang="en"');
   });
 
-  it("blocks sign-in until the email is verified, then the link verifies and signs in", async () => {
-    await signUp("verify.me@nltag.test", "correct-horse-battery");
-    const before = await signIn("verify.me@nltag.test", "correct-horse-battery");
-    expect(before.res.status).toBe(403);
-    const link = linkIn(mailTo("verify.me@nltag.test")[0]!.text);
-    const res = await call(link, { method: "GET" });
-    expect([200, 302]).toContain(res.status);
-    const cookie = cookiesFrom(res);
-    expect(cookie).toContain("nltag.session_token");
-    const s = await call("/get-session", { cookie });
+  it("blocks sign-in until the link is used; the link sets the password and verifies but does not sign in; sign-in then works", async () => {
+    const email = "verify.me@nltag.test";
+    await requestAccount(email);
+    const before = await signIn(email, "correct-horse-battery");
+    expect(before.res.status).toBe(401); // no password exists yet (same answer as a wrong password)
+    const link = linkIn(mailTo(email)[0]!.text);
+    const opened = await call(link, { method: "GET" });
+    expect(opened.status).toBe(302);
+    expect(cookiesFrom(opened)).not.toMatch(/session_token=[^;]+/); // opening the link never signs in
+    const token = new URL(opened.headers.get("location")!, "http://localhost:3000").searchParams.get("token")!;
+    const set = await call("/reset-password", { body: { token, newPassword: "correct-horse-battery" } });
+    expect(set.status).toBe(200);
+    expect(cookiesFrom(set)).not.toMatch(/session_token=[^;]+/); // setting the password never signs in
+    const [u] = await getDb().select().from(user).where(eq(user.email, email));
+    expect(u?.emailVerified).toBe(true);
+    const after = await signIn(email, "correct-horse-battery");
+    expect(after.res.status).toBe(200);
+    const s = await call("/get-session", { cookie: after.cookie });
     const body = (await s.json()) as { user: { email: string; emailVerified: boolean } };
     expect(body.user.emailVerified).toBe(true);
-    const audits = await getDb().select().from(auditLog).where(eq(auditLog.action, "auth.email.verify"));
-    expect(audits.length).toBeGreaterThan(0);
+    const audits = await getDb().select().from(auditLog).where(eq(auditLog.action, "auth.password.reset"));
+    expect(audits.some((a) => a.entityId === u!.id)).toBe(true);
   });
 
-  it("stores verification tokens hashed, never the token from the link", async () => {
-    await signUp("hashed.token@nltag.test");
-    const token = new URL(linkIn(mailTo("hashed.token@nltag.test")[0]!.text)).searchParams.get("token")!;
+  it("stores set-password tokens hashed (sha256 identifier only), never the token from the link", async () => {
+    await requestAccount("hashed.token@nltag.test");
+    const token = new URL(linkIn(mailTo("hashed.token@nltag.test")[0]!.text)).pathname.split("/").at(-1)!;
     const rows = await getDb().select().from(verification);
     const raw = JSON.stringify(rows);
-    // Better Auth email-verification tokens are signed JWTs; reset tokens are random ids stored hashed.
     expect(raw).not.toContain(token);
+    const expected = createHash("sha256").update(`reset-password:${token}`).digest("base64url");
+    expect(rows.filter((r) => r.identifier === expected)).toHaveLength(1);
   });
 
-  it("gives the same response for an address that is already registered (no account discovery)", async () => {
-    const first = await signUp("taken@nltag.test");
-    const again = await signUp("taken@nltag.test", "another-good-password");
-    expect(again.status).toBe(first.status);
-    const a = (await first.json()) as Record<string, unknown>;
-    const b = (await again.json()) as Record<string, unknown>;
-    expect(Object.keys(b).sort()).toEqual(Object.keys(a).sort());
-    const users = await getDb().select().from(user).where(eq(user.email, "taken@nltag.test"));
-    expect(users).toHaveLength(1);
+  it("gives the same response for a new, an already-registered and an unlisted address (no account discovery)", async () => {
+    const saved = process.env.NLTAG_SIGNUP_ALLOWLIST;
+    process.env.NLTAG_SIGNUP_ALLOWLIST = "taken@nltag.test,fresh.one@nltag.test";
+    try {
+      await requestAccount("taken@nltag.test");
+      const observe = async (res: Response) => ({ status: res.status, body: await res.text(), headers: [...res.headers].filter(([k]) => k !== "date").sort() });
+      const again = await observe(await requestAccount("taken@nltag.test"));
+      const fresh = await observe(await requestAccount("fresh.one@nltag.test"));
+      const unlisted = await observe(await requestAccount("unlisted.one@nltag.test"));
+      expect(again.status).toBe(202);
+      expect(fresh).toEqual(again);
+      expect(unlisted).toEqual(again);
+      expect(await getDb().select().from(user).where(eq(user.email, "taken@nltag.test"))).toHaveLength(1);
+      expect(await getDb().select().from(user).where(eq(user.email, "unlisted.one@nltag.test"))).toHaveLength(0);
+    } finally {
+      restoreEnv("NLTAG_SIGNUP_ALLOWLIST", saved);
+    }
   });
 
   it("treats email case as the same account", async () => {
-    await signUp("Case.Test@nltag.test");
-    await signUp("case.test@NLTAG.test", "another-good-password");
+    await requestAccount("Case.Test@nltag.test");
+    await requestAccount("case.test@NLTAG.test");
     const rows = await getDb().execute(sql`SELECT COUNT(*) AS n FROM user WHERE email = 'case.test@nltag.test'`);
     expect(Number((rows[0] as unknown as Array<{ n: number }>)[0]!.n)).toBe(1);
   });
 
-  it("rejects passwords shorter than 10 characters", async () => {
-    const res = await signUp("short.pw@nltag.test", "123456789");
+  it("rejects passwords shorter than 10 characters, and the link still works afterwards", async () => {
+    await requestAccount("short.pw@nltag.test");
+    const token = newestLinkToken("short.pw@nltag.test");
+    const res = await call("/reset-password", { body: { token, newPassword: "123456789" } });
     expect(res.status).toBe(400);
+    expect(((await res.json()) as { code?: string }).code).toBe("PASSWORD_TOO_SHORT");
+    const ok = await call("/reset-password", { body: { token, newPassword: "1234567890" } });
+    expect(ok.status).toBe(200);
   });
 });
 

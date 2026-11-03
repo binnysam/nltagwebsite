@@ -10,7 +10,7 @@ import mysql from "mysql2/promise";
  *   (.env.local: BETTER_AUTH_URL=http://localhost:3100, NLTAG_LOCAL_MAIL_OUTBOX=1, NLTAG_ACCOUNTS_ENABLED=1,
  *    AUTH_RATE_LIMIT=on, NLTAG_SIGNUP_ALLOWLIST=e2e.phone-390@nltag.test,e2e.desktop-1280@nltag.test)
  * `next start` runs in production mode, so the Phase 6a staff-only allowlist applies: the two
- * listed addresses can sign up (their old rows are removed first); any other address cannot.
+ * listed addresses can request an account (their old rows are removed first); any other cannot.
  *   scripts/serve-gallery.sh && E2E_AUTH=1 npm run test:e2e -- auth
  * Skipped otherwise, so the design-system run does not need a database.
  */
@@ -71,26 +71,41 @@ for (const locale of ["ta", "en"] as const) {
   });
 }
 
-test("sign up, verify by email link, see the account, sign out", async ({ page }, info) => {
+// R4 class C (D1 mailbox-first): the create-account form asks only for the address; the emailed
+// set-password link proves the mailbox and sets the first password; it never signs in.
+test("request an account, choose the password from the emailed link, see the account, sign out", async ({ page }, info) => {
   const email = `e2e.${info.project.name}@nltag.test`;
   await page.goto("/en/sign-up");
-  await page.getByLabel(/Full name/).fill("Test Person E2E");
+  await expect(page.getByLabel(/^Password/)).toHaveCount(0); // no password on this form any more
   await page.getByLabel(/Email address/).fill(email);
-  await page.getByLabel(/^Password/).fill("e2e-password-long");
   await page.waitForTimeout(1600); // human fill time; faster submissions are treated as bots
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByRole("status")).toContainText("Check your email");
+  await expect(page.getByText(/within 10 minutes/)).toBeVisible();
 
+  // Before the link is used there is no password: sign-in fails like a wrong password.
   await page.goto("/en/sign-in");
   await page.getByLabel(/Email address/).fill(email);
   await page.getByLabel(/^Password/).fill("e2e-password-long");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.locator("main").getByRole("alert")).toContainText("verify your email");
+  await expect(page.locator("main").getByRole("alert")).toContainText("Email or password is incorrect");
 
-  await expect.poll(() => { try { return latestLinkFor(email); } catch { return ""; } }).toContain("verify-email?token=");
+  await expect.poll(() => { try { return latestLinkFor(email); } catch { return ""; } }).toMatch(/reset-password\/[A-Za-z0-9]{24}\?callbackURL=%2Fen%2Fset-password/);
   await page.goto(latestLinkFor(email));
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your email address is verified.");
+  await page.waitForURL("**/en/set-password?token=*");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Choose your password");
+  await checkPage(page);
+  await page.getByLabel(/New password/).fill("e2e-password-long");
+  await page.getByRole("button", { name: "Save password" }).click();
+  await expect(page.getByRole("status")).toContainText("Your password is set");
+  // The link did not sign anyone in.
   await page.goto("/en/account");
+  await page.waitForURL("**/en/sign-in");
+
+  await page.getByLabel(/Email address/).fill(email);
+  await page.getByLabel(/^Password/).fill("e2e-password-long");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.waitForURL("**/en/account");
   await expect(page.getByText(email)).toBeVisible();
   await checkPage(page);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
@@ -102,9 +117,7 @@ test("sign up, verify by email link, see the account, sign out", async ({ page }
 test("an address that is not on the allowlist gets the same message, and no email", async ({ page }, info) => {
   const email = `unlisted.${info.project.name}.${Date.now()}@nltag.test`;
   await page.goto("/en/sign-up");
-  await page.getByLabel(/Full name/).fill("Not Staff");
   await page.getByLabel(/Email address/).fill(email);
-  await page.getByLabel(/^Password/).fill("e2e-password-long");
   await page.waitForTimeout(1600);
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByRole("status")).toContainText("Check your email");
