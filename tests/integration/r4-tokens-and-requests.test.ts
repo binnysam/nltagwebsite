@@ -87,7 +87,7 @@ describe("R4 change 3: /api/account-request", () => {
       expect(mailTo("burst.r4@nltag.test").length).toBeLessThanOrEqual(3);
       expect(mailTo("burst.r4@nltag.test").length).toBeGreaterThanOrEqual(1);
       const [w] = await getDb().select().from(rateLimitBucket).where(sql`${rateLimitBucket.bucketKey} LIKE 'acct-req:%'`);
-      expect(w?.count).toBe(5);
+      expect(w?.count).toBe(3); // v6.1 §1: 3 per 15 min per listed address
     } finally {
       restoreEnv("NLTAG_SIGNUP_ALLOWLIST", saved);
     }

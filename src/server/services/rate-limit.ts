@@ -197,8 +197,12 @@ export const LIMITS = {
   emailPerAddress: { window: 3600, max: 3 },
   /** Requests through /api/auth/request-password-reset per address (all addresses alike). */
   resetRequestPerAddress: { window: 15 * 60, max: 5 },
-  /** Account requests that reach provisioning, per listed address (decided after the reply). */
-  accountRequestPerAddress: { window: 15 * 60, max: 5 },
+  /**
+   * Account requests that reach provisioning, per listed address (decided after the reply).
+   * v6.1 §1: 3 per 15 min — each provisioned request issues a link, and mail is capped at 3 per
+   * address per hour, so the first window issues exactly as many links as can be delivered.
+   */
+  accountRequestPerAddress: { window: 15 * 60, max: 3 },
   /** Audit rows for refused sign-ins: at most one per account per hour (the refusals still count). */
   signInRefusalAudit: { window: 3600, max: 1 },
   /** Email to an account holder whose account is being throttled: at most one per day. */

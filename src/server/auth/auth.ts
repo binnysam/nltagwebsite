@@ -10,7 +10,7 @@ import { getDb } from "../db/client";
 import * as schema from "../db/schema";
 import { account as accountTable, session as sessionTable, user as userTable, verification as verificationTable } from "../db/schema";
 import { googleConfigured, serverEnv } from "../env";
-import { sendAlertInBackground, sendInBackground } from "../email/send";
+import { sendInBackground } from "../email/send";
 import { SESSION_MAX_AGE_SECONDS } from "../policy/permissions";
 import { audit } from "../services/audit";
 import { consume } from "../services/rate-limit";
@@ -68,7 +68,6 @@ function createAuth() {
   const env = serverEnv();
   const google = googleConfigured(env);
   const isProd = env.NODE_ENV === "production";
-  const rateLimitOn = env.AUTH_RATE_LIMIT === "on";
   warnAboutClientIp(isProd);
 
   return betterAuth({

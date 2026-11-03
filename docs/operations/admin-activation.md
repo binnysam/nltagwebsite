@@ -42,6 +42,9 @@ If a saved variable does not seem to apply (for example the account pages still 
 - [ ] PR #10 is merged and the Hostinger build for that `main` commit **completed** (its log: `No migration requested`, `No admin bootstrap requested`).
 - [ ] Tamil: the 38 Phase 4b and 45 Phase 6b strings are approved (2 Nov 2026, `docs/content/tamil-content-review.md`). Only `auth.google` and `auth.or` stay draft; they appear only if Google sign-in is configured, and it is not.
 - [ ] You have a way to keep the first admin's recovery codes offline (printed and locked away, or in a password manager).
+- [ ] **R4 (Nov 2026):** the R4 v6.1 PR is merged and deployed (gate G-C); the D9 set-password strings, Tamil included, are approved (gate G-D); first Church Admin activation is approved (gate G-E).
+- [ ] **R4:** production `__drizzle_migrations` is confirmed to contain `0003_two_factor` (or § 2 is done first).
+- [ ] **R4 environment checklist** (hPanel → the site's environment variables; names and values checked by the owner, nothing copied out): `CLIENT_IP_SOURCE` is **not set**; none of these test/harness values is present — `NODE_TLS_REJECT_UNAUTHORIZED=0`; a `BETTER_AUTH_SECRET` containing `test-only` or `harness-only`; a `DATABASE_URL` containing `nltag-local-dev-only` or `ci-only`; `SMTP_HOST` of `127.0.0.1`/`localhost`; `SMTP_USER` or `SMTP_PASS` of `harness`. (The site also refuses to start with any of them.) `NLTAG_RECOGNISED_BROWSER_KEY_VERSION` is unset or a positive integer.
 
 ## 1. Fresh database backup
 1. hPanel → Databases → phpMyAdmin → `u339364475_nltag` → **Export** → Custom → all tables, structure and data, SQL → download as `nltag-db-before-admin-YYYYMMDD-HHMM.sql`.
@@ -65,14 +68,16 @@ Add these two variables and save (the app restarts):
 
 Then change `NLTAG_ACCOUNTS_ENABLED` from `0` to `1` and save.
 
-Check (private window): `/ta/sign-in` and `/ta/sign-up` load; `/ta` still has `noindex` (page source contains `noindex, nofollow`); `/admin` sends you to the sign-in page.
+Check (private window): `/ta/sign-in`, `/ta/sign-up` and `/ta/set-password` load; `/ta` still has `noindex` (page source contains `noindex, nofollow`); `/admin` sends you to the sign-in page.
 
-## 4. First admin registers
-The admin opens `https://nltagkuwait.com/ta/sign-up` (or `/en/sign-up`), enters name, the listed address and a password of 10+ characters, and submits. The page says to check email.
+## 4. First admin requests the account (R4 mailbox-first)
+**Only after the owner has approved the D9 Tamil and English set-password strings (gate G-D).**
+The admin opens `https://nltagkuwait.com/ta/sign-up` (or `/en/sign-up`), enters **only** the listed address and submits. The page always says to check email (the same for every address); there is no password on this form.
 
-## 5. Email verification
-1. The verification email, sent through the church's Gmail SMTP, arrives in that mailbox (Tamil and English). Open the link within 24 hours. The page confirms the address is verified and the admin is signed in.
-2. No email within 10 minutes: check spam; check the address matches the allowlist exactly; otherwise roll back (§ 12) and report.
+## 5. Choose the first password from the email
+1. The set-password email ("Set your password", Tamil and English), sent through the church's Gmail SMTP, arrives in that mailbox. Open the link **within 1 hour**; it opens `/ta|en/set-password`. Choose a password of 10+ characters and save. Using the link proves the mailbox: the address is now verified. The link does **not** sign in, and any other set-password or reset link for the account stops working.
+2. Sign in at `/ta/sign-in` with the address and the new password.
+3. No email within 10 minutes: check spam; check the address matches the allowlist exactly; then request again (at most 3 requests per 15 minutes reach the mailbox; at most 3 emails per hour). Still nothing: roll back (§ 12) and report.
 
 ## 6. Authenticator enrollment and verification (the admin, on their phone and computer)
 1. Signed in, open **Account** (`/ta/account`) → **Set up two-factor sign-in** (`/ta/account/two-factor`).
@@ -91,7 +96,7 @@ If the code is refused: check the phone clock is automatic, wait for a new code,
    - `Admin bootstrap: Church Admin role granted. …` → continue.
    - `Admin bootstrap not done: <reason>` → fix the reason, then rebuild again. The deploy itself still succeeds. Reasons you may see:
      - `the account has not set up its authenticator app yet …` → do § 6 first.
-     - `the account's email is not verified yet.` → do § 5.
+     - `the account's email is not verified yet.` → do § 5 (choose the first password from the emailed link).
      - `the address is not on NLTAG_SIGNUP_ALLOWLIST.` → the two values differ.
 
 ## 8. Remove the bootstrap variable immediately

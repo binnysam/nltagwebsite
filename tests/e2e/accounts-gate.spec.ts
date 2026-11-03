@@ -7,7 +7,7 @@ import { expect, test } from "@playwright/test";
  */
 test.skip(process.env.E2E_AUTH === "1", "accounts are switched on for the E2E_AUTH run");
 
-const PAGES = ["sign-in", "sign-up", "forgot-password", "reset-password", "reset-password?token=x", "verify-email", "verify-email?error=x", "account", "two-factor", "account/two-factor"];
+const PAGES = ["sign-in", "sign-up", "forgot-password", "reset-password", "reset-password?token=x", "set-password", "set-password?token=x", "verify-email", "verify-email?error=x", "account", "two-factor", "account/two-factor"];
 
 for (const locale of ["ta", "en"]) {
   for (const path of PAGES) {
@@ -28,6 +28,7 @@ test("auth API is 404 while accounts are off", async ({ request }) => {
     ["POST", "/api/auth/request-password-reset"],
     ["POST", "/api/auth/two-factor/verify-totp"],
     ["POST", "/api/auth/two-factor/enable"],
+    ["POST", "/api/account-request"],
   ] as const) {
     const res = await request.fetch(path, { method, data: method === "POST" ? {} : undefined });
     expect(res.status(), `${method} ${path}`).toBe(404);

@@ -1,4 +1,4 @@
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { getCurrentUser, requirePermission, AuthzError } from "@/server/auth/session";
 import { closeDb, getDb } from "@/server/db/client";

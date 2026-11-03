@@ -5,9 +5,8 @@ import { redirect } from "next/navigation";
 import { Notice } from "@/design-system/components";
 import { Text } from "@/design-system/primitives";
 import { t, type Locale } from "@/content/ui-strings";
-import { getAuth } from "@/server/auth/auth";
+import { recoveryCodeCount } from "@/server/auth/recovery-codes";
 import { getCurrentUser, mustEnrollTwoFactor } from "@/server/auth/session";
-import { log } from "@/server/security/log";
 import { AccountPage } from "../../page-parts";
 import { TwoFactorSetup } from "./TwoFactorSetup";
 
@@ -15,17 +14,6 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
   const { locale } = await params;
   return { title: t("twoFactor.title", locale) };
-}
-
-/** How many recovery codes are left (the codes themselves never leave the server here). */
-async function remainingCodes(userId: string): Promise<number | null> {
-  try {
-    const r = await getAuth().api.viewBackupCodes({ body: { userId } });
-    return Array.isArray(r.backupCodes) ? r.backupCodes.length : null;
-  } catch (error) {
-    log("warn", "two_factor.count_failed", { error });
-    return null;
-  }
 }
 
 /**
@@ -38,7 +26,7 @@ export default async function TwoFactorSettings({ params }: { params: Promise<{ 
   const me = await getCurrentUser(await headers());
   if (!me) redirect(`/${locale}/sign-in`);
   const enabled = me.principal.twoFactorEnabled;
-  const remaining = enabled ? await remainingCodes(me.userId) : null;
+  const remaining = enabled ? await recoveryCodeCount(me.userId) : null;
 
   return (
     <AccountPage
