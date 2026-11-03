@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { getAuth } from "@/server/auth/auth";
 import { closeDb, getDb } from "@/server/db/client";
 import { account, auditLog, session, user, verification } from "@/server/db/schema";
 import { memoryOutbox } from "@/server/email/transport";
-import { call, clearRateLimits, cookiesFrom, freshIp, linkIn, mailTo, newestLinkToken, requestAccount, restoreEnv, signIn, verifiedUser } from "./helpers";
+import { call, clearRateLimits, cookiesFrom, freshIp, headersWith, linkIn, mailTo, newestLinkToken, requestAccount, restoreEnv, signIn, verifiedUser } from "./helpers";
 
 afterAll(closeDb);
 beforeEach(clearRateLimits);
@@ -154,12 +155,15 @@ describe("sessions", () => {
     expect(await (await call("/get-session", { cookie })).json()).toBeNull();
   });
 
-  it("lists own sessions and revokes the others", async () => {
+  // R4 class D (D4/D6): sessions are listed server-side by the account page (getAuth().api);
+  // /list-sessions is the gate's 404. Revoking the others stays a routed endpoint.
+  it("lists own sessions (server-side) and revokes the others; /list-sessions is closed over HTTP", async () => {
     const email = "multi.device@nltag.test";
     await verifiedUser(email, "multi-device-pass");
     const a = (await signIn(email, "multi-device-pass")).cookie;
     const b = (await signIn(email, "multi-device-pass")).cookie;
-    const list = (await (await call("/list-sessions", { cookie: a })).json()) as unknown[];
+    expect((await call("/list-sessions", { method: "GET", cookie: a })).status).toBe(404);
+    const list = (await getAuth().api.listSessions({ headers: headersWith(a) })) as unknown[];
     expect(list.length).toBeGreaterThanOrEqual(2);
     expect((await call("/revoke-other-sessions", { body: {}, cookie: a })).status).toBe(200);
     expect(await (await call("/get-session", { cookie: b })).json()).toBeNull();

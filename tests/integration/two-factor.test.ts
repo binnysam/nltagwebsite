@@ -1,5 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { confirmEnrollment, disableTwoFactor, regenerateRecoveryCodes, startEnrollment } from "@/app/[locale]/(account)/account/two-factor/actions";
+import { getAuth } from "@/server/auth/auth";
 import { getCurrentUser, requirePermission } from "@/server/auth/session";
 import { closeDb, getDb } from "@/server/db/client";
 import { auditLog, session, staffRole, twoFactor, user, verification } from "@/server/db/schema";
@@ -13,6 +15,16 @@ import { call, clearRateLimits, cookiesFrom, enrollTwoFactor, freshIp, headersWi
  * recovery codes, lockout, the Church Admin requirement and the session guard.
  * Fictional @nltag.test accounts only.
  */
+/**
+ * R4 class D: the server actions read the caller's request headers through next/headers. Each test
+ * sets the signed-in browser whose cookie the action sees (the same cookie the page would send).
+ */
+const caller = vi.hoisted(() => ({ headers: new Headers() }));
+vi.mock("next/headers", () => ({ headers: async () => caller.headers }));
+const asCaller = (cookie: string) => {
+  caller.headers = headersWith(cookie);
+};
+
 const PASSWORD = "correct-horse-battery";
 let n = 0;
 const email = (tag: string) => `tf.${tag}.${++n}@nltag.test`;
@@ -57,17 +69,20 @@ describe("migration 0003_two_factor (MariaDB)", () => {
 });
 
 describe("enrollment", () => {
-  it("needs the password, stays off until the first code is confirmed, and stores only ciphertext", async () => {
+  // R4 class D (D6): enrollment exists only as the account page's server actions; the HTTP lanes
+  // (/two-factor/enable, and verify-totp with a session) are the gate's 404.
+  it("needs the password, stays off until the first code is confirmed, and stores only ciphertext (server actions only)", async () => {
     const address = email("enroll");
     const cookie = await verifiedUser(address, PASSWORD);
     const id = await idOf(address);
+    asCaller(cookie);
 
-    const wrong = await call("/two-factor/enable", { body: { password: "not-the-password" }, cookie });
-    expect(wrong.status).toBe(400);
+    expect((await call("/two-factor/enable", { body: { password: PASSWORD }, cookie })).status).toBe(404);
+    expect(await startEnrollment("not-the-password")).toEqual({ ok: false, error: "twoFactor.error.password" });
 
-    const ok = await call("/two-factor/enable", { body: { password: PASSWORD }, cookie });
-    expect(ok.status).toBe(200);
-    const { totpURI, backupCodes } = (await ok.json()) as { totpURI: string; backupCodes: string[] };
+    const ok = await startEnrollment(PASSWORD);
+    expect(ok.ok).toBe(true);
+    const { uri: totpURI, codes: backupCodes } = ok as { uri: string; codes: string[] };
     const uri = new URL(totpURI);
     expect(uri.protocol).toBe("otpauth:");
     expect(uri.searchParams.get("issuer")).toBe("NLTAG");
@@ -87,13 +102,15 @@ describe("enrollment", () => {
     expect(((await before.res.json()) as { twoFactorRedirect?: boolean }).twoFactorRedirect).toBeUndefined();
 
     // A wrong first code leaves it off.
-    const bad = await call("/two-factor/verify-totp", { body: { code: wrongCode(secret) }, cookie });
-    expect(bad.status).toBe(401);
+    expect(await confirmEnrollment(wrongCode(secret))).toEqual({ ok: false, error: "twoFactor.error.code" });
     expect((await getDb().select({ on: user.twoFactorEnabled }).from(user).where(eq(user.id, id)))[0]!.on).toBe(false);
 
+    // A correct code over HTTP with the session (no sign-in challenge) never reaches Better Auth.
     await freshStep();
-    const good = await call("/two-factor/verify-totp", { body: { code: totp(secret) }, cookie });
-    expect(good.status).toBe(200);
+    expect((await call("/two-factor/verify-totp", { body: { code: totp(secret) }, cookie })).status).toBe(404);
+    expect((await getDb().select({ on: user.twoFactorEnabled }).from(user).where(eq(user.id, id)))[0]!.on).toBe(false);
+
+    expect(await confirmEnrollment(totp(secret))).toEqual({ ok: true });
     expect((await getDb().select({ on: user.twoFactorEnabled }).from(user).where(eq(user.id, id)))[0]!.on).toBe(true);
     expect((await getDb().select().from(twoFactor).where(eq(twoFactor.userId, id)))[0]!.verified).toBe(true);
     expect(await audits("auth.2fa.enroll_start", id)).toHaveLength(1);
@@ -113,11 +130,14 @@ describe("enrollment", () => {
     expect(await getDb().select().from(session).where(eq(session.userId, now!.user.id))).toHaveLength(1);
   });
 
-  it("refuses emailed codes and a second enrollment over an active one", async () => {
+  it("refuses emailed codes and a second enrollment over an active one (server API and action; HTTP closed)", async () => {
     const { cookie } = await enrolled("otp");
-    expect((await call("/two-factor/enable", { body: { password: PASSWORD, method: "otp" }, cookie })).status).toBe(400);
-    const again = await call("/two-factor/enable", { body: { password: PASSWORD }, cookie });
-    expect(again.status).toBe(400);
+    asCaller(cookie);
+    await expect(getAuth().api.enableTwoFactor({ headers: headersWith(cookie), body: { password: PASSWORD, method: "otp" } as never })).rejects.toMatchObject({ body: { code: "TOTP_ONLY" } });
+    expect(await startEnrollment(PASSWORD)).toEqual({ ok: false, error: "auth.error.generic" });
+    for (const body of [{ password: PASSWORD, method: "otp" }, { password: PASSWORD }]) {
+      expect((await call("/two-factor/enable", { body, cookie })).status).toBe(404);
+    }
   });
 
   it("never hands out the secret again (get-totp-uri is switched off) and ignores send-otp", async () => {
@@ -260,19 +280,20 @@ describe("recovery codes", () => {
     expect([ra.status, rb.status].filter((s) => s === 200)).toHaveLength(1);
   });
 
-  it("new codes need the password AND a current code, and replace every old code", async () => {
+  it("new codes need the password AND a current code, and replace every old code (server action; HTTP closed)", async () => {
     const { cookie, secret, backupCodes, id, address } = await enrolled("regen");
-    const noCode = await call("/two-factor/generate-backup-codes", { body: { password: PASSWORD }, cookie });
-    expect(noCode.status).toBe(401);
-    expect(await errorCode(noCode)).toBe("INVALID_SECOND_FACTOR");
+    asCaller(cookie);
+    expect((await call("/two-factor/generate-backup-codes", { body: { password: PASSWORD }, cookie })).status).toBe(404);
+    // No code: refused by the action, and by the auth.ts hook if the API is called without one.
+    expect(await regenerateRecoveryCodes(PASSWORD, "")).toEqual({ ok: false, error: "twoFactor.error.code" });
+    await expect(getAuth().api.generateBackupCodes({ headers: headersWith(cookie), body: { password: PASSWORD } })).rejects.toMatchObject({ body: { code: "INVALID_SECOND_FACTOR" } });
     await freshStep();
-    const wrongPassword = await call("/two-factor/generate-backup-codes", { body: { password: "nope-nope-nope", code: totp(secret) }, cookie });
-    expect(wrongPassword.status).toBe(400);
+    expect(await regenerateRecoveryCodes("nope-nope-nope", totp(secret))).toEqual({ ok: false, error: "twoFactor.error.password" });
     await clearRateLimits();
     await freshStep();
-    const ok = await call("/two-factor/generate-backup-codes", { body: { password: PASSWORD, code: totp(secret) }, cookie });
-    expect(ok.status).toBe(200);
-    const fresh = ((await ok.json()) as { backupCodes: string[] }).backupCodes;
+    const ok = await regenerateRecoveryCodes(PASSWORD, totp(secret));
+    expect(ok.ok).toBe(true);
+    const fresh = (ok as { codes: string[] }).codes;
     expect(fresh).toHaveLength(10);
     expect(fresh.some((c) => backupCodes.includes(c))).toBe(false);
     expect(await audits("auth.2fa.recovery_codes.regenerate", id)).toHaveLength(1);
@@ -284,40 +305,42 @@ describe("recovery codes", () => {
 });
 
 describe("turning two-factor off", () => {
-  it("needs the password and a current code; then it is off and audited", async () => {
+  it("needs the password and a current code; then it is off and audited (server action; HTTP closed)", async () => {
     const { cookie, secret, id } = await enrolled("disable");
-    const passwordOnly = await call("/two-factor/disable", { body: { password: PASSWORD }, cookie });
-    expect(passwordOnly.status).toBe(401);
+    asCaller(cookie);
+    expect((await call("/two-factor/disable", { body: { password: PASSWORD }, cookie })).status).toBe(404);
+    await expect(getAuth().api.disableTwoFactor({ headers: headersWith(cookie), body: { password: PASSWORD } })).rejects.toMatchObject({ body: { code: "INVALID_SECOND_FACTOR" } });
     await freshStep();
-    const codeOnly = await call("/two-factor/disable", { body: { password: "wrong-password-x", code: totp(secret) }, cookie });
-    expect(codeOnly.status).toBe(400);
+    expect(await disableTwoFactor("wrong-password-x", totp(secret))).toEqual({ ok: false, error: "twoFactor.error.password" });
     expect((await getDb().select({ on: user.twoFactorEnabled }).from(user).where(eq(user.id, id)))[0]!.on).toBe(true);
     expect((await audits("auth.2fa.manage_fail", id)).length).toBeGreaterThanOrEqual(2);
 
     await clearRateLimits();
     await freshStep();
-    const ok = await call("/two-factor/disable", { body: { password: PASSWORD, code: totp(secret) }, cookie });
-    expect(ok.status).toBe(200);
+    expect(await disableTwoFactor(PASSWORD, totp(secret))).toEqual({ ok: true });
     expect((await getDb().select({ on: user.twoFactorEnabled }).from(user).where(eq(user.id, id)))[0]!.on).toBe(false);
     expect(await getDb().select().from(twoFactor).where(eq(twoFactor.userId, id))).toHaveLength(0);
     expect(await audits("auth.2fa.disable", id)).toHaveLength(1);
   });
 
-  it("accepts a recovery code as the second factor (lost phone), and uses it up", async () => {
+  it("accepts a recovery code as the second factor (lost phone), and uses it up (server action)", async () => {
     const { cookie, backupCodes, id } = await enrolled("lostphone");
-    const ok = await call("/two-factor/disable", { body: { password: PASSWORD, code: backupCodes[9] }, cookie });
-    expect(ok.status).toBe(200);
+    asCaller(cookie);
+    expect(await disableTwoFactor(PASSWORD, backupCodes[9]!)).toEqual({ ok: true });
     expect((await getDb().select({ on: user.twoFactorEnabled }).from(user).where(eq(user.id, id)))[0]!.on).toBe(false);
+    expect(await getDb().select().from(twoFactor).where(eq(twoFactor.userId, id))).toHaveLength(0);
   });
 
-  it("allows at most 5 management attempts per account in 15 minutes", async () => {
-    const { cookie, secret } = await enrolled("managelimit");
-    const statuses: number[] = [];
-    for (let i = 0; i < 6; i++) {
-      statuses.push((await call("/two-factor/disable", { body: { password: PASSWORD, code: wrongCode(secret) }, cookie, ip: freshIp() })).status);
-    }
-    expect(statuses.slice(0, 5).every((s) => s === 401)).toBe(true);
-    expect(statuses[5]).toBe(429);
+  it("allows at most 5 management attempts per account in 15 minutes (server action)", async () => {
+    const { cookie, secret, id } = await enrolled("managelimit");
+    asCaller(cookie);
+    const results = [];
+    for (let i = 0; i < 6; i++) results.push(await disableTwoFactor(PASSWORD, wrongCode(secret)));
+    expect(results.slice(0, 5)).toEqual(Array(5).fill({ ok: false, error: "twoFactor.error.code" }));
+    expect(results[5]).toEqual({ ok: false, error: "auth.error.rateLimited" });
+    const fails = await audits("auth.2fa.manage_fail", id);
+    expect(fails.some((r) => r.reason === "two-factor/disable:429")).toBe(true);
+    expect((await getDb().select({ on: user.twoFactorEnabled }).from(user).where(eq(user.id, id)))[0]!.on).toBe(true);
   });
 });
 
