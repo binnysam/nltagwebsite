@@ -26,6 +26,8 @@ export default defineConfig({
       BETTER_AUTH_SECRET: "test-only-secret-not-used-anywhere-else-0123456789",
       BETTER_AUTH_URL: "http://localhost:3000",
       AUTH_RATE_LIMIT: "on",
+      // The route returns 404 without it (src/server/accounts-gate.ts); tests go through the route.
+      NLTAG_ACCOUNTS_ENABLED: "1",
       // The layout Hostinger documents for its CDN (docs/backend/client-ip.md).
       CLIENT_IP_SOURCE: "forwarded-chain",
       CLIENT_IP_PROXY_HOPS: "0",

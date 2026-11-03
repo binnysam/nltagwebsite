@@ -1,0 +1,76 @@
+import "server-only";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
+import { getDb } from "../db/client";
+import { user as userTable } from "../db/schema";
+import { serverEnv } from "../env";
+import { hashEmail } from "../security/hash";
+import { log } from "../security/log";
+import { ProcessLimiter } from "../security/process-limiter";
+import { LIMITS, reserveWindow } from "../services/rate-limit";
+import { getAuth } from "./auth";
+import { normaliseEmail, signupAllowed, signupPolicy } from "./signup-allowlist";
+
+/**
+ * Mailbox-first account request (R4, D1). The reply is decided before anything about the address
+ * is looked at, so it is identical for listed, unlisted, new and existing addresses. Work happens
+ * after the reply, and only for listed addresses: a window per address (5 per 15 min, in MariaDB,
+ * all processes), then a set-password link (or, for an existing account, a reset link) under the
+ * normal mail caps (3 per address per hour, EMAIL_DAILY_CAP per 24 h).
+ */
+export const ACCOUNT_REQUEST_LIMIT = { ratePerSecond: 5, burst: 20 } as const;
+let limiter = new ProcessLimiter(ACCOUNT_REQUEST_LIMIT);
+export const resetAccountRequestLimiterForTests = () => {
+  limiter = new ProcessLimiter(ACCOUNT_REQUEST_LIMIT);
+};
+
+const schema = z.strictObject({ email: z.email().max(254), locale: z.enum(["ta", "en"]) });
+
+const reply = (status: number, body: unknown, headers: Record<string, string> = {}) =>
+  new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...headers } });
+
+const pending = new Set<Promise<unknown>>();
+export async function flushAccountRequestsForTests() {
+  while (pending.size) await Promise.all([...pending]);
+}
+
+export async function handleAccountRequest(req: Request): Promise<Response> {
+  if (req.headers.get("origin") !== new URL(serverEnv().BETTER_AUTH_URL).origin) return reply(403, { code: "INVALID_ORIGIN" });
+  if (!(req.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) return reply(400, { code: "INVALID_REQUEST" });
+  const text = await req.text();
+  if (Buffer.byteLength(text) > 2048) return reply(400, { code: "INVALID_REQUEST" });
+  let parsed;
+  try {
+    parsed = schema.safeParse(JSON.parse(text));
+  } catch {
+    return reply(400, { code: "INVALID_REQUEST" });
+  }
+  if (!parsed.success) return reply(400, { code: "INVALID_REQUEST" });
+  // Address-independent: the same for everyone, so it cannot tell listed from unlisted.
+  if (!limiter.take()) return reply(429, { code: "TOO_MANY_REQUESTS" }, { "Retry-After": String(limiter.retryAfterSeconds()) });
+  const { email, locale } = parsed.data;
+  const job = provision(email, locale).catch((error) => log("error", "account_request.failed", { error }));
+  pending.add(job);
+  void job.finally(() => pending.delete(job));
+  return reply(202, { status: "ok" });
+}
+
+async function provision(email: string, locale: "ta" | "en") {
+  const policy = signupPolicy();
+  if (policy.kind === "closed" || !signupAllowed(email, policy)) return; // no query, no row, no mail
+  const window = await reserveWindow(`acct-req:${hashEmail(email)}`, LIMITS.accountRequestPerAddress);
+  if (!window.allowed) return;
+  const address = normaliseEmail(email);
+  const [existing] = await getDb().select({ id: userTable.id }).from(userTable).where(eq(userTable.email, address)).limit(1);
+  if (!existing) {
+    const ctx = await getAuth().$context;
+    try {
+      await ctx.internalAdapter.createUser({ email: address, name: "", emailVerified: false }, { method: "email-password" });
+    } catch (error) {
+      // A concurrent request created it first (unique index); carry on with the existing row.
+      const [again] = await getDb().select({ id: userTable.id }).from(userTable).where(eq(userTable.email, address)).limit(1);
+      if (!again) throw error;
+    }
+  }
+  await getAuth().api.requestPasswordReset({ body: { email: address, redirectTo: `/${locale}/reset-password` } });
+}

@@ -1,7 +1,7 @@
 import { churchName } from "@/content/church";
 import { t, uiStrings, type Locale, type UiStringKey } from "@/content/ui-strings";
 
-export type EmailKind = "verify" | "reset";
+export type EmailKind = "verify" | "reset" | "set-password";
 
 export interface RenderedEmail {
   subject: string;
@@ -12,6 +12,8 @@ export interface RenderedEmail {
 const KEYS: Record<EmailKind, { subject: UiStringKey; body: UiStringKey }> = {
   verify: { subject: "email.verify.subject", body: "email.verify.body" },
   reset: { subject: "email.reset.subject", body: "email.reset.body" },
+  // PROTOTYPE ONLY: reuses the reset strings until D9 strings exist (email.setPassword.*).
+  "set-password": { subject: "email.reset.subject", body: "email.reset.body" },
 };
 
 export const escapeHtml = (s: string) =>

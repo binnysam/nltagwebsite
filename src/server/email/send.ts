@@ -5,7 +5,7 @@ import { serverEnv } from "../env";
 import { hashEmail } from "../security/hash";
 import { log } from "../security/log";
 import { audit } from "../services/audit";
-import { consume, LIMITS } from "../services/rate-limit";
+import { consume, LIMITS, releaseWindow, reserveWindow } from "../services/rate-limit";
 import { renderAlertEmail, renderEmail, type AlertKind, type EmailKind, type RenderedEmail } from "./templates";
 import { getTransport } from "./transport";
 
@@ -43,26 +43,34 @@ export async function sendAlertEmail(kind: AlertKind, to: string, userId?: strin
 
 async function deliver(kind: EmailKind | AlertKind, to: string, render: () => RenderedEmail, userId?: string): Promise<SendOutcome> {
   const now = Date.now();
-  const perAddress = await consume(`email:${kind}:${hashEmail(to)}`, LIMITS.emailPerAddress, now);
-  if (!perAddress.allowed) {
+  // F11: reserve (never consume) so a concurrent burst gets exactly the cap, not zero.
+  const slotKey = `email:${kind}:${hashEmail(to)}`;
+  const slot = await reserveWindow(slotKey, LIMITS.emailPerAddress, now);
+  if (!slot.allowed) {
     await audit({ actorUserId: userId, action: "email.suppress", outcome: "DENIED", entity: "email", reason: `${kind}:per-address-limit` });
     return "suppressed";
   }
   if ((await sentInLast24h(now)) >= serverEnv().EMAIL_DAILY_CAP) {
+    await releaseWindow(slotKey, slot.windowStart);
     await audit({ actorUserId: userId, action: "email.suppress", outcome: "DENIED", entity: "email", reason: `${kind}:daily-cap` });
     log("warn", "email.daily_cap_reached", { kind });
     return "suppressed";
   }
+  const globalWindow = Math.floor(now / (HOUR * 1000)) * HOUR * 1000;
   await consume(GLOBAL_KEY, { window: HOUR, max: Number.MAX_SAFE_INTEGER }, now, 24 * HOUR);
   try {
     await getTransport().send({ to, ...render() });
-    await audit({ actorUserId: userId, action: "email.send", entity: "email", reason: kind });
-    return "sent";
   } catch (error) {
+    // R5: nothing was delivered, so give back the address slot and the daily-cap count. A failure
+    // during an SMTP outage must not lock the address out for the rest of the hour.
+    await releaseWindow(slotKey, slot.windowStart).catch(() => undefined);
+    await releaseWindow(GLOBAL_KEY, globalWindow).catch(() => undefined);
     log("error", "email.send_failed", { kind, error });
     await audit({ actorUserId: userId, action: "email.fail", outcome: "FAILURE", entity: "email", reason: kind });
     return "failed";
   }
+  await audit({ actorUserId: userId, action: "email.send", entity: "email", reason: kind });
+  return "sent";
 }
 
 /**

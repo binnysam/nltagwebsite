@@ -41,8 +41,30 @@ export const RECOGNISED_BROWSER_COOKIE_PATH = "/api/auth";
 export const recognisedBrowserCookieOptions = (isProd: boolean) =>
   ({ httpOnly: true, secure: isProd, sameSite: "strict", path: RECOGNISED_BROWSER_COOKIE_PATH, maxAge: RECOGNISED_BROWSER_MAX_AGE_SECONDS }) as const;
 
+/**
+ * Revocation without touching BETTER_AUTH_SECRET (R6): NLTAG_RECOGNISED_BROWSER_KEY_VERSION (a
+ * positive integer, default 1) is part of the HMAC key derivation. Raising it in hPanel and
+ * restarting makes every existing token fail verification; sessions, authenticator secrets and
+ * recovery codes are untouched. Lowering it again restores the old tokens, so only ever raise it.
+ */
+export function recognisedBrowserKeyVersion(env: NodeJS.ProcessEnv = process.env): number | "invalid" {
+  const raw = env.NLTAG_RECOGNISED_BROWSER_KEY_VERSION?.trim();
+  if (!raw) return 1;
+  return /^[1-9][0-9]{0,8}$/.test(raw) ? Number(raw) : "invalid";
+}
+
+/** A mistyped version must never break sign-in: it revokes everything instead (fail closed). */
+const invalidVersionKey = randomBytes(32);
+let invalidWarned = false;
+
 function mac(emailHash: string, issuedAt: number, id: string): string {
-  return createHmac("sha256", serverEnv().BETTER_AUTH_SECRET).update(`recognised-browser:v${VERSION}|${emailHash}|${issuedAt}|${id}`).digest("base64url").slice(0, 32);
+  const version = recognisedBrowserKeyVersion();
+  if (version === "invalid" && !invalidWarned) {
+    invalidWarned = true;
+    console.warn("NLTAG_RECOGNISED_BROWSER_KEY_VERSION is not a positive integer; no recognised browser is accepted until it is fixed.");
+  }
+  const key = version === "invalid" ? invalidVersionKey : createHmac("sha256", serverEnv().BETTER_AUTH_SECRET).update(`nltag:recognised-browser-key:${version}`).digest();
+  return createHmac("sha256", key).update(`recognised-browser:v${VERSION}|${emailHash}|${issuedAt}|${id}`).digest("base64url").slice(0, 32);
 }
 
 export function issueRecognisedBrowserToken(emailHash: string, now = Date.now()): string {
@@ -53,6 +75,10 @@ export function issueRecognisedBrowserToken(emailHash: string, now = Date.now())
 
 /** The random id of the first valid, unexpired token for this address, or null. */
 export function recognisedBrowserId(cookieValue: string | null | undefined, emailHash: string, now = Date.now()): string | null {
+  if (recognisedBrowserKeyVersion() === "invalid") {
+    mac(emailHash, 0, ""); // logs the configuration problem once
+    return null; // fail closed: a mistyped version revokes everything and never breaks sign-in
+  }
   for (const token of splitTokens(cookieValue)) {
     const [v, iat, id, sig] = token.split(".");
     if (v !== VERSION || !iat || !/^\d{1,12}$/.test(iat) || !id || !ID_PATTERN.test(id) || !sig) continue;

@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/server/db/client";
-import { account, auditLog, staffRole, user } from "@/server/db/schema";
+import { account, auditLog, staffRole, twoFactor as twoFactorTable, user } from "@/server/db/schema";
 import { runEnvBootstrap } from "@/server/services/env-bootstrap";
 import { bootstrapFirstAdmin, RoleError } from "@/server/services/roles";
 import { call, clearRateLimits, enrollTwoFactor, freshIp, mailTo, signIn, signUp, verifiedUser } from "./helpers";
@@ -98,8 +98,22 @@ describe("first Church Admin bootstrap from NLTAG_BOOTSTRAP_ADMIN_EMAIL", () => 
     await getDb().delete(staffRole);
   });
 
+  /** Isolation: each test builds the account state it needs instead of inheriting it. */
+  async function bootAdmin(twoFactor: boolean) {
+    if ((await usersWith(ADMIN)).length === 0) await verifiedUser(ADMIN);
+    const [u] = await usersWith(ADMIN);
+    if (twoFactor && !u!.twoFactorEnabled) {
+      const { cookie } = await signIn(ADMIN, "correct-horse-battery");
+      await enrollTwoFactor(cookie);
+    }
+    if (!twoFactor && u!.twoFactorEnabled) {
+      await getDb().delete(twoFactorTable).where(eq(twoFactorTable.userId, u!.id));
+      await getDb().update(user).set({ twoFactorEnabled: false }).where(eq(user.id, u!.id));
+    }
+  }
+
   it("is a no-op without the variable", async () => {
-    await verifiedUser(ADMIN);
+    await bootAdmin(false);
     const r = await run();
     expect(r.granted).toBe(false);
     expect(r.message).toMatch(/^No admin bootstrap requested/);
@@ -123,6 +137,7 @@ describe("first Church Admin bootstrap from NLTAG_BOOTSTRAP_ADMIN_EMAIL", () => 
   });
 
   it("refuses a verified, listed account that has not set up two-factor (Phase 6b)", async () => {
+    await bootAdmin(false);
     const r = await run({ NLTAG_BOOTSTRAP_ADMIN_EMAIL: ADMIN });
     expect(r).toEqual({ granted: false, message: "Admin bootstrap not done: NO_TWO_FACTOR" });
     expect(await admins()).toHaveLength(0);
@@ -130,8 +145,7 @@ describe("first Church Admin bootstrap from NLTAG_BOOTSTRAP_ADMIN_EMAIL", () => 
 
   it("grants once with an audit row, then is idempotent", async () => {
     // Phase 6b: the first admin enrolls an authenticator before the bootstrap build.
-    const { cookie } = await signIn(ADMIN, "correct-horse-battery");
-    await enrollTwoFactor(cookie);
+    await bootAdmin(true);
     const first = await run({ NLTAG_BOOTSTRAP_ADMIN_EMAIL: " Boot.Admin@NLTAG.test " });
     expect(first.granted).toBe(true);
     const [u] = await usersWith(ADMIN);
@@ -149,6 +163,7 @@ describe("first Church Admin bootstrap from NLTAG_BOOTSTRAP_ADMIN_EMAIL", () => 
   });
 
   it("two concurrent runs grant exactly one admin", async () => {
+    await bootAdmin(true);
     const results = await Promise.all([run({ NLTAG_BOOTSTRAP_ADMIN_EMAIL: ADMIN }), run({ NLTAG_BOOTSTRAP_ADMIN_EMAIL: ADMIN })]);
     expect(results.filter((r) => r.granted)).toHaveLength(1);
     expect(await admins()).toHaveLength(1);

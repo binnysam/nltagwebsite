@@ -143,6 +143,49 @@ export async function releaseAttempt(key: string): Promise<void> {
   await getDb().execute(sql`UPDATE rate_limit_bucket SET count = IF(count > 0, count - 1, 0) WHERE bucket_key = ${key} AND window_start = ${THROTTLE_ROW}`);
 }
 
+
+/**
+ * Fixed-window reservation (R4, F11): one conditional statement counts this call only while the
+ * window still has room, so a concurrent burst of any size gets exactly `max` reservations (unlike
+ * consume(), which counts refused calls too and lets a burst burn the whole window). Returns the
+ * window it reserved in, so releaseWindow() gives back exactly that slot.
+ */
+export interface WindowReservation {
+  allowed: boolean;
+  windowStart: number;
+  retryAfterSeconds: number;
+}
+
+export async function reserveWindow(key: string, rule: RateRule, now = Date.now()): Promise<WindowReservation> {
+  if (key.length > 191) throw new Error("rate-limit key too long");
+  const windowMs = rule.window * 1000;
+  const windowStart = Math.floor(now / windowMs) * windowMs;
+  const db = getDb();
+  await db.execute(sql`INSERT IGNORE INTO rate_limit_bucket (bucket_key, window_start, count, expires_at) VALUES (${key}, ${windowStart}, 0, ${new Date(windowStart + windowMs)})`);
+  const [result] = (await db.execute(
+    sql`UPDATE rate_limit_bucket SET count = count + 1 WHERE bucket_key = ${key} AND window_start = ${windowStart} AND count < ${rule.max}`,
+  )) as unknown as [{ affectedRows: number }];
+  return { allowed: result.affectedRows === 1, windowStart, retryAfterSeconds: Math.max(1, Math.ceil((windowStart + windowMs - now) / 1000)) };
+}
+
+/** Gives back one reservation in the window reserveWindow() returned. Never below zero. */
+export async function releaseWindow(key: string, windowStart: number): Promise<void> {
+  await getDb().execute(sql`UPDATE rate_limit_bucket SET count = IF(count > 0, count - 1, 0) WHERE bucket_key = ${key} AND window_start = ${windowStart}`);
+}
+
+/**
+ * Opportunistic cleanup (R4): b48261d never called purgeExpiredBuckets(), so expired rows stayed
+ * forever. The gate calls this on its requests; it deletes at most `batch` expired rows, at most
+ * once a minute per process, so a flood of unique addresses cannot grow the table without bound.
+ */
+let lastPurge = 0;
+export async function purgeExpiredBucketsSometimes(now = Date.now(), batch = 5000): Promise<number> {
+  if (now - lastPurge < 60_000) return 0;
+  lastPurge = now;
+  const [r] = (await getDb().execute(sql`DELETE FROM rate_limit_bucket WHERE expires_at < ${new Date(now)} LIMIT ${batch}`)) as unknown as [{ affectedRows: number }];
+  return r.affectedRows;
+}
+
 /** Nightly cleanup (called by the cron route in Phase 4e). */
 export async function purgeExpiredBuckets(now = new Date()) {
   await getDb().delete(rateLimitBucket).where(lt(rateLimitBucket.expiresAt, now));
@@ -152,6 +195,10 @@ export async function purgeExpiredBuckets(now = new Date()) {
 export const LIMITS = {
   /** Verification or reset emails to one address. */
   emailPerAddress: { window: 3600, max: 3 },
+  /** Requests through /api/auth/request-password-reset per address (all addresses alike). */
+  resetRequestPerAddress: { window: 15 * 60, max: 5 },
+  /** Account requests that reach provisioning, per listed address (decided after the reply). */
+  accountRequestPerAddress: { window: 15 * 60, max: 5 },
   /** Audit rows for refused sign-ins: at most one per account per hour (the refusals still count). */
   signInRefusalAudit: { window: 3600, max: 1 },
   /** Email to an account holder whose account is being throttled: at most one per day. */
@@ -168,8 +215,8 @@ export const LIMITS = {
  *    schedule, so attacks on the shared budget cannot lock the account holder out of it.
  */
 export const THROTTLES = {
-  signInAccount: { free: 5, baseDelay: 30, maxDelay: 15 * 60, resetSeconds: 3600 },
-  signInRecognisedBrowser: { free: 5, baseDelay: 30, maxDelay: 15 * 60, resetSeconds: 3600 },
+  signInAccount: { free: 5, baseDelay: 30, maxDelay: 15 * 60, resetSeconds: 3 * 3600 },
+  signInRecognisedBrowser: { free: 5, baseDelay: 30, maxDelay: 15 * 60, resetSeconds: 3 * 3600 },
 } as const satisfies Record<string, ThrottleRule>;
 
 /** Bucket key for THROTTLES.signInAccount. `emailHash` is hashEmail(address). */

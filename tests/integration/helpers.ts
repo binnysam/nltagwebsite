@@ -1,9 +1,13 @@
 import { sql } from "drizzle-orm";
+import { GET as routeGET, POST as routePOST } from "@/app/api/auth/[...all]/route";
+import { POST as accountRequestPOST } from "@/app/api/account-request/route";
 import { getAuth } from "@/server/auth/auth";
+import { flushAccountRequestsForTests } from "@/server/auth/request-account";
+import { staffRole, user } from "@/server/db/schema";
+import { inArray } from "drizzle-orm";
 import { getDb } from "@/server/db/client";
 import { flushEmailQueueForTests } from "@/server/email/send";
 import { memoryOutbox } from "@/server/email/transport";
-import { withTrustedClientIpRequest } from "@/server/security/client-ip";
 import { SEED_TOTP_SECRET, SEED_USERS } from "../../scripts/db/seed";
 import { base32Decode, freshStep, totp } from "../support/totp";
 
@@ -37,11 +41,10 @@ export async function call(path: string, opts: CallOptions = {}) {
   if (opts.body !== undefined) headers.set("content-type", "application/json");
   for (const [k, v] of Object.entries(opts.headers ?? {})) headers.set(k, v);
   const url = path.startsWith("http") ? path : `${ORIGIN}/api/auth${path}`;
-  const res = await getAuth().handler(
-    withTrustedClientIpRequest(
-      new Request(url, { method: opts.method ?? (opts.body !== undefined ? "POST" : "GET"), headers, body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined, redirect: "manual" }),
-    ),
-  );
+  // Through the real /api/auth route (accounts gate + everything the route does), never
+  // getAuth().handler directly: protection that lives in the route must be under test.
+  const req = new Request(url, { method: opts.method ?? (opts.body !== undefined ? "POST" : "GET"), headers, body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined, redirect: "manual" });
+  const res = await (req.method === "GET" ? routeGET : routePOST)(req);
   await flushEmailQueueForTests();
   return res;
 }
@@ -67,19 +70,44 @@ export function linkIn(text: string): string {
   return m[0];
 }
 
-export async function signUp(email: string, password = "correct-horse-battery", ip = freshIp(), name = "Test Person A") {
-  return call("/sign-up/email", { body: { email, password, name }, ip });
+/**
+ * R4 mailbox-first account request (replaces password sign-up). Same origin, JSON, through the
+ * real /api/account-request route; waits for the background job and its mail.
+ */
+export async function requestAccount(email: string, locale: "ta" | "en" = "en") {
+  const res = await accountRequestPOST(
+    new Request(`${ORIGIN}/api/account-request`, { method: "POST", headers: { "content-type": "application/json", origin: ORIGIN }, body: JSON.stringify({ email, locale }) }),
+  );
+  await flushAccountRequestsForTests();
+  await flushEmailQueueForTests();
+  return res;
 }
 
-/** Signs up, verifies by the emailed link and returns the session cookie. */
-export async function verifiedUser(email: string, password = "correct-horse-battery") {
-  const ip = freshIp();
-  await signUp(email, password, ip);
+/** The set-password/reset token in the newest mail to this address. */
+export function newestLinkToken(email: string): string {
   const mail = mailTo(email).at(-1);
-  if (!mail) throw new Error("verification email missing");
-  const res = await call(linkIn(mail.text), { method: "GET", ip });
-  const cookie = cookiesFrom(res);
-  if (!cookie.includes("session_token")) throw new Error(`verification did not sign in (${res.status})`);
+  if (!mail) throw new Error("set-password email missing");
+  return new URL(linkIn(mail.text)).pathname.split("/").at(-1)!;
+}
+
+/**
+ * Mailbox-first fixture: request → set-password link → first password → sign in. The address is
+ * put on the allowlist only for the request (eligibility only, D8), then the list is restored.
+ * Returns the session cookie, as the old sign-up fixture did.
+ */
+export async function verifiedUser(email: string, password = "correct-horse-battery") {
+  const saved = process.env.NLTAG_SIGNUP_ALLOWLIST;
+  process.env.NLTAG_SIGNUP_ALLOWLIST = [saved, email].filter(Boolean).join(",");
+  try {
+    const req = await requestAccount(email);
+    if (req.status !== 202) throw new Error(`account request refused (${req.status})`);
+  } finally {
+    restoreEnv("NLTAG_SIGNUP_ALLOWLIST", saved);
+  }
+  const set = await call("/reset-password", { body: { token: newestLinkToken(email), newPassword: password } });
+  if (set.status !== 200) throw new Error(`set-password failed (${set.status})`);
+  const { res, cookie } = await signIn(email, password);
+  if (res.status !== 200 || !cookie.includes("session_token")) throw new Error(`sign-in after set-password failed (${res.status})`);
   return cookie;
 }
 
@@ -102,10 +130,15 @@ export async function signIn(email: string, password: string, ip = freshIp(), op
 }
 
 /** Enrolls an authenticator for a signed-in account over HTTP; returns the new session and secret. */
+/**
+ * Enrolls an authenticator the way the site does: enable through the server API (as the account
+ * page's server action does; /two-factor/enable is closed over HTTP, D6), then confirm the first
+ * code over HTTP. Returns the new session and secret.
+ */
 export async function enrollTwoFactor(cookie: string, password = "correct-horse-battery", ip = freshIp()) {
-  const enable = await call("/two-factor/enable", { body: { password }, ip, cookie });
-  if (enable.status !== 200) throw new Error(`enable failed (${enable.status})`);
-  const { totpURI, backupCodes } = (await enable.json()) as { totpURI: string; backupCodes: string[] };
+  const enabled = await getAuth().api.enableTwoFactor({ headers: headersWith(cookie, ip), body: { password, method: "totp" } as never });
+  if (!("totpURI" in enabled)) throw new Error("enable did not return an authenticator URI");
+  const { totpURI, backupCodes } = enabled;
   const secret = base32Decode(new URL(totpURI).searchParams.get("secret")!);
   await freshStep();
   const verify = await call("/two-factor/verify-totp", { body: { code: totp(secret) }, ip, cookie });
@@ -120,4 +153,33 @@ export async function clearRateLimits() {
 
 export function headersWith(cookie: string, ip = "198.51.100.1") {
   return new Headers({ cookie, "x-forwarded-for": ip, "x-real-ip": ip });
+}
+
+/**
+ * Test isolation: staff roles back to exactly the seed's. Vitest runs files in varying order and
+ * other files leave extra Church Admins behind; every file that asserts on roles calls this first.
+ */
+export async function resetStaffRolesToSeed() {
+  const db = getDb();
+  await db.delete(staffRole);
+  for (const u of SEED_USERS) {
+    if (u.roles.length === 0) continue;
+    const [row] = await db.select({ id: user.id }).from(user).where(inArray(user.email, [u.email]));
+    if (!row) continue;
+    for (const role of u.roles) await db.insert(staffRole).values({ userId: row.id, role, grantedByUserId: null, grantedAt: new Date() });
+  }
+}
+
+/** Restores an environment variable; assigning undefined would store the string "undefined". */
+export function restoreEnv(name: string, value: string | undefined) {
+  if (value === undefined) delete process.env[name];
+  else process.env[name] = value;
+}
+
+/**
+ * SCRATCH ONLY (v6 review): the b48261d password sign-up, kept so the unrewritten class C tests
+ * compile and fail honestly (the route answers 404). Desktop deletes it when those tests are rewritten.
+ */
+export async function signUp(email: string, password = "correct-horse-battery", ip = freshIp(), name = "Test Person A") {
+  return call("/sign-up/email", { body: { email, password, name }, ip });
 }
