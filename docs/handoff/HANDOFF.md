@@ -1,6 +1,6 @@
 # NLTAG — Handoff: R4 v6.1 mailbox-first security work (PR #12)
 
-Written 4 Nov 2026 (Kuwait). Read this, then `CLAUDE.md`, before touching this branch.
+Written 4 Nov 2026 (Kuwait); updated the same day after the M1 test-only fix (`ef95410`). Read this, then `CLAUDE.md`, before touching this branch.
 Source reports copied alongside: `NLTAG-PR12-REVIEW-FIXES-REPORT.md` (latest, 4 Nov) and
 `NLTAG-PR12-INDEPENDENT-REVIEW.md` (the review it answers; §9.3 and §10 are referenced below).
 
@@ -11,12 +11,14 @@ Source reports copied alongside: `NLTAG-PR12-REVIEW-FIXES-REPORT.md` (latest, 4 
 | Repository | `binnysam/nltagwebsite` |
 | Branch | `security/r4-v6.1-mailbox-first` (base `main` at `b48261d`, PR #11 merge) |
 | PR | **#12** "R4 v6.1: default-deny auth gate, mailbox-first registration, v6.1 corrections" — open, not draft, **not merged**, `mergeable_state: clean` |
-| Code head | `84c9a32` — "R4 v6.1 review fix M2: sign-in no longer sends Better Auth to /verify-email". The commit that adds this handoff sits on top and changes docs only. |
-| CI on `84c9a32` | Run 41731111693: **verify ✅ · admin-browser ✅ (incl. two-factor step) · public-browser ✅**. MariaDB `11.8.9-MariaDB-ubu2404` confirmed by the version step. |
-| Previous head | `dc19f1f`, run 41709104818: attempt 1 failed (M1 deadlock), attempt 2 failed (axe `document-title` flake). Both explained in §4. |
+| Application code head | `84c9a32` — "R4 v6.1 review fix M2: sign-in no longer sends Better Auth to /verify-email". Nothing under `src/` has changed since. |
+| Test head | `ef95410` — M1 option 1 (test-only): one Playwright worker when `E2E_AUTH=1`; two outdated test comments corrected. Changes `playwright.config.ts` and two comments only. Commits after it change docs only. |
+| CI on `ef95410` | Run 41786598922: **verify ✅ · admin-browser ✅ (admin "12 tests using 1 worker": 11 passed, 1 skipped; two-factor 8/8, 1 worker) · public-browser ✅**. MariaDB `11.8.9-MariaDB-ubu2404` in every job. |
+| CI on `84c9a32` | Run 41731111693: verify ✅ · admin-browser ✅ · public-browser ✅. |
+| Earlier head | `dc19f1f`, run 41709104818: attempt 1 failed (M1 deadlock), attempt 2 failed (axe `document-title` flake). Both explained in §4. |
 | Deployed? | No. Merging to `main` auto-deploys to Hostinger — merge **is** deploy. |
 
-Commits on the branch (oldest first): `e929bc1` v6 candidate patch (reference) · `0a35848` 1: gate fixes B + G1 · `165d06b` 2: D9 set-password strings · `fdd6e85` 3: D2 3-hour reset · `f62667f` 4: class A rewrites · `2465721` 5: class C rewrites · `c7d6b4f` 6: class D rewrites · `dc19f1f` 7: G2, env guard + TLS, §2 reliability, 3/15 limit · `84c9a32` M2 fix.
+Commits on the branch (oldest first): `e929bc1` v6 candidate patch (reference) · `0a35848` 1: gate fixes B + G1 · `165d06b` 2: D9 set-password strings · `fdd6e85` 3: D2 3-hour reset · `f62667f` 4: class A rewrites · `2465721` 5: class C rewrites · `c7d6b4f` 6: class D rewrites · `dc19f1f` 7: G2, env guard + TLS, §2 reliability, 3/15 limit · `84c9a32` M2 fix · `ed62a59` handoff docs · `ef95410` M1 option 1 (test-only) · then docs-only handoff updates.
 
 ## 2. What the security work is for
 
@@ -31,6 +33,7 @@ R4 hardens sign-in, sign-up and password reset before the **first Church Admin**
 - **D7** no migration (0004 deferred).
 - **v6.1 corrections**: B (malformed-address oracle fixed; identical audit for known/unknown, capped 5/s) · G1 (two-factor verify routes require the challenge cookie; session cookies stripped) · G2 (unit test allowlisting every server-side `getAuth().api` / `$context` call) · account-request limit **3 per 15 min** · §2 reliability (release slot on failure, SMTP connection-failure retry 0/5/30 s, 10 s drain, audit `provisioned`/`link_issued`) · §5 production env guard + explicit SMTP `rejectUnauthorized: true`.
 - **M2** (review): password sign-in no longer passes `callbackURL: /verify-email` (`AuthForm.tsx`, one line). Causal check: reverted → mailbox-first browser test fails 2/2; fixed → 2/2.
+- **M1 option 1** (owner choice, 4 Nov 2026; `ef95410`): test-only — `playwright.config.ts` sets `workers: 1` when `E2E_AUTH=1`, so the phone and desktop projects never sign in the seeded Church Admin at the same moment. No app, `ci.yml` or assertion change. Options 2/3 deferred (§4).
 - D9 Tamil strings (8: `email.setPassword.*`, `auth.accountRequest.*`, `auth.setPassword.*`) are in, still `draft-review`.
 
 Full behaviour: `docs/backend/data-and-auth.md` → "R4 auth abuse gate".
@@ -47,12 +50,12 @@ Full behaviour: `docs/backend/data-and-auth.md` → "R4 auth abuse gate".
 
 ## 4. Open items (from the PR #12 fixes report)
 
-**M1 — MariaDB 11.8.9 deadlock on `verification` (latent, not reproduced on `84c9a32`).**
-Seen once (`dc19f1f`, attempt 1; 1 of the last 25 admin-browser runs): `DELETE FROM verification WHERE expires_at < ?` → `ER_LOCK_DEADLOCK` (1213). Better Auth 1.7.15 `findVerificationValue` range-deletes expired rows on every lookup unless `verification.disableCleanup` is set; two-factor verify then calls `consumeVerificationValue` (transaction deleting by identifier). Two concurrent verifies take index locks in opposite orders. Triggered by test setup: two Playwright projects sign in the same seeded Church Admin and `freshStep()` aligns their TOTP submits to the same 30 s step. Library behaviour, not introduced by the PR. **No fix applied, by instruction.** Owner to choose:
-1. **Test-only (recommended now, lowest risk):** stop the two browser projects submitting a TOTP for the same admin in the same instant (stagger desktop, or run admin with one worker). Needs approval (test/workflow change).
-2. **Retry once on `ER_LOCK_DEADLOCK`** around the verification cleanup/consume path — small app change.
-3. **`verification: { disableCleanup: true }` + bounded periodic purge** of expired rows (like `rate_limit_bucket`) — removes the race at source.
-Production impact if left: a rare 500 when two verifications coincide; user retries; not a bypass. Option 2 or 3 before activation if wanted.
+**M1 — MariaDB 11.8.9 deadlock on `verification`. Test side fixed (option 1, `ef95410`); production possibility remains.**
+Seen once (`dc19f1f`, attempt 1; 1 of the last 25 admin-browser runs): `DELETE FROM verification WHERE expires_at < ?` → `ER_LOCK_DEADLOCK` (1213). Better Auth 1.7.15 `findVerificationValue` range-deletes expired rows on every lookup unless `verification.disableCleanup` is set; two-factor verify then calls `consumeVerificationValue` (transaction deleting by identifier). Two concurrent verifies take index locks in opposite orders. Triggered by test setup: two Playwright projects signed in the same seeded Church Admin and `freshStep()` aligned their TOTP submits to the same 30 s step. Library behaviour, not introduced by the PR.
+1. **Done — test-only (owner choice 4 Nov 2026, `ef95410`):** `playwright.config.ts` → `workers: process.env.E2E_AUTH === "1" ? 1 : undefined`. All database-backed auth runs (admin, two-factor, auth) are serial: every phone-390 test, then every desktop-1280 test. Chosen over staggering the TOTP submits because Better Auth also touches `verification` in the password step (two-factor challenge), and one worker needs no timing logic. `ci.yml` unchanged (its `--workers=1` on the two-factor step is now redundant but harmless). Other suites keep Playwright's default. Passing `--workers=N` explicitly on an `E2E_AUTH=1` run would bring the race back.
+2. **Deferred — retry once on `ER_LOCK_DEADLOCK`** around the verification cleanup/consume path (small app change). Owner decision **before the first Church Admin activation**.
+3. **Deferred — `verification: { disableCleanup: true }` + bounded periodic purge** of expired rows (like `rate_limit_bucket`), removing the race at source. Owner decision **before the first Church Admin activation**.
+**Production:** the application is unchanged, so the underlying Better Auth race remains a rare possibility on MariaDB 11.8.9: two verifications (two-factor or other `verification` lookups) at the same instant can make one request fail with a 500; the user retries. It is not a bypass and grants nothing. With one Church Admin at first, concurrent verifies are unlikely.
 
 **`document-title` axe flake.** Content Editor page (desktop), seen on `dc19f1f` attempt 2 and once before on the Phase 6b branch (2 Nov). PR does not touch admin pages, layout or titles. Pre-existing and intermittent; no change made.
 
@@ -64,9 +67,10 @@ Production impact if left: a rare 500 when two verifications coincide; user retr
 - D16 saturation timing: two-process harness, 3 runs, < 5 % and not positive, on merged code (M3; harness not committed, so not reproducible yet).
 - Graceful shutdown on Hostinger: decide and test `NEXT_MANUAL_SIG_HANDLE`; add to the activation runbook. Do not set it blind.
 - L1 G2 guard misses `getAuth().handler(...)` outside `/api/auth` and aliasing · L2 env guard runs on first `serverEnv()` not boot; loopback check misses `0.0.0.0`, `::ffff:127.0.0.1`, `localhost.` · L3 SMTP retry may duplicate mail; 35 s retry span > 10 s drain · L4 failed mail does not release the `acct-req` slot · L5 two live links used at the same instant can both succeed · L6 no production-config G1 test (`__Secure-` cookie names) · L7 malformed address on the request form gets 400 but page shows "Check your email".
+- M1 options 2/3 (above): owner decision before activation; either is an app change needing approval.
 - Activation gates already listed: D9 Tamil approval; confirm production `__drizzle_migrations` contains `0003`. D18 durable outbox stays deferred.
 
-**Outdated test comments.** `tests/e2e/admin.spec.ts:37` and `tests/e2e/two-factor.spec.ts:117` still say sign-in "may land on … verify-email". Harmless after M2; tighten later (comment-only, but the assertion beside it must not be weakened).
+**Outdated test comments — done (`ef95410`).** `tests/e2e/admin.spec.ts:37` and `tests/e2e/two-factor.spec.ts:117` now say what the form does since M2: password sign-in goes to `/account`, or to `/two-factor` when the account has two-factor on; never `/verify-email`. Comments only; the assertion beside the two-factor one (`not.toHaveURL(/\/two-factor$/)`) is unchanged.
 
 ## 5. Running the tests
 
@@ -74,13 +78,13 @@ Production impact if left: a rare 500 when two verifications coincide; user retr
 |---|---|---|---|
 | Verify (token audit, Tamil check, lint, typecheck, unit 248, build) | `npm run verify` | none | CI + local |
 | Integration, default (209) + production config (6) | `npm run test:integration` | MariaDB, `nltag_test` from `.env.local` `DATABASE_URL` | CI 11.8.9 + local 10.11.14 |
-| Admin browser (11 + 1 skip) | `npm run db:migrate && npm run db:seed && npm run db:seed:content` then `E2E_AUTH=1 npx playwright test admin` | MariaDB `nltag_dev`; accounts on, SMTP set to a dead local port (see `ci.yml` admin-browser `.env.local`) | CI 11.8.9 + local |
+| Admin browser (11 + 1 skip, one worker) | `npm run db:migrate && npm run db:seed && npm run db:seed:content` then `E2E_AUTH=1 npx playwright test admin` | MariaDB `nltag_dev`; accounts on, SMTP set to a dead local port (see `ci.yml` admin-browser `.env.local`) | CI 11.8.9 + local |
 | Two-factor browser (8) | `E2E_AUTH=1 npx playwright test two-factor --workers=1` (after the admin run, same env) | as above | CI 11.8.9 + local |
 | Public browser (97 + 5 skip) | `npm run db:migrate && npm run db:seed && npm run db:seed:public` then `PUBLIC_E2E_SEEDED=1 npx playwright test public-site accounts-gate` | MariaDB; `NLTAG_ACCOUNTS_ENABLED=0` | CI only |
 | Mailbox-first sign-up (`auth.spec.ts`, 12) | `next dev` on :3100 with outbox (no `SMTP_*`, `NLTAG_ACCOUNTS_ENABLED=1`, `AUTH_RATE_LIMIT=on`, isolated DB), then `E2E_AUTH=1 npx playwright test auth` | MariaDB, isolated | **Local only — not in CI** |
 | Design system / hero | `scripts/serve-gallery.sh && npm run test:e2e` | none | local |
 
-Playwright starts its own server (`next build` + `next start -p 3100`) unless one is already running (`reuseExistingServer`). Projects: `phone-390`, `desktop-1280`.
+Playwright starts its own server (`next build` + `next start -p 3100`) unless one is already running (`reuseExistingServer`). Projects: `phone-390`, `desktop-1280`. With `E2E_AUTH=1` the config uses **one worker** (M1), so the projects run one after the other; do not override it with `--workers`.
 
 **MariaDB 11.8.9 vs local.** Production (Hostinger) is MariaDB 11.8.9; CI pins `mariadb:11.8.9` and asserts the version. The cloud sandbox could not pull container images, so its local evidence is **MariaDB 10.11.14** — fine for logic, but locking behaviour differs (M1 only appeared on 11.8.9). Treat CI as the authority for anything involving concurrency, locks or the browser auth jobs. On a machine with Docker, use `mariadb:11.8.9` (DB setup: `docs/backend/data-and-auth.md` → local setup; collation `utf8mb4_uca1400_ai_ci`).
 
@@ -94,7 +98,7 @@ Playwright starts its own server (`next build` + `next start -p 3100`) unless on
 - **3 per 15 min account requests:** matches the 3/hour mail cap, so every issued link can be delivered.
 - **No migration (D7):** §2 reliability done with existing tables; 0004 and the durable outbox (D18) deferred.
 - **M2 fix by removing the callback, not redirecting to `/account`:** the form already routes to `/two-factor` or `/account`; less surface.
-- **M1: no app change** until the owner picks an option (instruction from the review round).
+- **M1: test-only fix (option 1)**, owner choice 4 Nov 2026: removes the trigger in our own tests without touching app code. Options 2/3 stay owner decisions before activation.
 
 ## 7. Approaches tried and rejected
 
@@ -106,6 +110,7 @@ Playwright starts its own server (`next build` + `next start -p 3100`) unless on
 - **Email cap with `consume()`** — 20 concurrent requests burned the hour with 0 mails (F11); replaced by `reserveWindow()` + release.
 - **Durable outbox + hPanel cron sweeper** — needs migration 0004; deferred as D18. Do not reuse `verification` or `rate_limit_bucket` as a job store.
 - **Account-request limit 5 / 15 min** — created tokens that could never be mailed; changed to 3.
-- **For M1: disable cleanup / add purge / add retry without approval** — explicitly not done; listed as options.
+- **For M1: disable cleanup / add purge / add retry without approval** — explicitly not done; deferred as options 2/3.
+- **For M1 option 1: staggering the projects' TOTP submits** (phase windows in `freshStep()`) — more code, up to ~20 s waits per sign-in, and it would not cover the password step, which also uses `verification`. One worker chosen instead.
 - **`auth.spec.ts` via `next start`** — cannot enable accounts and the outbox together; works only with `next dev`.
 - **Two-process harness in the repo** — not committed (addendum §5.3 allowed omitting it); consequence: D16 saturation not reproducible on the final code.

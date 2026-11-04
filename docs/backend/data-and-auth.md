@@ -208,6 +208,7 @@ npm run test:integration        MariaDB-backed tests (TEST_DATABASE_URL, *_test 
 
 ## Open items
 - Two-factor: built in Phase 6b (above); migration `0003_two_factor` not yet applied to production.
+- Better Auth `verification` deadlock (PR #12, M1): on MariaDB 11.8.9, two verifications at the same instant can deadlock on Better Auth's expired-row cleanup (`DELETE FROM verification WHERE expires_at < ?`), giving one request a 500 (user retries; not a bypass). Tests avoid it with one Playwright worker for `E2E_AUTH=1` runs (`playwright.config.ts`). The app is unchanged; retry-once on `ER_LOCK_DEADLOCK`, or `disableCleanup` + a periodic purge, are owner decisions before the first Church Admin activation (`docs/handoff/HANDOFF.md` §4).
 - Google OAuth client (D3): church-owned Google Cloud project; until then the button is hidden.
 - Client IP behind Hostinger's CDN: resolver built (Nov 2026 security fix); `CLIENT_IP_SOURCE` stays unset until the header-shape capture confirms the hop count (`docs/backend/client-ip.md` §5). `TRUSTED_PROXIES` is no longer used.
 - Tamil: the 38 Phase 4b account/email strings and 45 Phase 6b two-factor strings were approved by the owner on 2 Nov 2026. `auth.google` and `auth.or` stay `draft-review` (shown only once Google sign-in is configured).
