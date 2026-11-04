@@ -29,6 +29,7 @@ src/server/                 server-only (import "server-only"); never reaches th
   services/audit.ts         audit(), action names
   services/rate-limit.ts    consume() fixed-window counters; reserveAttempt()/releaseAttempt() progressive-delay throttle (sign-in)
   auth/recognised-browser.ts  signed recognised-browser token (sign-in protection; skips nothing)
+  auth/verification-purge.ts  bounded primary-key purge of expired verification rows (M1 option B)
   email/templates.ts        bilingual verify/reset emails (Tamil first)
   email/transport.ts        smtp | dev outbox (.data/mail) | memory (tests)
   email/send.ts             per-address and 24-hour caps, background send
@@ -136,6 +137,15 @@ Code: `src/server/security/auth-abuse-gate.ts`, `auth-routes.ts`, `process-limit
 
 `AUTH_RATE_LIMIT` is still read by the accounts gate (must be `on` in production) and refused as `off` in production, but no longer switches a limiter: the vitest configs' `AUTH_RATE_LIMIT: "on"` is inert.
 
+### Verification cleanup (M1 option B, owner decision 4 Nov 2026)
+Better Auth 1.7.15 normally runs `DELETE FROM verification WHERE expires_at < ?` (a range delete on `verification_expires_idx`) inside every `findVerificationValue()` call. On MariaDB 11.8.9 that range delete and the two-factor consume transaction (`SELECT … FOR UPDATE` by identifier, then delete by id) lock rows in opposite orders and can deadlock (`ER_LOCK_DEADLOCK`, 1213; seen in CI on `dc19f1f`). Since 4 Nov 2026:
+- `auth.ts` sets `verification: { storeIdentifier: "hashed", disableCleanup: true }` (a documented Better Auth option). No request runs the range delete any more.
+- Expiry is still enforced by every consumer: `GET`/`POST /reset-password` compare `expiresAt` (`INVALID_TOKEN`); `consumeVerificationValue` returns nothing for an expired row (two-factor → `INVALID_TWO_FACTOR_COOKIE`); the gate's `liveResetToken` checks `expires_at > NOW(3)`. Tested with the cleanup off (`tests/integration/m1-verification-cleanup.test.ts`).
+- `src/server/auth/verification-purge.ts` removes expired rows instead: a non-locking `SELECT id … WHERE expires_at < cutoff ORDER BY expires_at LIMIT 200`, then `DELETE … WHERE id IN (…) AND expires_at < cutoff` under READ COMMITTED. `cutoff` is one hour before now, so a live row (or one expired under an hour ago) is never a candidate, and the delete re-checks the expiry. The gate starts it fire-and-forget (`purgeExpiredVerificationsSometimes()`), at most once every 10 minutes per process and one at a time; no request waits for it. A failure is logged as `auth.verification_purge_failed` (driver error code and errno only) and retried at the next interval. If it never ran, the table only grows by a few rows per sign-in or reset.
+- Concurrency evidence: `tests/integration/m1-verification-concurrency.test.ts` runs 1,000 parallel two-factor-shaped flows (lookup, consume, re-arm, consume, plus a just-expired row) with the purge looping alongside: zero deadlocks, every live row consumed exactly once. A control instance with Better Auth's cleanup on, same workload, reproduces 1213 on MariaDB 11.8.9 (count logged; `M1_REQUIRE_CONTROL_DEADLOCK=1` asserts it). `M1_ITERATIONS` raises the count.
+- No migration: `verification_expires_idx` and the primary key exist since `0000`.
+- Not changed: `onPasswordReset` still deletes sibling links with `DELETE FROM verification WHERE value = ?` (unindexed; rare, password set/reset only; review note for later).
+
 ## Production migrations on Hostinger
 There is no SSH step in the deployment, so Hostinger builds use `npm run build:hostinger` (`scripts/hostinger-build.mjs`). It runs `next build`, and only when `NLTAG_APPROVED_PRODUCTION_MIGRATION=1` is set in the Hostinger environment it first applies the reviewed `drizzle/*.sql` to `DATABASE_URL` (127.0.0.1). Set that variable for one owner-approved build, then remove it. Migrations already applied are skipped (drizzle journal). The same script runs the one-time first-admin bootstrap (`NLTAG_BOOTSTRAP_ADMIN_EMAIL`, below); the two are refused in one build.
 
@@ -208,7 +218,7 @@ npm run test:integration        MariaDB-backed tests (TEST_DATABASE_URL, *_test 
 
 ## Open items
 - Two-factor: built in Phase 6b (above); migration `0003_two_factor` not yet applied to production.
-- Better Auth `verification` deadlock (PR #12, M1): on MariaDB 11.8.9, two verifications at the same instant can deadlock on Better Auth's expired-row cleanup (`DELETE FROM verification WHERE expires_at < ?`), giving one request a 500 (user retries; not a bypass). Tests avoid it with one Playwright worker for `E2E_AUTH=1` runs (`playwright.config.ts`). The app is unchanged; retry-once on `ER_LOCK_DEADLOCK`, or `disableCleanup` + a periodic purge, are owner decisions before the first Church Admin activation (`docs/handoff/HANDOFF.md` §4).
+- Better Auth `verification` deadlock (PR #12, M1): **fixed by option B** (owner decision 4 Nov 2026), see "Verification cleanup (M1 option B)" above. The one-worker Playwright setting for `E2E_AUTH=1` runs stays as it is.
 - Google OAuth client (D3): church-owned Google Cloud project; until then the button is hidden.
 - Client IP behind Hostinger's CDN: resolver built (Nov 2026 security fix); `CLIENT_IP_SOURCE` stays unset until the header-shape capture confirms the hop count (`docs/backend/client-ip.md` §5). `TRUSTED_PROXIES` is no longer used.
 - Tamil: the 38 Phase 4b account/email strings and 45 Phase 6b two-factor strings were approved by the owner on 2 Nov 2026. `auth.google` and `auth.or` stay `draft-review` (shown only once Google sign-in is configured).
