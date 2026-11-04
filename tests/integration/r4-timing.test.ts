@@ -1,4 +1,5 @@
 import { monitorEventLoopDelay } from "node:perf_hooks";
+import { hashPassword } from "better-auth/crypto";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/server/db/client";
@@ -74,6 +75,19 @@ function expectAll401(label: string, statuses: { known: number[]; unknown: numbe
 type Probe = { pair: number; kind: "known" | "unknown"; ms: number; status: number };
 
 /**
+ * Independent control, measured after every pair of the raw sample. OBSERVATION ONLY (owner
+ * approval 4 Nov 2026, step 1 of the raw-test investigation): it is printed and decides nothing;
+ * the raw test's assertions are unchanged and nothing is re-measured.
+ *  - scryptMs: one password hash with Better Auth's own hashPassword (the same scrypt cost as a
+ *    password check: the app uses Better Auth's default hasher), outside the sign-in route and gate;
+ *  - dbMs: one `SELECT 1` round trip on the test database.
+ * If a raw probe is slow and the controls around it are slow too, the environment slowed down (the
+ * CI runner's CPU or the database container); if the controls stay normal, the sign-in path did.
+ */
+const CONTROL_PASSWORD = "r8-control-not-a-real-password";
+type Control = { pair: number; scryptMs: number; dbMs: number };
+
+/**
  * Sampling for the raw test only (owner approval 4 Nov 2026; test-only). The floored and flood
  * tests use sample(), which clears the same windows and requires 401 but keeps the estimator.
  * Three measurement corrections:
@@ -88,9 +102,12 @@ type Probe = { pair: number; kind: "known" | "unknown"; ms: number; status: numb
  *     (still × 1.1, so never less than the raw answer).
  *  3. Every probe's status is recorded (all must be 401) and the event-loop delay is measured, so
  *     a failure can print the whole series and show whether the process itself stalled.
+ *  4. After every pair, the independent control above is measured (observation only; it changes
+ *     no assertion and triggers no re-measurement).
  */
 async function sampleRaw(n: number) {
   const series: Probe[] = [];
+  const controls: Control[] = [];
   const loop = monitorEventLoopDelay({ resolution: 10 });
   loop.enable();
   try {
@@ -105,6 +122,12 @@ async function sampleRaw(n: number) {
         const r = await timed(kind === "known" ? MEMBER : `nobody.${u++}@nltag.test`);
         series.push({ pair, kind, ms: r.ms, status: r.status });
       }
+      // The control runs after the pair, never during a timed probe.
+      const c0 = performance.now();
+      await hashPassword(CONTROL_PASSWORD);
+      const c1 = performance.now();
+      await getDb().execute(sql`SELECT 1`);
+      controls.push({ pair, scryptMs: c1 - c0, dbMs: performance.now() - c1 });
     }
   } finally {
     loop.disable();
@@ -112,6 +135,7 @@ async function sampleRaw(n: number) {
   const ms = (ns: number) => +(ns / 1e6).toFixed(1);
   return {
     series,
+    controls,
     known: series.filter((s) => s.kind === "known").map((s) => s.ms),
     unknown: series.filter((s) => s.kind === "unknown").map((s) => s.ms),
     eventLoopDelayMs: { resolution: 10, mean: ms(loop.mean), p50: ms(loop.percentile(50)), p90: ms(loop.percentile(90)), p99: ms(loop.percentile(99)), max: ms(loop.max) },
@@ -154,13 +178,17 @@ describe("R4 change 5: unknown and known addresses are indistinguishable", () =>
     (TIMING_FLOOR_MS as { signInFailure: number }).signInFailure = 0;
     try {
       const n = Math.min(N, 100);
-      const { known, unknown, series, eventLoopDelayMs } = await sampleRaw(n);
+      const { known, unknown, series, controls, eventLoopDelayMs } = await sampleRaw(n);
       console.info("R8 raw (floor 0) known", JSON.stringify(summary(known)), "unknown", JSON.stringify(summary(unknown)));
+      // Observation only: printed every run, decides nothing.
+      console.info("R8 raw control scrypt", JSON.stringify(summary(controls.map((c) => c.scryptMs))), "db", JSON.stringify(summary(controls.map((c) => c.dbMs))));
       const statuses = (kind: Probe["kind"]) => series.filter((s) => s.kind === kind).map((s) => s.status);
       if (series.some((s) => s.status !== 401) || !(pct(known, 99) < saved.signInFailure)) {
-        // Failure diagnostics: every probe in order, and whether the event loop itself stalled.
+        // Failure diagnostics: every probe in order, whether the event loop itself stalled, and the
+        // independent control after each pair (a slow environment slows the control too).
         console.error("R8 raw FAILED: series [pair, kind, ms, status]", JSON.stringify(series.map((s) => [s.pair, s.kind, +s.ms.toFixed(1), s.status])));
         console.error("R8 raw FAILED: event-loop delay (ms)", JSON.stringify(eventLoopDelayMs));
+        console.error("R8 raw FAILED: control [pair, scryptMs, dbMs]", JSON.stringify(controls.map((c) => [c.pair, +c.scryptMs.toFixed(1), +c.dbMs.toFixed(1)])));
       }
       expect(statuses("known")).toEqual(Array(n).fill(401));
       expect(statuses("unknown")).toEqual(Array(n).fill(401));
