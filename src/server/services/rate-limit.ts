@@ -1,4 +1,4 @@
-import { lt, sql } from "drizzle-orm";
+import { lt, sql, type SQL } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { rateLimitBucket } from "../db/schema";
 
@@ -198,19 +198,106 @@ export async function releaseWindow(key: string, windowStart: number): Promise<v
 }
 
 /**
- * Opportunistic cleanup (R4): b48261d never called purgeExpiredBuckets(), so expired rows stayed
- * forever. The gate calls this on its requests; it deletes at most `batch` expired rows, at most
- * once a minute per process, so a flood of unique addresses cannot grow the table without bound.
+ * Opportunistic cleanup of expired rows (R4), primary-key batches (owner decision 4 Nov 2026;
+ * docs/backend/data-and-auth.md → "Sign-in protection" → "Purge without deadlocks").
+ *
+ * The old purge, `DELETE … WHERE expires_at < ? LIMIT 5000`, scanned rate_limit_bucket_expires_idx
+ * and so locked index entries before rows, while reserveAttempt()'s UPDATE locks the row (primary
+ * key) and then its expires_at index entry. Opposite orders: MariaDB could cancel either statement
+ * with ER_LOCK_DEADLOCK (1213), which turned a sign-in into an error. Now:
+ *  1. a plain SELECT (consistent read, no locks) picks at most `batch` keys of expired rows;
+ *  2. one short READ COMMITTED transaction deletes exactly those keys through the PRIMARY index
+ *     (forced: the optimizer otherwise picks the expires_at index for this statement too, which
+ *     keeps the bad order) and re-checks `expires_at < cutoff`, so a row a reserve refreshed in
+ *     between (a new episode) is kept. Same lock order as the reserve statements, no gap locks.
+ * Cutoff, rows per run and schedule are unchanged: `expires_at < now`, at most 5,000 rows per run
+ * (now in batches of 500), at most once a minute per process, started fire-and-forget by the gate.
  */
-let lastPurge = 0;
-export async function purgeExpiredBucketsSometimes(now = Date.now(), batch = 5000): Promise<number> {
-  if (now - lastPurge < 60_000) return 0;
-  lastPurge = now;
-  const [r] = (await getDb().execute(sql`DELETE FROM rate_limit_bucket WHERE expires_at < ${new Date(now)} LIMIT ${batch}`)) as unknown as [{ affectedRows: number }];
-  return r.affectedRows;
+export const BUCKET_PURGE = {
+  /** At most one run per process per interval. */
+  intervalMs: 60_000,
+  /** Rows per primary-key batch (one SELECT + one DELETE transaction). */
+  batch: 500,
+  /** Rows per run, all batches together. */
+  maxRowsPerRun: 5000,
+} as const;
+
+export interface BucketKey {
+  bucketKey: string;
+  windowStart: number;
 }
 
-/** Nightly cleanup (called by the cron route in Phase 4e). */
+/** Keys of rows that expired before `cutoff`, oldest first. Plain SELECT: a non-locking read. */
+export async function selectExpiredBucketKeys(cutoff: Date, limit: number = BUCKET_PURGE.batch): Promise<BucketKey[]> {
+  const n = Math.max(1, Math.min(BUCKET_PURGE.batch, Math.floor(limit)));
+  const [rows] = (await getDb().execute(
+    sql`SELECT bucket_key, window_start FROM rate_limit_bucket WHERE expires_at < ${cutoff} ORDER BY expires_at LIMIT ${n}`,
+  )) as unknown as [Array<{ bucket_key: string; window_start: number | string }>];
+  return rows.map((r) => ({ bucketKey: r.bucket_key, windowStart: Number(r.window_start) }));
+}
+
+/**
+ * The DELETE for one batch: exactly these keys, through the PRIMARY index, only while still
+ * expired. Multi-table form because MariaDB accepts index hints on it (not on a single-table
+ * DELETE). Exported so the integration test can EXPLAIN the statement that actually runs.
+ */
+export function expiredBucketDeleteSql(keys: readonly BucketKey[], cutoff: Date): SQL {
+  if (keys.length === 0 || keys.length > BUCKET_PURGE.batch) throw new Error("rate-limit purge batch size out of range");
+  const list = sql.join(
+    keys.map((k) => sql`(${k.bucketKey}, ${k.windowStart})`),
+    sql`, `,
+  );
+  return sql`DELETE t FROM rate_limit_bucket AS t FORCE INDEX (PRIMARY) WHERE (t.bucket_key, t.window_start) IN (${list}) AND t.expires_at < ${cutoff}`;
+}
+
+/** Deletes one batch in its own READ COMMITTED transaction (no gap locks). Returns rows deleted. */
+export async function deleteExpiredBucketsByKey(keys: readonly BucketKey[], cutoff: Date): Promise<number> {
+  if (keys.length === 0) return 0;
+  const statement = expiredBucketDeleteSql(keys, cutoff);
+  return getDb().transaction(
+    async (tx) => {
+      const [r] = (await tx.execute(statement)) as unknown as [{ affectedRows: number }];
+      return r.affectedRows;
+    },
+    { isolationLevel: "read committed" },
+  );
+}
+
+/** One bounded run: batches of BUCKET_PURGE.batch until `maxRows` keys were processed or none are left. */
+export async function purgeExpiredBucketsBatched(now: number, maxRows: number = BUCKET_PURGE.maxRowsPerRun): Promise<number> {
+  const cutoff = new Date(now);
+  let remaining = Math.max(0, Math.min(BUCKET_PURGE.maxRowsPerRun, Math.floor(maxRows)));
+  let deleted = 0;
+  while (remaining > 0) {
+    const want = Math.min(BUCKET_PURGE.batch, remaining);
+    const keys = await selectExpiredBucketKeys(cutoff, want);
+    if (keys.length === 0) break;
+    deleted += await deleteExpiredBucketsByKey(keys, cutoff);
+    // Counted by keys processed, not rows deleted: a run always ends after at most
+    // maxRows / batch batches, even if reserves keep refreshing the selected rows.
+    remaining -= keys.length;
+    if (keys.length < want) break;
+  }
+  return deleted;
+}
+
+/**
+ * The gate calls this on its requests (never awaited); it deletes at most `batch` expired rows,
+ * at most once a minute per process, so a flood of unique addresses cannot grow the table without
+ * bound. `batch` is the per-run maximum (default 5,000), deleted in primary-key batches of 500.
+ */
+let lastPurge = 0;
+export async function purgeExpiredBucketsSometimes(now = Date.now(), batch: number = BUCKET_PURGE.maxRowsPerRun): Promise<number> {
+  if (now - lastPurge < BUCKET_PURGE.intervalMs) return 0;
+  lastPurge = now;
+  return purgeExpiredBucketsBatched(now, batch);
+}
+
+/**
+ * Nightly cleanup (called by the cron route in Phase 4e). Not called anywhere yet. It is still an
+ * unbounded range DELETE on expires_at, the lock order that deadlocked against the reserves; wire
+ * up purgeExpiredBucketsBatched() instead before scheduling anything.
+ */
 export async function purgeExpiredBuckets(now = new Date()) {
   await getDb().delete(rateLimitBucket).where(lt(rateLimitBucket.expiresAt, now));
 }
