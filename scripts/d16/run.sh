@@ -19,6 +19,11 @@ DB_NAME="$(node -e 'console.log(new URL(process.argv[1]).pathname.slice(1))' "$D
 case "$DB_HOST" in 127.0.0.1|localhost) ;; *) echo "D16: scratch database must be on loopback" >&2; exit 1 ;; esac
 case "$DB_NAME" in *d16*) ;; *) echo "D16: scratch database name must contain d16" >&2; exit 1 ;; esac
 [ -f .next/BUILD_ID ] || { echo "D16: build first (npm run build)" >&2; exit 1; }
+# `next start` loads these files from the checkout for every variable this script does not set
+# (CLIENT_IP_SOURCE, key versions, ...), so P1 would not run with exactly the settings below.
+for f in .env .env.local .env.production .env.production.local; do
+  [ -e "$f" ] && { echo "D16: $f exists; move it aside so P1 runs only with the harness settings" >&2; exit 1; }
+done
 
 PORT="${D16_PORT:-3200}"; SMTP_PORT="${D16_SMTP_PORT:-2525}"; CONN="${D16_CONNECTIONS:-256}"; N="${D16_N:-200}"
 RAMP="${D16_RAMP_S:-10}"; P1_CPUS="${D16_P1_CPUS:-0-1}"; P2_CPUS="${D16_P2_CPUS:-2-3}"; P3_CPUS="${D16_P3_CPUS:-3}"
@@ -30,7 +35,10 @@ now_ms() { node -e 'console.log(Date.now())'; }
 
 echo "D16 $RUN_ID: migrate + accounts (scratch $DB_NAME)"
 DATABASE_URL="$D16_DB_URL" BETTER_AUTH_SECRET="$SECRET" BETTER_AUTH_URL="http://127.0.0.1:$PORT" npm run -s db:migrate >/dev/null
-KNOWN="$(D16_DB_URL="$D16_DB_URL" node scripts/d16/seed-accounts.mjs 10)"
+KNOWN="$(D16_DB_URL="$D16_DB_URL" node scripts/d16/seed-accounts.mjs 10 d16-known)"
+# Allowlisted accounts: the shape of every production staff account (D16 finding 3).
+LISTED_ACCOUNTS="$(D16_DB_URL="$D16_DB_URL" node scripts/d16/seed-accounts.mjs 10 d16-listed-acct)"
+CLASSES="known,unknown,listed,listedAccount"
 mysql_clear() { node -e '
   const m = require("mysql2/promise");
   (async () => { const c = await m.createConnection({ uri: process.argv[1] });
@@ -46,7 +54,7 @@ node scripts/d16/smtp-sink.mjs "$SMTP_PORT" "$OUT/smtp.json" & PIDS+=($!)
 echo "D16 $RUN_ID: P1 next start on 127.0.0.1:$PORT (cpus $P1_CPUS)"
 env -i PATH="$PATH" HOME="$HOME" NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 \
   BETTER_AUTH_URL="http://127.0.0.1:$PORT" BETTER_AUTH_SECRET="$SECRET" DATABASE_URL="$D16_DB_URL" \
-  NLTAG_ACCOUNTS_ENABLED=1 AUTH_RATE_LIMIT=on NLTAG_SIGNUP_ALLOWLIST="$LISTED" \
+  NLTAG_ACCOUNTS_ENABLED=1 AUTH_RATE_LIMIT=on NLTAG_SIGNUP_ALLOWLIST="$LISTED,$LISTED_ACCOUNTS" \
   SMTP_HOST=127.0.0.1 SMTP_PORT="$SMTP_PORT" SMTP_USER=harness SMTP_PASS=harness SMTP_FROM="D16 <d16@nltag.test>" \
   taskset -c "$P1_CPUS" node node_modules/next/dist/bin/next start -p "$PORT" -H 127.0.0.1 > "$OUT/.p1.log" 2>&1 & P1=$!; PIDS+=($P1)
 for _ in $(seq 1 120); do curl -sf -o /dev/null "http://127.0.0.1:$PORT/en" && break; sleep 0.5; done
@@ -66,7 +74,7 @@ sleep "$RAMP"
 echo "D16 $RUN_ID: P3 probes (N=$N per class, cpus $P3_CPUS)"
 PROBE_START="$(now_ms)"
 set +e
-D16_BASE="http://127.0.0.1:$PORT" D16_DB_URL="$D16_DB_URL" D16_SECRET="$SECRET" D16_KNOWN="$KNOWN" D16_LISTED="$LISTED" \
+D16_BASE="http://127.0.0.1:$PORT" D16_DB_URL="$D16_DB_URL" D16_SECRET="$SECRET" D16_KNOWN="$KNOWN" D16_LISTED="$LISTED" D16_LISTED_ACCOUNTS="$LISTED_ACCOUNTS" \
   D16_N="$N" D16_OUT="$OUT/probes.csv" taskset -c "$P3_CPUS" node scripts/d16/probe.mjs
 PROBE_EXIT=$?
 set -e
@@ -81,6 +89,8 @@ cat > "$OUT/meta.json" <<JSON
 {
   "runId": "$RUN_ID",
   "commit": "$(git rev-parse HEAD)",
+  "worktreeClean": $([ -z "$(git status --porcelain --untracked-files=no)" ] && echo true || echo false),
+  "classes": "$CLASSES",
   "recordedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "database": "$DB_NAME (MariaDB $DBV, scratch)",
   "node": "$(node -v)",

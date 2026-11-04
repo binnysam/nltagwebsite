@@ -1,6 +1,11 @@
-# D16 acceptance criterion: proposal (finding 1)
+# D16 acceptance criterion (finding 1)
 
-**Status: proposal for an owner decision. Nothing here changes the current rule.** The rule agreed on 4 Nov 2026 (decision O5) is still the one `scripts/d16/analyze.mjs` applies. No new D16 runs have been made; the owner asked for the criterion to be settled first.
+**Status: adopted.** Owner decision of 4 Nov 2026: **option 2 with 600 probes per class per run**, pooled confidence intervals, fixed Rules A–E.
+- Implemented in `scripts/d16/stats.mjs` (`PLAN`) and `scripts/d16/pooled.mjs`; the procedure is pre-registered in `plan-2026-11.md`.
+- The former per-run rule (decision O5, including "≤ 1 ms") is still printed by `scripts/d16/analyze.mjs`, for information only.
+- No runs have yet been made on the final code.
+
+The analysis below is the proposal as written before the decision. Its option 2 column said 550 probes; the owner chose 600, which gives about 0.90 overall power instead of about 0.87 (`plan-2026-11.md` §6).
 
 All numbers below come from the four committed runs. They were made on `b4e37a8` and are now superseded (see `README.md`). Reproduce them with:
 
@@ -89,11 +94,12 @@ The attacker-effort row assumes the sandbox's noise, one address compared with a
 - **Medians and tails:** the median shift is the most stable signal; p90 needs a wider margin or more probes.
 - **What D16 cannot show:** it bounds the difference under one saturating load shape in one sandbox. It is evidence, not proof, of behaviour on Hostinger.
 
-## 4. Before the next runs (all need owner approval)
+## 4. Before the next runs (status 4 Nov 2026)
 
-1. Choose an option (or other margins) and record the decision.
-2. Implement the pooled analysis next to `analyze.mjs`, keeping the current verdict printed alongside for comparison. Add the allowlisted-account class to `probe.mjs`, and commit both before any run.
-3. Harness hygiene found in the PR #16 review:
-   - `next start` also loads `.env.local` / `.env.production` / `.env` from the checkout for any variable `run.sh` does not set. Refuse to run when such files exist.
-   - `.p1.log` is git-ignored only under the default output folder.
-4. Land the finding 3 fix (PR #20, owner-approved, open) before the runs. Without it, the allowlisted-account class is expected to fail (`finding-3-allowlist-timing.md`).
+1. **Done:** option 2 chosen, with 600 probes per class per run (owner decision, 4 Nov 2026).
+2. **In the tooling PR:**
+   - the pooled analysis (`scripts/d16/stats.mjs`, `pooled.mjs`, with unit tests in `tests/unit/d16-stats.test.ts`), with the former per-run verdict kept alongside;
+   - the allowlisted-account class in `probe.mjs`, `seed-accounts.mjs` and `run.sh`.
+3. **In the tooling PR,** harness hygiene: `run.sh` refuses to start when `.env`, `.env.local`, `.env.production` or `.env.production.local` exists, and `.p1.log` is git-ignored wherever a run writes it.
+4. **Done:** the finding 3 fix was merged to `main` in PR #20 (`21c4b3a`).
+5. **Next:** the runs follow `plan-2026-11.md`, after the tooling PR is reviewed and merged.

@@ -10,13 +10,21 @@ Answers the owner's D16 decision (post-deployment review `NLTAG-R4-POST-DEPLOYME
 |---|---|---|
 | **P1** | the server under test: `next start` (production build, `NODE_ENV=production`, accounts on, `AUTH_RATE_LIMIT=on`, `CLIENT_IP_SOURCE` unset), `http://127.0.0.1:3200` | its own OS process, pinned with `taskset` (default cores `0-1`) |
 | **P2** | `load.mjs`: flood of `POST /api/auth/sign-in/email`, a fresh random unknown address per request, 256 keep-alive connections | its own OS process (default cores `2-3`) |
-| **P3** | `probe.mjs`: sequential timed probes, interleaved, class order rotating every round: **known** (one of 10 fictional accounts, wrong password), **unknown** (fresh address, no account, not listed) and **listed** (allowlisted, no account: Better Auth's dummy hash). N = 200 per class | its own OS process (default core `3`) |
+| **P3** | `probe.mjs`: sequential timed probes, interleaved, class order rotating every round. Classes: **known** (one of 10 fictional accounts **not** on the allowlist, wrong password), **unknown** (fresh address, no account, not listed), **listed** (allowlisted, no account: Better Auth's dummy hash) and **listedAccount** (one of 10 fictional accounts **on** the allowlist, wrong password: the shape of every production staff account). `D16_N` per class | its own OS process (default core `3`) |
 | sink | `smtp-sink.mjs` on `127.0.0.1:2525`: answers the greeting, offers no STARTTLS, so the site's transport (requireTLS) can never deliver; it only counts connections | |
 | cpu | `cpu.mjs`: P1's CPU (process tree) from `/proc` every second, in % of one core (as `pidstat`) | |
 
-Before **every** known or listed probe, P3 deletes that address's `signin-acct:<hash>` key **and every `class:K:*` window** in the scratch database, so every timed request takes the wrong-password path (review §6.2: without this the global K ceiling fills and both classes get the same `429`). The status of every probe is recorded.
+Before **every** known, listed or listedAccount probe, P3 deletes that address's `signin-acct:<hash>` key **and every `class:K:*` window** in the scratch database, so every timed request takes the wrong-password path (review §6.2: without this the global K ceiling fills and both classes get the same `429`). The status of every probe is recorded.
 
-## Criteria (owner decision, 4 Nov 2026) — per run, known vs unknown
+## Former criteria (decision O5) — per run, known vs unknown, now for information only
+
+The final runs are decided by the pooled criterion adopted on 4 Nov 2026 (option 2): `docs/reports/d16-timing/acceptance-criterion.md` and `plan-2026-11.md`, implemented in `stats.mjs` (`PLAN`, pinned by `tests/unit/d16-stats.test.ts`) and `pooled.mjs`:
+
+```bash
+node scripts/d16/pooled.mjs <run-1> <run-2> <run-3>
+```
+
+It writes `pooled-summary.json` and exits 0 PASS, 1 FAIL, 2 INCONCLUSIVE, 3 INVALID, 4 NOT_PER_PLAN. The criteria below are still printed per run by `analyze.mjs`:
 
 1. Every timed probe answered **`401`**. Otherwise the run is **INVALID** (it measured the wrong path) — not a pass.
 2. P1 saturated: the median 1-second CPU sample during the probe window is **≥ 95 %** of one core. Otherwise **INVALID (not saturated)**; repeat with more connections or `D16_STRESS=k` (k busy loops pinned to P1's cores, representing a busy shared host).
@@ -31,7 +39,7 @@ Needs Linux (`/proc`, `taskset`), Node 22, Docker.
 
 ```bash
 docker run -d --name nltag-d16-db -e MARIADB_ROOT_PASSWORD=<local-only> -e MARIADB_DATABASE=nltag_d16 \
-  -e MARIADB_USER=nltag -e MARIADB_PASSWORD=<local-only> -p 3306:3306 mariadb:11.8.9
+  -e MARIADB_USER=nltag -e MARIADB_PASSWORD=<local-only> -p 127.0.0.1:3306:3306 mariadb:11.8.9
 ```
 
 ```bash
@@ -57,4 +65,6 @@ Related tooling (read-only or scratch-only; neither changes the criteria above):
 - `criterion-evidence.mjs` reads committed `probes.csv` files and prints how precise a run is, plus what a confidence-based criterion would need (finding 1). The proposal is in `docs/reports/d16-timing/acceptance-criterion.md`.
 - `finding-3/` is a one-process experiment with added database latency, comparing allowlisted, account and unknown addresses (finding 3). Results are in `docs/reports/d16-timing/finding-3-allowlist-timing.md`.
 
-Before the next runs: the classes will include an allowlisted account, the production shape (finding 3), and the analysis is to be agreed and committed first (`acceptance-criterion.md` §4).
+The final runs follow `docs/reports/d16-timing/plan-2026-11.md`: 600 probes per class, a 20-probe smoke test first, connections frozen at 256 (or 512 if the smoke test is not saturated), and the pooled verdict.
+
+`run.sh` refuses to start when `.env`, `.env.local`, `.env.production` or `.env.production.local` exists, because `next start` would load them for variables the harness does not set. `meta.json` records `classes` and `worktreeClean`.
