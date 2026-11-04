@@ -14,12 +14,13 @@ Harness and procedure: `scripts/d16/README.md`. The question D16 asks: under a s
 |---|---|
 | 1. The "≤ 1 ms, not positive" rule is decided by noise | **Open; owner decision.** Statistical analysis and a proposed criterion: `acceptance-criterion.md`. |
 | 2. Run-3 INVALID: a fresh address got `429` (purge/reservation race); also the flood's 4–17 `429`s per run | **Fixed by PR #17** (`ddecb2c`): retry when the purge deletes the row between `INSERT` and `UPDATE`. The purge/reserve deadlock found while testing it is **fixed by PR #18** (`0d77c75`, primary-key purge). New runs should show no spurious `429` (to be confirmed). |
-| 3. Allowlisted address without an account answers ~10–14 % faster than an account under saturation | **Open; security finding; owner decision.** Reproduced on current main. It reveals allowlist membership (every production staff address), **not** activation status. **Fix in PR #20** (owner-approved Option A, 4 Nov 2026; open, not merged), with a deterministic statement-order regression test and before/after harness results: `finding-3-allowlist-timing.md`. |
+| 3. Allowlisted address without an account answers ~10–14 % faster than an account under saturation | **Fixed, merged to `main` in PR #20 (`21c4b3a`, 4 Nov 2026)** (owner-approved Option A), with a deterministic statement-order regression test and before/after harness results: `finding-3-allowlist-timing.md`. It revealed allowlist membership (every production staff address), **not** activation status. Confirmation under saturation is part of the final runs (`plan-2026-11.md`). |
 | 4. Saturation level (CPU) | Informational, unchanged. |
 | 5. Single-process test asserts `401` and clears K windows | **Superseded:** `tests/integration/r4-timing.test.ts` was revised after the merge. The raw test uses `sampleRaw()` (PR #19); the floored and flood tests use `sample()`, which clears the K windows before every pair and requires `401` on every probe (PR #16). |
 
-- **No new D16 runs have been made.** The owner asked for the acceptance criterion to be settled first (`acceptance-criterion.md` §4 lists what has to happen before them).
-- **A new run needs a fresh `meta.json` commit at or after `0d77c75`.**
+- **No new D16 runs have been made yet.** The owner adopted the criterion on 4 Nov 2026 (option 2, 600 probes per class per run, Rules A–E): `acceptance-criterion.md`.
+- **The final runs follow the pre-registered plan in `plan-2026-11.md`.** It covers four classes (with an allowlisted account), the smoke test and frozen connection rule, three runs and the pooled verdict from `scripts/d16/pooled.mjs`.
+- **When:** after the tooling PR is merged, on a commit that contains the finding 3 fix (`21c4b3a` or later). Results go in `2026-11-main-<sha>/`, all of them published.
 
 ## Historical runs (`b4e37a8`, superseded)
 

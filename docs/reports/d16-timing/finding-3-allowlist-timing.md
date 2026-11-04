@@ -1,9 +1,10 @@
 # D16 finding 3: allowlisted addresses answer faster under load
 
-**Status: fix in PR #20.** Option 1 below was owner-approved on 4 Nov 2026. The PR is open and awaiting owner review; it is not merged, and merging it deploys.
-- Until PR #20 is merged, `main` still has the difference. Results with the fix are in "Fix (PR #20) and verification" below.
+**Status: fixed, merged to `main` in PR #20 (`21c4b3a`, 4 Nov 2026).** Option 1 below was owner-approved on 4 Nov 2026.
+- Results with the fix are in "Fix (PR #20) and verification" below.
+- Confirmation under real CPU saturation is part of the final D16 runs (`plan-2026-11.md`, primary comparison: allowlisted account vs unknown).
 - Investigated on 4 Nov 2026, on current `main` (`0d77c75`, merged into PR #16).
-- This PR (#16) contains no production code. The fix is only in PR #20.
+- PR #16 contained no production code; the fix came separately in PR #20.
 - Accounts are still off in production (`/api/auth` answers 404), so nothing is exposed today.
 
 ## Summary
@@ -20,7 +21,7 @@
   Every production account is created through the allowlist. So in production, under load, the signal separates staff addresses, activated or not, from every other address. In effect it is an account-existence signal for staff.
 - **The original report framed it differently.** It compared "listed" (allowlisted, no account) with "known" (an account **not** on the allowlist). That is a difference in allowlist membership, not in activation.
 - **Exploitability:** possible from outside in principle, but it needs the site held under sustained saturation, which is itself a denial of service, and a few dozen counted attempts per guessed address. Likelihood is low and impact low to moderate: it confirms which addresses are staff accounts and grants no access.
-- **Mitigation (owner-approved 4 Nov 2026; implemented in PR #20, not merged):** run the same `SELECT` for every address before the allowlist check, a two-line change. It leaves limits, thresholds, expiry periods, statuses and the set of addresses treated as known unchanged. Measured in a throwaway copy: the difference disappears (within ±1.5 ms).
+- **Mitigation (owner-approved 4 Nov 2026; merged to `main` in PR #20 (`21c4b3a`, 4 Nov 2026)):** run the same `SELECT` for every address before the allowlist check, a two-line change. It leaves limits, thresholds, expiry periods, statuses and the set of addresses treated as known unchanged. Measured in a throwaway copy: the difference disappears (within ±1.5 ms).
 
 ## Evidence
 
@@ -121,7 +122,7 @@ Why existing checks missed it:
 - **Activation status:** no. L0 → L1 → L2 does not change the timing, so repeated measurement over time does not show when an account is activated.
 - **Account existence outside the allowlist:** no. K and U are indistinguishable.
 
-## Mitigation options (option 1 approved and implemented in PR #20; not merged)
+## Mitigation options (option 1 approved and merged to `main` in PR #20 (`21c4b3a`, 4 Nov 2026))
 
 1. **Recommended: a uniform lookup in `isKnown()`.**
 

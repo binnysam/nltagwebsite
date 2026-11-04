@@ -11,9 +11,14 @@ Written 4 Nov 2026 (Kuwait); updated the same day after the M1 test-only fix (`e
 > - PR #17 (`ddecb2c`): purge race retry.
 > - PR #18 (`0d77c75`): primary-key purge of `rate_limit_bucket`, no purge/reserve deadlock.
 >
-> **Open:** PR #16 (branch `claude/d16-timing-harness`, main merged in, awaiting owner review). It adds the D16 two-process harness, fixes the floored and flood timing tests (they compared 429 with 429 on `main`), and records two open D16 findings for owner decisions (§10):
-> - the acceptance criterion;
-> - allowlisted addresses answering faster under load.
+> - PR #16 (`2b1c7a0`): D16 two-process harness and the historical runs (superseded); floored and flood timing tests clear the K windows and require 401 (they compared 429 with 429 before).
+> - PR #20 (`21c4b3a`): **D16 finding 3 fixed**: `isKnown()` does the same user lookup for every address, with a statement-order regression test.
+>
+> **Open (§10):**
+> - D16 final runs. The criterion was adopted on 4 Nov 2026 (option 2, 600 probes per class per run, Rules A–E) and the plan is pre-registered in `docs/reports/d16-timing/plan-2026-11.md`. The tooling PR must be reviewed and merged before any run.
+> - Password-reset request timing (not yet measured).
+> - The intermittent raw timing test failure on CI (investigation only, no assertion change without owner approval).
+> - Activation runbook §10 rate-limit check, corrected in the tooling PR (it described the retired per-visitor limits).
 >
 > Behaviour reference: `docs/backend/data-and-auth.md`.
 
@@ -83,14 +88,14 @@ Seen once (`dc19f1f`, attempt 1; 1 of the last 25 admin-browser runs): `DELETE F
 
 **`auth.spec.ts` has no CI job.** Its documented recipe (`scripts/serve-gallery.sh` + `next start`) cannot work: since Phase 6a production mode enables accounts only with SMTP fully set, while the mail outbox is used only without SMTP. It passes against `next dev` (12/12 locally). Proposal: a dev-mode browser job in CI — **needs owner approval** (workflow change).
 
-**D16 finding 3: allowlisted addresses answered faster under load. Fix in PR #20** (Option A, owner-approved 4 Nov 2026; open, awaiting owner review, not merged; merge = deploy).
+**D16 finding 3: allowlisted addresses answered faster under load. Fixed, merged to `main` in PR #20 (`21c4b3a`, 4 Nov 2026)** (Option A, owner-approved).
 - **Cause:** `isKnown()` in `src/server/security/auth-abuse-gate.ts` skipped the user lookup for allowlisted addresses, and that time falls before the reservation, which the adaptive hold does not pad.
 - **Fix:** the same indexed lookup runs first for every address; two lines and a comment. The classification, limits, thresholds, statuses, alerts and audit are unchanged.
 - **Evidence:**
   - Deterministic statement-order test `tests/integration/r4-allowlist-lookup.test.ts`: fails for the three allowlisted shapes without the fix, 6/6 with it.
   - Integration suite: 251 + 6 on MariaDB 11.8.9.
   - Finding 3 timing harness (from PR #16): −52 ms → about 0 ms at +50 ms per round trip.
-- **Details:** `docs/backend/data-and-auth.md` → "Same lookup before the reservation". The analysis is `docs/reports/d16-timing/finding-3-allowlist-timing.md` (PR #16).
+- **Details:** `docs/backend/data-and-auth.md` → "Same lookup before the reservation". The analysis is `docs/reports/d16-timing/finding-3-allowlist-timing.md`.
 - **Order:** land before the first Church Admin activation. The D16 runs should include an allowlisted-account class (PR #16, `acceptance-criterion.md`).
 
 **§9.3 (independent review) — owner hPanel check before merge.** Owner confirms the hPanel variable list contains none of the env-guard values (`NODE_TLS_REJECT_UNAUTHORIZED=0`; `BETTER_AUTH_SECRET` containing `test-only`/`harness-only`; `DATABASE_URL` containing `nltag-local-dev-only`/`ci-only`; loopback `SMTP_HOST`; `SMTP_USER`/`SMTP_PASS` = `harness`). With any of them present the merged code fails every request on the live site. Owner action — Claude must not read or change hPanel.
@@ -98,9 +103,12 @@ Seen once (`dc19f1f`, attempt 1; 1 of the last 25 admin-browser runs): `DELETE F
 **§10 deferred items (merge → before first Church Admin activation):**
 - D16 saturation timing (M3): two-process harness, 3 runs, < 5 % and not positive, on merged code.
   - **Update 4 Nov 2026:** the harness is in PR #16 (`scripts/d16/`). Its four runs tested `b4e37a8` and are superseded (2 PASS, 1 INVALID from the purge race fixed by #17/#18, 1 FAIL on the 1 ms rule). No runs have been made on current `main`: the owner asked for the criterion first.
-  - Open for owner decision before new runs:
-    - **Finding 1:** the ≤ 1 ms rule is decided by noise (per-run SE ≈ 29 ms; a correct implementation passes 3 of 3 about 1 time in 8). A pre-registered pooled equivalence criterion is proposed: `docs/reports/d16-timing/acceptance-criterion.md`.
-    - **Finding 3 (security):** under load every allowlisted address answers one database query faster than any other address, because `isKnown()` skips the user `SELECT` for allowlisted addresses. It reveals allowlist membership (every staff address), not activation status. **Fix in PR #20** (owner-approved Option A, 4 Nov 2026; open, not merged; it should land before activation): `docs/reports/d16-timing/finding-3-allowlist-timing.md`.
+  - **Update (later, 4 Nov 2026):**
+    - **Finding 1:** the ≤ 1 ms rule is decided by noise (per-run SE ≈ 29 ms). The owner **adopted** the pooled equivalence criterion (option 2, 600 probes per class per run, Rules A–E): `docs/reports/d16-timing/acceptance-criterion.md`. The procedure is pre-registered in `plan-2026-11.md`, and the decision code is `scripts/d16/stats.mjs` and `pooled.mjs`, with unit tests. The runs are made only after that tooling PR is merged, and every result is published, including invalid and inconclusive runs.
+    - **Finding 3 (security):** fixed, merged to `main` in PR #20 (`21c4b3a`). The runs confirm it under saturation, with allowlisted account vs unknown as the primary comparison: `docs/reports/d16-timing/finding-3-allowlist-timing.md`.
+- **Password-reset request timing (separate production-readiness item, not measured):** `resetRequest()` holds to its own 250 ms floor plus the shared estimator, but Better Auth does different work for existing addresses (token, mail queue). Check it like finding 3 (`scripts/d16/finding-3/` with added database latency) before activation.
+- **Intermittent raw timing test failure (CI reliability, not a production defect):** `tests/integration/r4-timing.test.ts` "raw (no floor)" failed on `main` at `2b1c7a0` (run 41889690214: known p99 774.5 ms, every probe 401, event-loop delay max 19.6 ms). It passed on the same code elsewhere. At n = 100, the asserted p99 is the maximum of 100 probes, so one transient slow request fails it. Investigation only; the assertion is not weakened without the owner's approval.
+- **Activation runbook §10:** the rate-limit check described the retired per-visitor (IP) limits and asked for `CLIENT_IP_SOURCE` to be set. It is corrected in the D16 tooling PR to the R4 per-address check, with `CLIENT_IP_SOURCE` unset.
 - Graceful shutdown on Hostinger: decide and test `NEXT_MANUAL_SIG_HANDLE`; add to the activation runbook. Do not set it blind.
 - L1 G2 guard misses `getAuth().handler(...)` outside `/api/auth` and aliasing · L2 env guard runs on first `serverEnv()` not boot; loopback check misses `0.0.0.0`, `::ffff:127.0.0.1`, `localhost.` · L3 SMTP retry may duplicate mail; 35 s retry span > 10 s drain · L4 failed mail does not release the `acct-req` slot · L5 two live links used at the same instant can both succeed · L6 no production-config G1 test (`__Secure-` cookie names) · L7 malformed address on the request form gets 400 but page shows "Check your email".
 - ~~M1 options 2/3 (above): owner decision before activation.~~ **Done:** option 3 merged in PR #13 (`7bcedde`); option 2 is not needed.
