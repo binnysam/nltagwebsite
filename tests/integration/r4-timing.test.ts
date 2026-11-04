@@ -1,7 +1,8 @@
+import { monitorEventLoopDelay } from "node:perf_hooks";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/server/db/client";
-import { resetGateLimitersForTests, TIMING_FLOOR_MS } from "@/server/security/auth-abuse-gate";
+import { resetGateLimitersForTests, resetTimingEstimatorForTests, TIMING_FLOOR_MS } from "@/server/security/auth-abuse-gate";
 import { hashEmail } from "@/server/security/hash";
 import { signInAccountKey } from "@/server/services/rate-limit";
 import { seed, SEED_USERS } from "../../scripts/db/seed";
@@ -41,6 +42,52 @@ async function sample(n: number) {
   return { known, unknown };
 }
 
+type Probe = { pair: number; kind: "known" | "unknown"; ms: number; status: number };
+
+/**
+ * Sampling for the raw test only (owner approval 4 Nov 2026; test-only). The floored and flood
+ * tests keep using sample() unchanged. Three measurement corrections:
+ *  1. Before every known probe the member's own key AND every `class:K:*` window are cleared (as
+ *     PR #16 does), so every known probe is a real wrong-password check answered 401. Without it
+ *     the 15-minute K ceiling (90) filled during this test and its last known probes were 429s
+ *     that never ran a password check.
+ *  2. The adaptive timing estimator is reset before every probe. With the fixed floor at 0 an
+ *     answer is still held to `common work + 1.1 × the slowest of the last 32 password-work
+ *     samples`, unknown-address calibration hashes included, so one stall anywhere held about 16
+ *     later known answers at its level. After the reset a probe's time reflects its own work
+ *     (still × 1.1, so never less than the raw answer).
+ *  3. Every probe's status is recorded (all must be 401) and the event-loop delay is measured, so
+ *     a failure can print the whole series and show whether the process itself stalled.
+ */
+async function sampleRaw(n: number) {
+  const series: Probe[] = [];
+  const loop = monitorEventLoopDelay({ resolution: 10 });
+  loop.enable();
+  try {
+    for (let pair = 0; pair < n; pair++) {
+      const order: Probe["kind"][] = pair % 2 === 0 ? ["known", "unknown"] : ["unknown", "known"];
+      for (const kind of order) {
+        if (kind === "known") {
+          await freshMemberBudget();
+          await getDb().execute(sql`DELETE FROM rate_limit_bucket WHERE bucket_key LIKE 'class:K:%'`);
+        }
+        resetTimingEstimatorForTests();
+        const r = await timed(kind === "known" ? MEMBER : `nobody.${u++}@nltag.test`);
+        series.push({ pair, kind, ms: r.ms, status: r.status });
+      }
+    }
+  } finally {
+    loop.disable();
+  }
+  const ms = (ns: number) => +(ns / 1e6).toFixed(1);
+  return {
+    series,
+    known: series.filter((s) => s.kind === "known").map((s) => s.ms),
+    unknown: series.filter((s) => s.kind === "unknown").map((s) => s.ms),
+    eventLoopDelayMs: { resolution: 10, mean: ms(loop.mean), p50: ms(loop.percentile(50)), p90: ms(loop.percentile(90)), p99: ms(loop.percentile(99)), max: ms(loop.max) },
+  };
+}
+
 beforeAll(async () => {
   await seed();
   await clearRateLimits();
@@ -76,8 +123,17 @@ describe("R4 change 5: unknown and known addresses are indistinguishable", () =>
     const saved = { ...TIMING_FLOOR_MS };
     (TIMING_FLOOR_MS as { signInFailure: number }).signInFailure = 0;
     try {
-      const { known, unknown } = await sample(Math.min(N, 100));
+      const n = Math.min(N, 100);
+      const { known, unknown, series, eventLoopDelayMs } = await sampleRaw(n);
       console.info("R8 raw (floor 0) known", JSON.stringify(summary(known)), "unknown", JSON.stringify(summary(unknown)));
+      const statuses = (kind: Probe["kind"]) => series.filter((s) => s.kind === kind).map((s) => s.status);
+      if (series.some((s) => s.status !== 401) || !(pct(known, 99) < saved.signInFailure)) {
+        // Failure diagnostics: every probe in order, and whether the event loop itself stalled.
+        console.error("R8 raw FAILED: series [pair, kind, ms, status]", JSON.stringify(series.map((s) => [s.pair, s.kind, +s.ms.toFixed(1), s.status])));
+        console.error("R8 raw FAILED: event-loop delay (ms)", JSON.stringify(eventLoopDelayMs));
+      }
+      expect(statuses("known")).toEqual(Array(n).fill(401));
+      expect(statuses("unknown")).toEqual(Array(n).fill(401));
       expect(pct(known, 99)).toBeLessThan(saved.signInFailure);
     } finally {
       (TIMING_FLOOR_MS as { signInFailure: number }).signInFailure = saved.signInFailure;
