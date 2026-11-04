@@ -21,6 +21,7 @@ import {
   THROTTLES,
 } from "../services/rate-limit";
 import { getAuth } from "../auth/auth";
+import { purgeExpiredVerificationsSometimes } from "../auth/verification-purge";
 import { readCookie, recognisedBrowserCookieName, recognisedBrowserId } from "../auth/recognised-browser";
 import { normaliseEmail, signupAllowed, signupPolicy } from "../auth/signup-allowlist";
 import { clientIpOf } from "./client-ip";
@@ -313,6 +314,7 @@ async function secondFactor(req: Request, next: Next): Promise<Response> {
 
 export async function gateAuthRequest(req: Request, next: Next): Promise<Response> {
   void purgeExpiredBucketsSometimes().catch(() => undefined);
+  purgeExpiredVerificationsSometimes();
   const url = new URL(req.url);
   const route = matchAuthRoute(req.method, url);
   if (!route) {
