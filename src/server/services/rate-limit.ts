@@ -80,6 +80,13 @@ export interface ReserveResult {
 const THROTTLE_ROW = 0;
 
 /**
+ * reserveAttempt() and reserveWindow() write their row with INSERT IGNORE and count with a
+ * conditional UPDATE. If the purge deletes the (already expired) row between the two, the UPDATE
+ * finds nothing; they then re-insert and retry, at most this many rounds in all, then refuse.
+ */
+const VANISHED_ROW_ATTEMPTS = 3;
+
+/**
  * Reserves one attempt atomically, BEFORE the guarded work (a password check) runs. A single
  * conditional UPDATE decides: under the row lock it either counts the attempt (and the caller may
  * proceed) or changes nothing (refused). Concurrent callers therefore cannot exceed the schedule:
@@ -92,24 +99,32 @@ export async function reserveAttempt(key: string, rule: ThrottleRule, now = Date
   const db = getDb();
   const nowAt = new Date(now);
   const resetMs = rule.resetSeconds * 1000;
-  // First sight of the key: an already-finished episode, so the UPDATE below starts a new one.
-  await db.execute(sql`INSERT IGNORE INTO rate_limit_bucket (bucket_key, window_start, count, expires_at) VALUES (${key}, ${THROTTLE_ROW}, 0, ${nowAt})`);
   // delay(count) in ms, in SQL so the decision happens under the row lock. Free attempts pass on the
   // count alone: concurrent callers read the clock in a slightly different order than they get the
   // lock, and a millisecond must never turn a free attempt into a refusal.
   const delayMs = sql`IF(count < ${rule.free}, 0, LEAST(${rule.maxDelay * 1000}, ${rule.baseDelay * 1000} * POW(2, count - ${rule.free})))`;
-  const [result] = (await db.execute(sql`
-    UPDATE rate_limit_bucket
-       SET count = IF(expires_at <= ${nowAt}, 1, count + 1),
-           expires_at = ${new Date(now + resetMs)}
-     WHERE bucket_key = ${key} AND window_start = ${THROTTLE_ROW}
-       AND (expires_at <= ${nowAt}
-            OR count < ${rule.free}
-            OR TIMESTAMPADD(MICROSECOND, (${delayMs}) * 1000, expires_at) <= ${new Date(now + resetMs)})`)) as unknown as [{ affectedRows: number }];
-  const [row] = await db
-    .select({ count: rateLimitBucket.count, expiresAt: rateLimitBucket.expiresAt })
-    .from(rateLimitBucket)
-    .where(sql`${rateLimitBucket.bucketKey} = ${key} AND ${rateLimitBucket.windowStart} = ${THROTTLE_ROW}`);
+  let result: { affectedRows: number } = { affectedRows: 0 };
+  let row: { count: number; expiresAt: Date } | undefined;
+  for (let attempt = 1; attempt <= VANISHED_ROW_ATTEMPTS; attempt++) {
+    // First sight of the key: an already-finished episode, so the UPDATE below starts a new one.
+    await db.execute(sql`INSERT IGNORE INTO rate_limit_bucket (bucket_key, window_start, count, expires_at) VALUES (${key}, ${THROTTLE_ROW}, 0, ${nowAt})`);
+    [result] = (await db.execute(sql`
+      UPDATE rate_limit_bucket
+         SET count = IF(expires_at <= ${nowAt}, 1, count + 1),
+             expires_at = ${new Date(now + resetMs)}
+       WHERE bucket_key = ${key} AND window_start = ${THROTTLE_ROW}
+         AND (expires_at <= ${nowAt}
+              OR count < ${rule.free}
+              OR TIMESTAMPADD(MICROSECOND, (${delayMs}) * 1000, expires_at) <= ${new Date(now + resetMs)})`)) as unknown as [{ affectedRows: number }];
+    [row] = await db
+      .select({ count: rateLimitBucket.count, expiresAt: rateLimitBucket.expiresAt })
+      .from(rateLimitBucket)
+      .where(sql`${rateLimitBucket.bucketKey} = ${key} AND ${rateLimitBucket.windowStart} = ${THROTTLE_ROW}`);
+    // Purge race: the opportunistic purge deleted the row between the INSERT and the UPDATE (it is
+    // purgeable only once its episode has ended). A refusal always leaves a row, so "no row" means
+    // nothing was decided: write it again and retry. Bounded; if it keeps vanishing, refuse.
+    if (result.affectedRows === 1 || row) break;
+  }
   const count = row?.count ?? 0;
   if (result.affectedRows === 1) return { allowed: true, count, retryAfterSeconds: 0 };
   const lastAt = (row?.expiresAt?.getTime() ?? now) - resetMs;
@@ -161,11 +176,20 @@ export async function reserveWindow(key: string, rule: RateRule, now = Date.now(
   const windowMs = rule.window * 1000;
   const windowStart = Math.floor(now / windowMs) * windowMs;
   const db = getDb();
-  await db.execute(sql`INSERT IGNORE INTO rate_limit_bucket (bucket_key, window_start, count, expires_at) VALUES (${key}, ${windowStart}, 0, ${new Date(windowStart + windowMs)})`);
-  const [result] = (await db.execute(
-    sql`UPDATE rate_limit_bucket SET count = count + 1 WHERE bucket_key = ${key} AND window_start = ${windowStart} AND count < ${rule.max}`,
-  )) as unknown as [{ affectedRows: number }];
-  return { allowed: result.affectedRows === 1, windowStart, retryAfterSeconds: Math.max(1, Math.ceil((windowStart + windowMs - now) / 1000)) };
+  let allowed = false;
+  for (let attempt = 1; attempt <= VANISHED_ROW_ATTEMPTS; attempt++) {
+    await db.execute(sql`INSERT IGNORE INTO rate_limit_bucket (bucket_key, window_start, count, expires_at) VALUES (${key}, ${windowStart}, 0, ${new Date(windowStart + windowMs)})`);
+    const [result] = (await db.execute(
+      sql`UPDATE rate_limit_bucket SET count = count + 1 WHERE bucket_key = ${key} AND window_start = ${windowStart} AND count < ${rule.max}`,
+    )) as unknown as [{ affectedRows: number }];
+    allowed = result.affectedRows === 1;
+    if (allowed) break;
+    // A full window leaves its row; "no row" means the purge removed it at the window boundary
+    // between the INSERT and the UPDATE (purge race, see VANISHED_ROW_ATTEMPTS): retry.
+    const [rows] = (await db.execute(sql`SELECT 1 AS present FROM rate_limit_bucket WHERE bucket_key = ${key} AND window_start = ${windowStart}`)) as unknown as [unknown[]];
+    if (rows.length > 0) break;
+  }
+  return { allowed, windowStart, retryAfterSeconds: Math.max(1, Math.ceil((windowStart + windowMs - now) / 1000)) };
 }
 
 /** Gives back one reservation in the window reserveWindow() returned. Never below zero. */
