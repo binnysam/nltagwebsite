@@ -176,3 +176,23 @@ export const phase6bApprovedTamil = {
 
 /** Interface strings confirmed at Gate 0, before the Tamil review. Not part of the 48. */
 export const gate0ConfirmedTamil = ["lang.ta", "lang.en"] as const;
+
+/**
+ * R4 D9 (mailbox-first registration and set-password wording): the 8 strings, English and Tamil,
+ * approved by the owner on 4 Nov 2026 (post-deployment review, decision O1). For
+ * auth.accountRequest.retry the owner chose the wording that names the link:
+ *   English "…please request the link again." / Tamil "…மீண்டும் இணைப்பைக் கோருங்கள்."
+ * Reproduced exactly; tests/unit/tamil-review.test.ts compares every character.
+ */
+export const R4_D9_APPROVAL_DATE = "2026-11-04";
+
+export const r4D9ApprovedTamil = {
+  "email.setPassword.subject": "உங்கள் கடவுச்சொல்லை அமைக்கவும்",
+  "email.setPassword.body": "இந்த மின்னஞ்சல் முகவரிக்கு ஒரு கணக்கு கோரப்பட்டுள்ளது. உங்கள் கடவுச்சொல்லைத் தேர்ந்தெடுக்க கீழே உள்ள இணைப்பைத் திறக்கவும். அது 1 மணி நேரம் செல்லுபடியாகும்.",
+  "auth.accountRequest.hint": "உங்கள் கடவுச்சொல்லைத் தேர்ந்தெடுக்க ஒரு இணைப்பை மின்னஞ்சலில் அனுப்புவோம்.",
+  "auth.accountRequest.sent": "உங்கள் மின்னஞ்சலைப் பாருங்கள். இந்த முகவரியைப் பதிவு செய்ய முடிந்தால், உங்கள் கடவுச்சொல்லைத் தேர்ந்தெடுக்க ஒரு இணைப்பை அனுப்பியுள்ளோம். அது 1 மணி நேரம் செல்லுபடியாகும்.",
+  "auth.accountRequest.retry": "மின்னஞ்சல் வர சில நிமிடங்கள் ஆகலாம். 10 நிமிடங்களுக்குள் எதுவும் வரவில்லை என்றால், மீண்டும் இணைப்பைக் கோருங்கள்.",
+  "auth.setPassword.title": "உங்கள் கடவுச்சொல்லைத் தேர்ந்தெடுக்கவும்",
+  "auth.setPassword.submit": "கடவுச்சொல்லைச் சேமி",
+  "auth.setPassword.done": "உங்கள் கடவுச்சொல் அமைக்கப்பட்டது. உள்நுழையவும்.",
+} as const satisfies Record<string, string>;
