@@ -28,6 +28,8 @@ export default defineConfig({
       BETTER_AUTH_SECRET: "test-only-secret-not-used-anywhere-else-0123456789",
       BETTER_AUTH_URL: "http://localhost:3000",
       AUTH_RATE_LIMIT: "on",
+      // The route returns 404 without it (src/server/accounts-gate.ts); tests go through the route.
+      NLTAG_ACCOUNTS_ENABLED: "1",
       // The production default: resolution off until the header capture has been reviewed.
       CLIENT_IP_SOURCE: "",
       CLIENT_IP_SHAPE_LOG: "off",

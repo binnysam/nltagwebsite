@@ -125,8 +125,9 @@ describe("M1 + L1: progressive delay, never an indefinite block, no window bound
   const key = "test:schedule";
 
   it("follows the documented schedule: 5 free, then 30 s, 1, 2, 4, 8 min, then every 15 min", async () => {
-    // Owner-approved values (3 Nov 2026); both budgets use the same schedule and the 1-hour reset.
-    const approved = { free: 5, baseDelay: 30, maxDelay: 15 * 60, resetSeconds: 3600 };
+    // Owner-approved values (3 Nov 2026); both budgets use the same schedule. R4 D2 (3 Nov 2026):
+    // the reset after a quiet period is 3 hours (was 1 hour).
+    const approved = { free: 5, baseDelay: 30, maxDelay: 15 * 60, resetSeconds: 3 * 3600 };
     expect(THROTTLES.signInAccount).toEqual(approved);
     expect(THROTTLES.signInRecognisedBrowser).toEqual(approved);
     expect([0, 4, 5, 6, 7, 8, 9, 10, 11, 50].map((c) => throttleDelaySeconds(c, RULE))).toEqual([0, 0, 30, 60, 120, 240, 480, 900, 900, 900]);
@@ -147,18 +148,18 @@ describe("M1 + L1: progressive delay, never an indefinite block, no window bound
     expect((await reserveAttempt(key, RULE, t + 30_000)).allowed).toBe(true);
   });
 
-  it("has no boundary to exploit: the budget only refills after an hour without counted attempts", async () => {
+  it("has no boundary to exploit: the budget only refills after 3 hours without counted attempts (D2)", async () => {
     const t = Date.UTC(2026, 10, 3, 11, 14, 0); // late in any 15-minute window
     for (let i = 0; i < FREE; i++) expect((await reserveAttempt(key, RULE, t)).allowed).toBe(true);
     // A fixed window would allow a fresh burst of 5 at 11:15; here only the one delayed slot opens.
     const boundary = Date.UTC(2026, 10, 3, 11, 15, 1);
     const atBoundary = await Promise.all(Array.from({ length: FREE }, () => reserveAttempt(key, RULE, boundary)));
     expect(atBoundary.filter((r) => r.allowed)).toHaveLength(1);
-    // 59 minutes of silence is not enough to refill the budget.
-    const quiet = boundary + 59 * 60_000;
+    // 2 h 59 min of silence is not enough to refill the budget (D2: 3-hour reset).
+    const quiet = boundary + (2 * 60 + 59) * 60_000;
     expect((await Promise.all(Array.from({ length: FREE }, () => reserveAttempt(key, RULE, quiet)))).filter((r) => r.allowed)).toHaveLength(1);
-    // One hour after the last counted attempt the episode is over: the free attempts return.
-    const later = quiet + 3600_000;
+    // Three hours after the last counted attempt the episode is over: the free attempts return.
+    const later = quiet + 3 * 3600_000;
     for (let i = 0; i < FREE; i++) expect((await reserveAttempt(key, RULE, later)).allowed).toBe(true);
   });
 

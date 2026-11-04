@@ -188,6 +188,28 @@ export const uiStrings = {
     "This link is invalid or has expired. Please request a new one.",
     "இந்த இணைப்பு செல்லாதது அல்லது காலாவதியானது. புதிய இணைப்பைக் கோருங்கள்.",
   ),
+  // R4 mailbox-first registration (D1, D9; Nov 2026). English proposed; Tamil draft-review, owner
+  // approval (gate G-D) before the first Church Admin activation.
+  "auth.accountRequest.hint": s(
+    "We will email you a link to choose your password.",
+    "உங்கள் கடவுச்சொல்லைத் தேர்ந்தெடுக்க ஒரு இணைப்பை மின்னஞ்சலில் அனுப்புவோம்.",
+    { note: "R4 D1. Shown on the create-account form, which now asks only for an email address." },
+  ),
+  "auth.accountRequest.sent": s(
+    "Check your email. If this address can be registered, we have sent a link to choose your password. It works for 1 hour.",
+    "உங்கள் மின்னஞ்சலைப் பாருங்கள். இந்த முகவரியைப் பதிவு செய்ய முடிந்தால், உங்கள் கடவுச்சொல்லைத் தேர்ந்தெடுக்க ஒரு இணைப்பை அனுப்பியுள்ளோம். அது 1 மணி நேரம் செல்லுபடியாகும்.",
+    { note: "R4 D1. Same message for every address (prevents account discovery). Replaces auth.signUp.sent on the form." },
+  ),
+  "auth.accountRequest.retry": s(
+    "The email may take a few minutes to arrive. If nothing arrives within 10 minutes, please request again.",
+    "மின்னஞ்சல் வர சில நிமிடங்கள் ஆகலாம். 10 நிமிடங்களுக்குள் எதுவும் வரவில்லை என்றால், மீண்டும் கோருங்கள்.",
+    { note: "R4 v6.1 §2.6 retry guidance, shown with auth.accountRequest.sent." },
+  ),
+  "auth.setPassword.title": s("Choose your password", "உங்கள் கடவுச்சொல்லைத் தேர்ந்தெடுக்கவும்", {
+    note: "R4 D9. Page reached from the set-password email.",
+  }),
+  "auth.setPassword.submit": s("Save password", "கடவுச்சொல்லைச் சேமி", { note: "R4 D9." }),
+  "auth.setPassword.done": s("Your password is set. Please sign in.", "உங்கள் கடவுச்சொல் அமைக்கப்பட்டது. உள்நுழையவும்.", { note: "R4 D9." }),
   "auth.verify.title": c("Email verification", "மின்னஞ்சல் சரிபார்ப்பு"),
   "auth.verify.done": c("Your email address is verified.", "உங்கள் மின்னஞ்சல் முகவரி சரிபார்க்கப்பட்டது."),
   "auth.verify.pending": c(
@@ -302,6 +324,17 @@ export const uiStrings = {
   "email.reset.body": c(
     "Open the link below to choose a new password. It works for 1 hour.",
     "புதிய கடவுச்சொல்லைத் தேர்ந்தெடுக்க கீழே உள்ள இணைப்பைத் திறக்கவும். அது 1 மணி நேரம் செல்லுபடியாகும்.",
+  ),
+  // R4 D9 (Nov 2026): the first-password email of mailbox-first registration. English proposed;
+  // Tamil is a draft for owner review (draft-review) and must be approved (gate G-D) before the
+  // first Church Admin is activated. Reuses the approved phrasing of email.reset.body where it can.
+  "email.setPassword.subject": s("Set your password", "உங்கள் கடவுச்சொல்லை அமைக்கவும்", {
+    note: "R4 D9. Sent when an account is requested for a listed address that has no password yet.",
+  }),
+  "email.setPassword.body": s(
+    "An account has been requested for this email address. Open the link below to choose your password. It works for 1 hour.",
+    "இந்த மின்னஞ்சல் முகவரிக்கு ஒரு கணக்கு கோரப்பட்டுள்ளது. உங்கள் கடவுச்சொல்லைத் தேர்ந்தெடுக்க கீழே உள்ள இணைப்பைத் திறக்கவும். அது 1 மணி நேரம் செல்லுபடியாகும்.",
+    { note: "R4 D9. The second and third sentences reuse the approved wording of email.reset.body." },
   ),
   "email.ignore": c(
     "If you did not ask for this, you can ignore this email.",

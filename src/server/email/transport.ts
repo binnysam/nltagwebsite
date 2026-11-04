@@ -2,7 +2,7 @@ import "server-only";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import nodemailer, { type Transporter } from "nodemailer";
-import { serverEnv, smtpConfigured } from "../env";
+import { serverEnv, smtpConfigured, type ServerEnv } from "../env";
 
 export interface OutgoingMail {
   to: string;
@@ -23,21 +23,28 @@ export const memoryOutbox: OutgoingMail[] = [];
  * Gmail SMTP with an App Password (Phase 4a decision). Credentials only from environment
  * variables; they are not set until the owner approves the email testing step.
  * Port 465 = implicit TLS; 587 = STARTTLS (required, never plain).
+ * Exported (options only, no connection) for the TLS unit test.
  */
-function smtpTransport(): MailTransport {
-  const env = serverEnv();
+export function smtpOptions(env: ServerEnv) {
   const port = env.SMTP_PORT ?? 465;
-  const transporter: Transporter = nodemailer.createTransport({
+  return {
     host: env.SMTP_HOST,
     port,
     secure: port === 465,
     requireTLS: port !== 465,
     auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
-    tls: { minVersion: "TLSv1.2" },
+    // v6.1 §5: certificate checks are explicit, so NODE_TLS_REJECT_UNAUTHORIZED=0 in the process
+    // environment (a harness setting) can never switch them off for the real mail server.
+    tls: { minVersion: "TLSv1.2" as const, rejectUnauthorized: true },
     connectionTimeout: 15_000,
     greetingTimeout: 10_000,
     socketTimeout: 20_000,
-  });
+  };
+}
+
+function smtpTransport(): MailTransport {
+  const env = serverEnv();
+  const transporter: Transporter = nodemailer.createTransport(smtpOptions(env));
   return {
     name: "smtp",
     async send(mail) {

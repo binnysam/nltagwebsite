@@ -215,8 +215,13 @@ describe("Bible verses", () => {
   });
 
   it("daily selection uses the Kuwait date (21:00 UTC is the next day in Kuwait)", async () => {
-    const a = await getDailyVerse(new Date("2030-04-30T21:30:00Z"));
-    expect(a?.dateKey).toBe("2030-05-01");
+    // Isolation: schedules its own verse instead of relying on the previous test's.
+    const { id } = await createItem(ctx(EDITOR), "VERSE", input("VERSE", { "en.title": "Test verse 2", "detail.referenceEn": "Test 2:2", "detail.textEn": "[Fictional test text, not Scripture]", "detail.referenceTa": "சோதனை 2:2", "detail.textTa": "[சோதனை உரை]" }));
+    await transition(ctx(ADMIN), id, "publish");
+    await scheduleVerse(ctx(ADMIN), "2031-05-01", id);
+    const a = await getDailyVerse(new Date("2031-04-30T21:30:00Z"));
+    expect(a?.dateKey).toBe("2031-05-01");
+    expect(a?.id).toBe(id);
   });
 });
 

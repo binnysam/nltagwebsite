@@ -17,6 +17,10 @@ export const AUDIT_ACTIONS = [
   // (any IP). At most one row per address per hour; reason "account" or "recognised-browser".
   "auth.sign_in.throttled",
   "auth.password.reset",
+  // R4 mailbox-first account requests (v6.1 §2.5). Entity id only, never the address; reason =
+  // which page the emailed link opens (set-password or reset-password).
+  "auth.account_request.provisioned",
+  "auth.account_request.link_issued",
   "auth.password.change",
   "auth.staff_session.expire",
   // Two-factor (Phase 6b). Never codes, secrets or recovery codes; reason = endpoint and status.

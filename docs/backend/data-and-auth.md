@@ -86,17 +86,19 @@ An unverified email removes every permission except reading published content an
 **Two-factor (Phase 6b):** the Church Admin role grants nothing until the person has a verified authenticator app (`TWO_FACTOR_REQUIRED_ROLES` in `two-factor-policy.ts`, applied in `permissionsFor`). Content Editors are not required to (owner decision; one-line change to require it).
 
 ## Limits
+R4 (Nov 2026, v6.1): Better Auth's own limiter is **off** (`rateLimit: { enabled: false }`); IP-keyed limits are retired (they could only key on one shared bucket behind the CDN). Every limit is per address (keyed hash) or per process, enforced by the route gate (`src/server/security/auth-abuse-gate.ts`) — see "R4 auth abuse gate" below.
+
 | What | Limit | Where |
 |---|---|---|
-| Sign-in | 5 / 15 min per client IP, **and** a progressive delay per account from any IP: 5 password checks at once, then 30 s, 1, 2, 4, 8 min, then one per 15 min; resets after 1 hour without a wrong password (schedule approved by the owner on 3 Nov 2026). A recognised browser (30 days) has its own budget. See "Sign-in protection" | Better Auth + `auth.ts` hooks |
-| Sign-up | 5 / hour per client | Better Auth |
-| Verification email request | 3 / hour per client | Better Auth |
-| Password reset request | 3 / hour per client | Better Auth |
-| Account emails to one address | 3 / hour per kind | `email/send.ts` |
+| Sign-in | Progressive delay per address from any IP: 5 password checks at once, then 30 s, 1, 2, 4, 8 min, then one per 15 min; resets after **3 hours** without a wrong password (D2, 3 Nov 2026; was 1 hour). A recognised browser (30 days) has its own budget. Class ceilings K 90/15 min, 120/h and A 60/15 min, 200/h | gate + `services/rate-limit.ts` |
+| Account request (`/api/account-request`) | 5 / s, burst 20, per process, address-free (decided before the address is read); **3 / 15 min per listed address** that reaches provisioning (v6.1 §1) | `auth/request-account.ts` |
+| Password reset request | 5 / 15 min per address (every address alike) | gate |
+| Set-password / reset link | valid links always pass; unknown tokens 20 / s, burst 40, per process | gate |
+| Account emails to one address | 3 / hour per kind (reserved, given back if delivery fails) | `email/send.ts` |
 | All outgoing mail | 300 per rolling 24 h (`EMAIL_DAILY_CAP`) | `email/send.ts` |
-| Two-factor code at sign-in (authenticator) | 10 / 15 min per client; 5 tries per challenge; account locked 15 min after 5 wrong codes in a row | Better Auth + plugin |
-| Two-factor recovery code at sign-in | 5 / 15 min per client (same per-challenge and account lockout) | Better Auth + plugin |
-| Enable / disable / new recovery codes | 5 / hour per client (HTTP) and 5 / 15 min per account (all callers) | Better Auth + `auth.ts`, server actions |
+| Two-factor code at sign-in | gate: only with the challenge cookie, 50 / s burst 100 per process; plugin: 5 tries per challenge, account locked 15 min after 5 wrong codes in a row | gate + plugin |
+| Enable / disable / new recovery codes | server actions only (HTTP is 404); 5 / 15 min per account | `two-factor/actions.ts`, `auth.ts` |
+| Sign-in failure audit rows | 5 / s per process; excess counted, one summary log line a minute | gate |
 
 ## Sign-in protection (PR #11 follow-up, Nov 2026)
 Code: `reserveSignInAttempt` / `settleSignInAttempt` in `auth.ts`, `reserveAttempt` / `releaseAttempt` / `claimOncePerWindow` in `services/rate-limit.ts`, `auth/recognised-browser.ts`. Tests: `tests/integration/sign-in-protection.test.ts`. No migration (uses `rate_limit_bucket`).
@@ -113,6 +115,27 @@ Code: `reserveSignInAttempt` / `settleSignInAttempt` in `auth.ts`, `reserveAttem
 
 **Remaining limit.** From a browser that has never completed a sign-in to that address, an attacker who keeps trying can take each 15-minute slot first. The account holder signs in from a browser they have used before; if none is available, the attack shows up in the audit log and the alert email.
 
+## R4 auth abuse gate and mailbox-first registration (Nov 2026, v6.1)
+Code: `src/server/security/auth-abuse-gate.ts`, `auth-routes.ts`, `process-limiter.ts`, `src/server/auth/request-account.ts`, `src/app/api/account-request/route.ts`, `src/server/lifecycle.ts`. Tests: `tests/integration/r4-*.test.ts`, `tests/unit/server-api-allowlist.test.ts`, `tests/unit/r4-v61-env-mail-lifecycle.test.ts`. No migration (D7; `rate_limit_bucket` and `audit_log` only). Owner decisions D1–D7 approved 3 Nov 2026. This supersedes the sign-in hooks and IP limits described above where they differ.
+
+**Default deny (D4).** `/api/auth` forwards only nine method + exact-path routes (`AUTH_ROUTES`); everything else, including every other Better Auth endpoint (`DENIED_ENDPOINTS`, with the reason for each), is the gate's own 404 before Better Auth runs. A contract test fails when a Better Auth upgrade adds an unclassified endpoint.
+
+**Mailbox-first registration (D1).** There is no password sign-up (`disableSignUp`, `/sign-up/email` denied). The create-account form sends only an address to `/api/account-request`, which answers `202` for every well-formed request before the address is looked at. Afterwards, only for addresses on `NLTAG_SIGNUP_ALLOWLIST`: a window of 3 per 15 minutes per address, a user row with **no credential** (unverified), and a set-password link (`email.setPassword.*`, D9) to `/ta|en/set-password`. Using the link sets the first password and verifies the address; it never signs in. All other links for that account are voided when one is used (R1). Existing accounts get a normal reset link instead. Unlisted addresses: no query, no row, no mail. Verification links (`/verify-email`) are not used any more.
+
+**Malformed requests are no oracle (v6.1 B).** The gate validates the address with Better Auth's own rule (`z.email()`, exactly as given — no trimming) before the known-address lookup and before any reservation, for sign-in and reset requests. A malformed address gets the same `400` for every address and never spends a real address's budget.
+
+**Audit parity (v6.1 B).** Every wrong-address-or-password answer writes one `auth.sign_in.fail` row (no address; IP hash only when a trusted client IP exists — none while `CLIENT_IP_SOURCE` is unset), for known and unknown addresses alike, fire-and-forget and capped at 5 rows per second per process.
+
+**Two-factor routes (G1, D6).** `/two-factor/verify-totp` and `/verify-backup-code` are forwarded only when the request carries the plugin's challenge cookie, and the gate strips session cookies from them, so Better Auth can only run its sign-in challenge there. Enabling, confirming, disabling and new recovery codes exist only as the account page's server actions (`2fa-manage` limit). `tests/unit/server-api-allowlist.test.ts` (G2) fails on any server-side Better Auth API call outside the approved list. The two-factor page shows only the number of recovery codes left (`auth/recovery-codes.ts`); decrypted codes never reach it.
+
+**Recognised-browser revocation (D5).** `NLTAG_RECOGNISED_BROWSER_KEY_VERSION` (positive integer, default 1) is part of the cookie's key. **Raise it** (never lower it) and restart to revoke every recognised browser; sessions, authenticator secrets and recovery codes are untouched. An invalid value accepts no recognised browser and never breaks sign-in.
+
+**Reliability without a job table (v6.1 §2).** The account request replies first and provisions in the background. A failed provision gives its window slot back. Account email: the per-address slot is reserved, given back if delivery fails; a connection-level SMTP failure (no reply from the server) is retried 3 times at 0 s, 5 s and 30 s under the one slot; a server reply (any 4xx/5xx) or an authentication error is never retried. Audit: `auth.account_request.provisioned` and `auth.account_request.link_issued` (user id only). On SIGTERM/SIGINT the process stops taking account requests (`503`, the same for every address) and waits up to 10 s for queued requests and emails. This is best effort: Next.js also exits on these signals, so the wait is only guaranteed with `NEXT_MANUAL_SIG_HANDLE` set (a separate deployment decision); a lost job leaves a recoverable state and the request page tells people to request again after 10 minutes. A durable outbox with a cron sweeper is deferred (D18; would need a migration).
+
+**Production environment guard (v6.1 §5).** When `NODE_ENV=production` and `BETTER_AUTH_URL` is a non-loopback https URL, startup fails (variable names only, never values) if `NODE_TLS_REJECT_UNAUTHORIZED=0`, `BETTER_AUTH_SECRET` contains `test-only`/`harness-only`, `DATABASE_URL` contains `nltag-local-dev-only`/`ci-only`, `SMTP_HOST` is loopback, or `SMTP_USER`/`SMTP_PASS` is `harness`. The database host is not checked (production uses 127.0.0.1). The SMTP transport sets `tls.rejectUnauthorized: true` explicitly.
+
+`AUTH_RATE_LIMIT` is still read by the accounts gate (must be `on` in production) and refused as `off` in production, but no longer switches a limiter: the vitest configs' `AUTH_RATE_LIMIT: "on"` is inert.
+
 ## Production migrations on Hostinger
 There is no SSH step in the deployment, so Hostinger builds use `npm run build:hostinger` (`scripts/hostinger-build.mjs`). It runs `next build`, and only when `NLTAG_APPROVED_PRODUCTION_MIGRATION=1` is set in the Hostinger environment it first applies the reviewed `drizzle/*.sql` to `DATABASE_URL` (127.0.0.1). Set that variable for one owner-approved build, then remove it. Migrations already applied are skipped (drizzle journal). The same script runs the one-time first-admin bootstrap (`NLTAG_BOOTSTRAP_ADMIN_EMAIL`, below); the two are refused in one build.
 
@@ -124,8 +147,8 @@ All account pages (`/ta|en/sign-in`, `sign-up`, `forgot-password`, `reset-passwo
 - Tests: `tests/unit/accounts-gate.test.ts`, `tests/e2e/accounts-gate.spec.ts` (every page in both languages, the auth API, no links from the homepage).
 
 ### Staff-only sign-up allowlist (Phase 6a)
-`NLTAG_SIGNUP_ALLOWLIST` (comma-separated, case-insensitive) lists the addresses that may create an account; membership (Phase 4d) is not authorised, so only staff need accounts. Code: `src/server/auth/signup-allowlist.ts`, enforced in the `user.create.before` database hook in `auth.ts`, so it covers every sign-up method (email and, if ever configured, Google).
-- An unlisted address gets Better Auth's generic "already registered" response (status, body shape and password hashing identical to a real sign-up), no row and no email. The form shows the usual "check your email".
+`NLTAG_SIGNUP_ALLOWLIST` (comma-separated, case-insensitive) lists the addresses that may create an account; membership (Phase 4d) is not authorised, so only staff need accounts. Code: `src/server/auth/signup-allowlist.ts`, enforced by the account request (`auth/request-account.ts`, R4 mailbox-first) and still in the `user.create.before` database hook in `auth.ts`, so it covers every way a user row can be created (and Google, if ever configured).
+- An unlisted address gets the same `202` as a listed one (decided before the address is read), no row and no email. The form shows the usual "check your email".
 - Fail closed: in production an unset/blank list means **nobody** can sign up, and a list with any entry that is not an email address refuses everyone (warning logged once, by variable name only). Outside production an empty list leaves sign-up open for development and tests.
 - Sign-in, verification and password reset for existing accounts are not affected. Removing someone from the list does not delete or disable their account; roles are managed in `/admin`.
 
@@ -160,10 +183,10 @@ Known limits: a code stays valid for its 30-second step and one step either side
 Tests: `tests/unit/two-factor.test.tsx`, `tests/integration/two-factor.test.ts` and `two-factor-owner-reset.test.ts` (MariaDB; the latter runs the runbook § 11 D SQL exactly as written), `tests/e2e/two-factor.spec.ts` (Tamil and English; screenshots mask the QR code, setup key and recovery codes). The seeded Church Admin has a fictional test authenticator (`scripts/db/seed-constants.ts`).
 
 ## Security behaviour (all covered by tests)
-- Same response for registered and unregistered addresses (sign-up and reset); emails are sent in the background so timing does not reveal accounts.
+- Same response for registered and unregistered addresses (account request, sign-in, reset, malformed input); emails are sent in the background and failed sign-ins are held to a common floor, so timing does not reveal accounts.
 - Origin and CSRF checks forced on in every environment (Better Auth disables them under `NODE_ENV=test` by default).
 - Cookies `nltag.*`, HttpOnly, SameSite=Lax, Secure in production. No cookie cache, so revoking a session or role takes effect immediately.
-- Password reset revokes all sessions; reset tokens are single use, 1 hour; verification links 24 hours.
+- Password reset revokes all sessions; set-password and reset tokens are single use, 1 hour, stored only as a sha256 identifier, and using one voids the account's other links (R1). Verification links are no longer sent.
 - Google sign-in is off until `GOOGLE_CLIENT_ID/SECRET` are set; it cannot be linked to an unverified local account, and it never grants membership or roles.
 - Production refuses to start sending mail without SMTP; the dev outbox works only in development, or in a local production build with `NLTAG_LOCAL_MAIL_OUTBOX=1` and a localhost URL.
 
@@ -185,6 +208,7 @@ npm run test:integration        MariaDB-backed tests (TEST_DATABASE_URL, *_test 
 
 ## Open items
 - Two-factor: built in Phase 6b (above); migration `0003_two_factor` not yet applied to production.
+- Better Auth `verification` deadlock (PR #12, M1): on MariaDB 11.8.9, two verifications at the same instant can deadlock on Better Auth's expired-row cleanup (`DELETE FROM verification WHERE expires_at < ?`), giving one request a 500 (user retries; not a bypass). Tests avoid it with one Playwright worker for `E2E_AUTH=1` runs (`playwright.config.ts`). The app is unchanged; retry-once on `ER_LOCK_DEADLOCK`, or `disableCleanup` + a periodic purge, are owner decisions before the first Church Admin activation (`docs/handoff/HANDOFF.md` §4).
 - Google OAuth client (D3): church-owned Google Cloud project; until then the button is hidden.
 - Client IP behind Hostinger's CDN: resolver built (Nov 2026 security fix); `CLIENT_IP_SOURCE` stays unset until the header-shape capture confirms the hop count (`docs/backend/client-ip.md` §5). `TRUSTED_PROXIES` is no longer used.
 - Tamil: the 38 Phase 4b account/email strings and 45 Phase 6b two-factor strings were approved by the owner on 2 Nov 2026. `auth.google` and `auth.or` stay `draft-review` (shown only once Google sign-in is configured).

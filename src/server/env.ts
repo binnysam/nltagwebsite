@@ -53,6 +53,39 @@ const schema = z
 
 export type ServerEnv = z.infer<typeof schema>;
 
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+const isLoopbackHost = (host: string) => LOOPBACK_HOSTS.has(host.toLowerCase()) || /^127\./.test(host);
+
+/**
+ * R4 v6.1 §5: values that exist only for tests, CI or the local two-process harness must never run
+ * the real site. Active only when NODE_ENV=production AND BETTER_AUTH_URL is a non-loopback https
+ * URL (the deployed site); the harness and `next start` on localhost are unaffected. Returns the
+ * names of the offending variables and the rule, never their values. The production database
+ * legitimately uses 127.0.0.1 (Hostinger), so the database host is deliberately not checked.
+ */
+export function productionGuardProblems(env: NodeJS.ProcessEnv): string[] {
+  if (env.NODE_ENV !== "production") return [];
+  let site: URL;
+  try {
+    site = new URL(env.BETTER_AUTH_URL ?? "");
+  } catch {
+    return [];
+  }
+  if (site.protocol !== "https:" || isLoopbackHost(site.hostname)) return [];
+  const problems: string[] = [];
+  if ((env.NODE_TLS_REJECT_UNAUTHORIZED ?? "").trim() === "0") problems.push("NODE_TLS_REJECT_UNAUTHORIZED: must not be 0 on the live site");
+  const secret = env.BETTER_AUTH_SECRET ?? "";
+  if (/test-only|harness-only/i.test(secret)) problems.push("BETTER_AUTH_SECRET: a test or harness secret must not run the live site");
+  const db = env.DATABASE_URL ?? "";
+  if (/nltag-local-dev-only|ci-only/i.test(db)) problems.push("DATABASE_URL: local-development or CI credentials must not run the live site");
+  const smtpHost = (env.SMTP_HOST ?? "").trim();
+  if (smtpHost && isLoopbackHost(smtpHost)) problems.push("SMTP_HOST: a loopback mail server must not be used by the live site");
+  for (const k of ["SMTP_USER", "SMTP_PASS"] as const) {
+    if ((env[k] ?? "").trim().toLowerCase() === "harness") problems.push(`${k}: harness credentials must not be used by the live site`);
+  }
+  return problems;
+}
+
 let cached: ServerEnv | undefined;
 
 export function serverEnv(): ServerEnv {
@@ -63,6 +96,8 @@ export function serverEnv(): ServerEnv {
     const problems = parsed.error.issues.map((i) => `${i.path.join(".") || "env"}: ${i.message}`).join("; ");
     throw new Error(`Invalid server environment: ${problems}`);
   }
+  const guard = productionGuardProblems(process.env);
+  if (guard.length) throw new Error(`Invalid server environment: ${guard.join("; ")}`);
   cached = parsed.data;
   return cached;
 }

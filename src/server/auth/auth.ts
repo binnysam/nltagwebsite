@@ -5,15 +5,15 @@ import { APIError, createAuthMiddleware } from "better-auth/api";
 import { getSessionFromCtx } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { twoFactor } from "better-auth/plugins/two-factor";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import * as schema from "../db/schema";
-import { session as sessionTable, user as userTable } from "../db/schema";
+import { account as accountTable, session as sessionTable, user as userTable, verification as verificationTable } from "../db/schema";
 import { googleConfigured, serverEnv } from "../env";
-import { sendAlertInBackground, sendInBackground } from "../email/send";
+import { sendInBackground } from "../email/send";
 import { SESSION_MAX_AGE_SECONDS } from "../policy/permissions";
 import { audit } from "../services/audit";
-import { claimOncePerWindow, consume, LIMITS, releaseAttempt, reserveAttempt, signInAccountKey, signInBrowserKey, THROTTLES } from "../services/rate-limit";
+import { consume } from "../services/rate-limit";
 import { log } from "../security/log";
 import { hashEmail } from "../security/hash";
 import { CLIENT_IP_HEADER, clientIpConfig, clientIpOf } from "../security/client-ip";
@@ -23,7 +23,6 @@ import {
   readCookie,
   recognisedBrowserCookieName,
   recognisedBrowserCookieOptions,
-  recognisedBrowserId,
 } from "./recognised-browser";
 import { signupAllowed, signupPolicy, warnIfMisconfigured } from "./signup-allowlist";
 import {
@@ -69,7 +68,6 @@ function createAuth() {
   const env = serverEnv();
   const google = googleConfigured(env);
   const isProd = env.NODE_ENV === "production";
-  const rateLimitOn = env.AUTH_RATE_LIMIT === "on";
   warnAboutClientIp(isProd);
 
   return betterAuth({
@@ -84,23 +82,33 @@ function createAuth() {
       enabled: true,
       requireEmailVerification: true,
       autoSignIn: false,
+      // R4 mailbox-first: no password sign-up. Accounts come from /api/account-request and get
+      // their first password through an emailed set-password link (reset-password token).
+      disableSignUp: true,
       minPasswordLength: 10,
       maxPasswordLength: 128,
       resetPasswordTokenExpiresIn: 60 * 60,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
-        sendInBackground("reset", user.email, url, user.id);
+        // No credential yet = the account's first password (set-password mail), else a reset.
+        const [cred] = await getDb().select({ id: accountTable.id }).from(accountTable).where(and(eq(accountTable.userId, user.id), eq(accountTable.providerId, "credential"))).limit(1);
+        sendInBackground(cred ? "reset" : "set-password", user.email, url, user.id);
       },
       onPasswordReset: async ({ user }) => {
+        // Holding the link proves the mailbox, so the address is verified (first password included).
+        await getDb().update(userTable).set({ emailVerified: true }).where(eq(userTable.id, user.id));
+        // R1: void every other set-password/reset link for this account (value = user id).
+        await getDb().delete(verificationTable).where(eq(verificationTable.value, user.id));
         await audit({ actorUserId: user.id, action: "auth.password.reset", entity: "user", entityId: user.id });
       },
     },
 
     emailVerification: {
-      sendOnSignUp: true,
-      // An unverified user who tries to sign in gets a fresh link (still rate-limited per address).
-      sendOnSignIn: true,
-      autoSignInAfterVerification: true,
+      // R4: verification links are stateless JWTs that cannot be voided; mailbox-first proves the
+      // mailbox with the set-password link instead, and /verify-email is not routed at all.
+      sendOnSignUp: false,
+      sendOnSignIn: false,
+      autoSignInAfterVerification: false,
       expiresIn: 24 * 60 * 60,
       sendVerificationEmail: async ({ user, url }) => {
         sendInBackground("verify", user.email, url, user.id);
@@ -141,30 +149,10 @@ function createAuth() {
 
     verification: { storeIdentifier: "hashed" },
 
-    rateLimit: {
-      enabled: rateLimitOn,
-      storage: "database",
-      modelName: "rateLimit",
-      window: 60,
-      max: 60,
-      customRules: {
-        "/sign-in/email": { window: 15 * 60, max: 5 },
-        "/sign-up/email": { window: 60 * 60, max: 5 },
-        "/send-verification-email": { window: 60 * 60, max: 3 },
-        "/request-password-reset": { window: 60 * 60, max: 3 },
-        "/reset-password": { window: 15 * 60, max: 5 },
-        "/verify-email": { window: 15 * 60, max: 10 },
-        "/sign-in/social": { window: 15 * 60, max: 10 },
-        // Two-factor challenge after a correct password (the plugin also locks the account's
-        // second factor after 5 wrong codes in a row, and each challenge allows 5 tries).
-        "/two-factor/verify-totp": { window: 15 * 60, max: 10 },
-        "/two-factor/verify-backup-code": { window: 15 * 60, max: 5 },
-        "/two-factor/enable": { window: 60 * 60, max: 5 },
-        "/two-factor/disable": { window: 60 * 60, max: 5 },
-        "/two-factor/generate-backup-codes": { window: 60 * 60, max: 5 },
-        "/get-session": false,
-      },
-    },
+    // R4: Better Auth's limiter keys on a client IP the CDN cannot give us (one shared bucket per
+    // path = anyone can close /reset-password for everyone). Every allowed endpoint is limited by
+    // the route gate instead (src/server/security/auth-abuse-gate.ts).
+    rateLimit: { enabled: false },
 
     advanced: {
       cookiePrefix: "nltag",
@@ -236,10 +224,6 @@ function createAuth() {
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
         const path = ctx.path;
-        if (path === "/sign-in/email") {
-          await reserveSignInAttempt(ctx.context, ctx.body, ctx.headers, clientIpOf(ctx.headers), isProd);
-          return;
-        }
         if (!path?.startsWith("/two-factor/")) return;
         if (BLOCKED_TWO_FACTOR_PATHS.has(path)) throw new APIError("NOT_FOUND");
         const body = (ctx.body ?? {}) as Record<string, unknown>;
@@ -280,7 +264,6 @@ function createAuth() {
         if ((ctx.path === "/two-factor/disable" || ctx.path === "/two-factor/generate-backup-codes" || ctx.path === "/two-factor/enable") && failed) {
           await audit({ actorUserId: sessionUserId, action: "auth.2fa.manage_fail", outcome: "DENIED", entity: "user", entityId: sessionUserId, ip, reason: failureReason(ctx.path, returned) });
         }
-        if (ctx.path === "/sign-in/email") await settleSignInAttempt(ctx.context, returned);
         // A complete sign-in (the password alone is not complete for an enrolled account) makes
         // this browser recognised for that address.
         const signedIn = ctx.context.newSession?.user;
@@ -288,10 +271,6 @@ function createAuth() {
           const name = recognisedBrowserCookieName(isProd);
           const value = addRecognisedBrowserToken(readCookie(ctx.headers?.get("cookie"), name), issueRecognisedBrowserToken(hashEmail(signedIn.email)));
           ctx.setCookie(name, value, recognisedBrowserCookieOptions(isProd));
-        }
-        if (ctx.path === "/sign-in/email" && returned instanceof APIError) {
-          // No email in the audit row: the attempt is recorded by IP hash only.
-          await audit({ action: "auth.sign_in.fail", outcome: "DENIED", entity: "auth", ip, reason: String(returned.status) });
         }
         if ((ctx.path === "/revoke-session" || ctx.path === "/revoke-other-sessions" || ctx.path === "/revoke-sessions") && !(returned instanceof APIError)) {
           await audit({ actorUserId: ctx.context.session?.user.id ?? null, action: "auth.session.revoke", entity: "session", reason: ctx.path.slice(1) });
@@ -324,71 +303,8 @@ function createAuth() {
   });
 }
 
-/** The address from a sign-in body, or null when there is none to key on. */
-function signInEmail(body: unknown): string | null {
-  const email = (body as { email?: unknown } | null)?.email;
-  return typeof email === "string" && email.trim() !== "" && email.length <= 320 ? email : null;
-}
-
 /** Sign-in paths that create the session itself (the end of a complete sign-in). */
 const COMPLETE_SIGN_IN_PATHS = new Set(["/two-factor/verify-totp", "/two-factor/verify-backup-code"]);
-
-/** Reservation made by the before hook, keyed on this request's context object (same in both hooks). */
-const reservations = new WeakMap<object, string>();
-
-/**
- * Reserves this password check BEFORE Better Auth runs it (H1): one conditional UPDATE under a row
- * lock, so a burst of any size gets at most `free` checks. Refused → 429 before any password work.
- * The budget is the recognised browser's own when this browser holds a valid token for this
- * address, otherwise the address's shared budget. Same behaviour for addresses with no account.
- */
-async function reserveSignInAttempt(context: object, body: unknown, headers: Headers | undefined, ip: string | null, isProd: boolean) {
-  const email = signInEmail(body);
-  if (!email) return; // Better Auth refuses the request (400) before any password check.
-  const emailHash = hashEmail(email);
-  const browserId = recognisedBrowserId(readCookie(headers?.get("cookie"), recognisedBrowserCookieName(isProd)), emailHash);
-  const budget = browserId ? "recognised-browser" : "account";
-  const key = browserId ? signInBrowserKey(browserId) : signInAccountKey(emailHash);
-  const result = await reserveAttempt(key, browserId ? THROTTLES.signInRecognisedBrowser : THROTTLES.signInAccount);
-  if (result.allowed) {
-    reservations.set(context, key);
-    return;
-  }
-  // L3: one audit row (and one alert) per address per hour, however many refusals.
-  if (await claimOncePerWindow(`signin-refused:${emailHash}`, LIMITS.signInRefusalAudit)) {
-    await audit({ action: "auth.sign_in.throttled", outcome: "DENIED", entity: "auth", ip, reason: budget });
-    log("warn", "security.sign_in_throttled", { account: emailHash.slice(0, 12), budget, retryAfterSeconds: result.retryAfterSeconds });
-    if (budget === "account") await alertAccountHolder(email, emailHash);
-  }
-  throw new APIError(
-    "TOO_MANY_REQUESTS",
-    { message: "Too many attempts. Please try again later.", code: "TOO_MANY_ATTEMPTS" },
-    { "Retry-After": String(result.retryAfterSeconds) },
-  );
-}
-
-/**
- * Keeps the reservation only when the password check failed (401: wrong address or password).
- * Anything else — a correct password (with or without a two-factor step), unverified email,
- * validation error — gives it back, so the account holder's own sign-ins cost nothing.
- */
-async function settleSignInAttempt(context: object, returned: unknown) {
-  const key = reservations.get(context);
-  if (!key) return;
-  reservations.delete(context);
-  if (returned instanceof APIError && returned.statusCode === 401) return;
-  await releaseAttempt(key);
-}
-
-/**
- * Tells the account holder (at most once a day, only if the account exists) that unfamiliar
- * browsers are being slowed down. In the background, so the response does not depend on it.
- */
-async function alertAccountHolder(email: string, emailHash: string) {
-  const first = await claimOncePerWindow(`signin-alert-mail:${emailHash}`, LIMITS.signInAlertEmail);
-  const [row] = await getDb().select({ id: userTable.id, email: userTable.email }).from(userTable).where(eq(userTable.email, email.trim().toLowerCase())).limit(1);
-  if (first && row) sendAlertInBackground("signin-throttled", row.email, row.id);
-}
 
 let clientIpWarned = false;
 /** Once per process: say (without values) when per-visitor limits cannot work. */

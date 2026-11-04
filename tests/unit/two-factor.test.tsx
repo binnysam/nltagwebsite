@@ -14,6 +14,7 @@ import {
 } from "@/server/auth/two-factor-policy";
 import { can, permissionsFor, type Principal } from "@/server/policy/permissions";
 import { AUDIT_ACTIONS } from "@/server/services/audit";
+import { AUTH_ROUTES, DENIED_ENDPOINTS } from "@/server/security/auth-routes";
 import { challengeError } from "@/app/[locale]/(account)/two-factor/TwoFactorChallenge";
 import { QrCode } from "@/app/[locale]/(account)/account/two-factor/QrCode";
 import { base32Decode, hotp, totp } from "../support/totp";
@@ -117,10 +118,26 @@ describe("Better Auth configuration (source)", () => {
     const plugins = src.slice(src.indexOf("plugins: ["));
     expect(plugins.indexOf("twoFactor(")).toBeLessThan(plugins.indexOf("nextCookies()"));
   });
+  // R4 class D (D3/D4/D6): Better Auth's own limiter is off; every two-factor endpoint is either a
+  // gate-limited sign-in-challenge route or closed over HTTP and reachable only through the
+  // server actions, which count each attempt against the per-account `2fa-manage` limit.
   it("rate-limits every two-factor endpoint", () => {
-    for (const p of ["/two-factor/verify-totp", "/two-factor/verify-backup-code", "/two-factor/enable", "/two-factor/disable", "/two-factor/generate-backup-codes"]) {
-      expect(src).toContain(`"${p}": { window:`);
+    expect(src).toMatch(/rateLimit:\s*\{\s*enabled:\s*false\s*\}/);
+    const twoFactorRoutes = AUTH_ROUTES.filter((r) => r.path.startsWith("/two-factor/"));
+    expect(twoFactorRoutes.map((r) => r.path).sort()).toEqual(["/two-factor/verify-backup-code", "/two-factor/verify-totp"]);
+    for (const r of twoFactorRoutes) {
+      expect(r.policy, r.path).toBe("secondFactor");
+      expect(r.requires, r.path).toBe("two-factor challenge cookie");
     }
+    for (const p of ["/two-factor/enable", "/two-factor/disable", "/two-factor/generate-backup-codes"]) expect(DENIED_ENDPOINTS, p).toHaveProperty([p]);
+    const actions = readFileSync("src/app/[locale]/(account)/account/two-factor/actions.ts", "utf8");
+    expect(actions).toContain("`2fa-manage:${userId}`");
+    for (const fn of ["startEnrollment", "confirmEnrollment"]) {
+      const body = actions.slice(actions.indexOf(`export async function ${fn}(`), actions.indexOf("\n}\n", actions.indexOf(`export async function ${fn}(`)));
+      expect(body, fn).toContain("withinLimit(");
+    }
+    // Turning off and new recovery codes are limited in the auth.ts before hook (same key).
+    expect(src).toContain("`2fa-manage:${userId}`");
   });
   it("migration 0003 is additive (no DROP or data change)", () => {
     const sqlText = readFileSync("drizzle/0003_two_factor.sql", "utf8").split("\n").filter((l) => !l.startsWith("--")).join("\n");

@@ -5,6 +5,11 @@ const PORT = 3100;
 export default defineConfig({
   testDir: "tests/e2e",
   fullyParallel: true,
+  // Database-backed auth runs (E2E_AUTH=1: admin, two-factor, auth) use one worker, so the phone and
+  // desktop projects never sign in the same seeded Church Admin at the same moment. Concurrent
+  // two-factor verifies can deadlock in MariaDB 11.8.9 on Better Auth's `verification` cleanup
+  // (PR #12, M1). Other suites keep Playwright's default.
+  workers: process.env.E2E_AUTH === "1" ? 1 : undefined,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: `http://localhost:${PORT}`,

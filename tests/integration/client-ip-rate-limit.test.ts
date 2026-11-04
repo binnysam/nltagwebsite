@@ -27,20 +27,27 @@ async function statuses(n: number, make: (i: number) => Promise<Response>) {
   return out;
 }
 
+async function bucketKeys() {
+  return (await getDb().select({ key: rateLimitBucket.bucketKey }).from(rateLimitBucket)).map((r) => r.key);
+}
+
 async function betterAuthKeys() {
   return (await getDb().select({ key: rateLimit.key }).from(rateLimit)).map((r) => r.key);
 }
 
 describe("per-visitor sign-in limit behind the CDN", () => {
-  it("one visitor rotating forged X-Forwarded-For entries is still blocked on the 6th attempt", async () => {
+  // R4 class A (D3: Better Auth's IP-keyed limiter retired): same property on the per-address
+  // mechanism — rotating forged entries cannot buy extra attempts, and no IP is ever a key.
+  it("one visitor rotating forged X-Forwarded-For entries is still blocked on the 6th attempt (per address; no IP in any key)", async () => {
     const real = "203.0.113.20";
     const s = await statuses(6, (i) =>
       attempt("rotator@nltag.test", { rawForwarding: true, headers: { "x-forwarded-for": `192.0.2.${i + 1}, ${real}`, "x-real-ip": real } }),
     );
     expect(s).toEqual([401, 401, 401, 401, 401, 429]);
-    const keys = await betterAuthKeys();
-    expect(keys).toContain(`${real}|/sign-in/email`);
-    expect(keys.some((k) => k.startsWith("192.0.2."))).toBe(false);
+    expect(await betterAuthKeys()).toEqual([]);
+    const keys = await bucketKeys();
+    expect(keys).toContain(signInAccountKey(hashEmail("rotator@nltag.test")));
+    expect(keys.some((k) => /192\.0\.2\.|203\.0\.113\./.test(k))).toBe(false);
   });
 
   it("a forged internal client-IP header changes nothing", async () => {
@@ -74,7 +81,10 @@ describe("per-visitor sign-in limit behind the CDN", () => {
 });
 
 describe("unresolved client IP fails closed", () => {
-  it("requests whose address cannot be trusted share one bucket and are still limited", async () => {
+  // R4 class A: b48261d put every untrusted request in ONE shared bucket, which let anyone close
+  // sign-in for everyone. Per-address limits remove that bucket: six addresses arriving with
+  // forged or missing forwarding headers are each answered normally, and nothing is keyed on an IP.
+  it("requests whose address cannot be trusted share no bucket: each address keeps its own limit, and no IP is a key", async () => {
     const forged: Record<string, string>[] = [
       { "x-forwarded-for": "192.0.2.1" }, // no X-Real-IP
       { "x-forwarded-for": "192.0.2.2", "x-real-ip": "192.0.2.99" }, // mismatch
@@ -84,11 +94,15 @@ describe("unresolved client IP fails closed", () => {
       {},
     ];
     const s = await statuses(6, (i) => attempt(`unresolved${i}@nltag.test`, { rawForwarding: true, headers: forged[i]! }));
-    expect(s).toEqual([401, 401, 401, 401, 401, 429]);
-    // One shared key (Better Auth's fallback), never an address the caller chose.
-    const keys = await betterAuthKeys();
-    expect(keys.filter((k) => k.endsWith("|/sign-in/email"))).toHaveLength(1);
-    expect(keys.some((k) => k.includes("192.0.2."))).toBe(false);
+    expect(s).toEqual([401, 401, 401, 401, 401, 401]);
+    // Better Auth's rate_limit table stays empty; bucket keys are address hashes only.
+    expect(await betterAuthKeys()).toEqual([]);
+    const keys = await bucketKeys();
+    expect(keys.some((k) => k.includes("192.0.2.") || k.includes("garbage") || k.includes("no-trusted-ip"))).toBe(false);
+    // …and the same forged mix on ONE address is still stopped on the 6th attempt.
+    await clearRateLimits();
+    const one = await statuses(6, (i) => attempt("unresolved.one@nltag.test", { rawForwarding: true, headers: forged[i]! }));
+    expect(one).toEqual([401, 401, 401, 401, 401, 429]);
   });
 });
 
@@ -148,7 +162,9 @@ describe("audit rows use the same resolved address", () => {
 });
 
 describe("the real /api/auth route", () => {
-  it("rebuilds the client IP itself, so a forged internal header cannot pick a bucket", async () => {
+  // R4 class A: the route still rebuilds the client IP (for audit hashes); a forged internal header
+  // reaches no bucket key and no audit hash. Limits are per address.
+  it("rebuilds the client IP itself, so a forged internal header cannot pick a bucket or an audit hash", async () => {
     const prev = process.env.NLTAG_ACCOUNTS_ENABLED;
     process.env.NLTAG_ACCOUNTS_ENABLED = "1";
     try {
@@ -164,8 +180,14 @@ describe("the real /api/auth route", () => {
         ),
       );
       expect(s).toEqual([401, 401, 401, 401, 401, 429]);
-      const rows = await getDb().select({ key: rateLimit.key }).from(rateLimit).where(or(like(rateLimit.key, "192.0.2.%"), like(rateLimit.key, `${real}|%`)));
-      expect(rows.map((r) => r.key)).toEqual([`${real}|/sign-in/email`]);
+      expect(await getDb().select({ key: rateLimit.key }).from(rateLimit).where(or(like(rateLimit.key, "192.0.2.%"), like(rateLimit.key, `${real}|%`)))).toEqual([]);
+      const keys = await bucketKeys();
+      expect(keys).toContain(signInAccountKey(hashEmail("route.check@nltag.test")));
+      expect(keys.some((k) => k.includes("192.0.2.") || k.includes(real))).toBe(false);
+      const forgedHashes = Array.from({ length: 6 }, (_, i) => [hashIp(`192.0.2.${100 + i}`), hashIp(`192.0.2.${i}`)]).flat();
+      const audited = await getDb().select({ ip: auditLog.ipHash }).from(auditLog).where(eq(auditLog.action, "auth.sign_in.fail"));
+      expect(audited.some((r) => r.ip !== null && forgedHashes.includes(r.ip))).toBe(false);
+      expect(audited.some((r) => r.ip === hashIp(real))).toBe(true);
     } finally {
       if (prev === undefined) delete process.env.NLTAG_ACCOUNTS_ENABLED;
       else process.env.NLTAG_ACCOUNTS_ENABLED = prev;

@@ -114,7 +114,7 @@ for (const locale of ["ta", "en"] as const) {
     const { email, id } = await makeUser(`${p}.${locale}`);
 
     // Sign in (no two-factor yet → straight to the account page), open the setup page.
-    // Better Auth may land on the account or the verify-email page; either means a session exists.
+    // The form sends a user without two-factor to /account (never /two-factor; asserted below).
     await passwordStep(page, locale, email);
     await expect(page).not.toHaveURL(/\/two-factor$/);
     await page.goto(`/${locale}/account/two-factor`);

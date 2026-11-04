@@ -1,11 +1,11 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { getCurrentUser, requirePermission, AuthzError } from "@/server/auth/session";
 import { closeDb, getDb } from "@/server/db/client";
 import { auditLog, session, staffRole, user } from "@/server/db/schema";
 import { bootstrapFirstAdmin, grantRole, revokeRole, rolesOf } from "@/server/services/roles";
 import { seed, SEED_PASSWORD, SEED_USERS } from "../../scripts/db/seed";
-import { clearRateLimits, headersWith, signIn } from "./helpers";
+import { clearRateLimits, headersWith, resetStaffRolesToSeed, signIn } from "./helpers";
 
 const [ADMIN, EDITOR, MEMBER, UNVERIFIED] = SEED_USERS.map((u) => u.email) as [string, string, string, string];
 const cookies: Record<string, string> = {};
@@ -17,6 +17,7 @@ async function idOf(email: string) {
 
 beforeAll(async () => {
   await seed();
+  await resetStaffRolesToSeed();
   await clearRateLimits();
   for (const email of [ADMIN, EDITOR, MEMBER]) {
     const { res, cookie } = await signIn(email, SEED_PASSWORD);
@@ -24,7 +25,11 @@ beforeAll(async () => {
     cookies[email] = cookie;
   }
 });
-beforeEach(clearRateLimits);
+// Isolation: every test starts from the seed roles, whatever ran before it (in this file or another).
+beforeEach(async () => {
+  await clearRateLimits();
+  await resetStaffRolesToSeed();
+});
 afterAll(closeDb);
 
 describe("server-side permission checks", () => {
@@ -90,7 +95,7 @@ describe("staff sessions", () => {
     expect(await getCurrentUser(headersWith(cookie))).toBeNull();
     const [gone] = await getDb().select().from(session).where(eq(session.id, latest!.id));
     expect(gone).toBeUndefined();
-    const audits = await getDb().select().from(auditLog).where(eq(auditLog.action, "auth.staff_session.expire"));
+    const audits = await getDb().select().from(auditLog).where(and(eq(auditLog.action, "auth.staff_session.expire"), eq(auditLog.entityId, latest!.id)));
     expect(audits.length).toBe(1);
   });
 
@@ -139,9 +144,23 @@ describe("role management", () => {
   });
 
   it("writes an audit row for every grant and revoke", async () => {
-    const rows = await getDb().select().from(auditLog).where(sql`${auditLog.action} IN ('role.grant', 'role.revoke')`);
-    expect(rows.length).toBeGreaterThanOrEqual(4);
-    expect(rows.every((r) => r.actorUserId && r.entityId && r.reason)).toBe(true);
+    // Isolation: compares counts before and after its own grant and revoke (created_at has
+    // one-second precision, so a time filter would also catch the previous test's rows).
+    const adminId = await idOf(ADMIN);
+    const memberId = await idOf(MEMBER);
+    const rowsFor = () =>
+      getDb()
+        .select()
+        .from(auditLog)
+        .where(and(sql`${auditLog.action} IN ('role.grant', 'role.revoke')`, eq(auditLog.entityId, memberId)));
+    const before = await rowsFor();
+    await grantRole(adminId, memberId, "CONTENT_EDITOR");
+    await revokeRole(adminId, memberId, "CONTENT_EDITOR");
+    const after = await rowsFor();
+    const count = (rows: typeof after, action: string) => rows.filter((r) => r.action === action).length;
+    expect(count(after, "role.grant") - count(before, "role.grant")).toBe(1);
+    expect(count(after, "role.revoke") - count(before, "role.revoke")).toBe(1);
+    expect(after.every((r) => r.actorUserId && r.entityId && r.reason)).toBe(true);
   });
 
   it("first-admin bootstrap works on an empty role table and only once", async () => {

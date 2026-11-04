@@ -8,12 +8,12 @@ import { t, type Locale, type UiStringKey } from "@/content/ui-strings";
 import { authClient } from "@/lib/auth-client";
 import styles from "./account.module.css";
 
-export type AuthMode = "signIn" | "signUp" | "forgot" | "reset";
+export type AuthMode = "signIn" | "signUp" | "forgot" | "reset" | "setPassword";
 
 interface Props {
   mode: AuthMode;
   locale: Locale;
-  /** Reset token from the emailed link (reset mode only). */
+  /** Token from the emailed link (reset and setPassword modes only). */
   token?: string;
   googleEnabled?: boolean;
 }
@@ -31,8 +31,22 @@ function errorKey(status: number | undefined, code: string | undefined): UiStrin
 }
 
 /**
- * Sign-in, sign-up, forgot-password and reset-password forms. Built only from design-system
- * components. Success and error messages are the same whether or not an account exists.
+ * R4 mailbox-first account request (D1): only an address goes to /api/account-request. The answer
+ * is the same for every address; the person chooses a password from the emailed link.
+ */
+async function requestAccount(email: string, locale: Locale): Promise<{ status: number }> {
+  const res = await fetch("/api/account-request", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email, locale }),
+    credentials: "same-origin",
+  });
+  return { status: res.status };
+}
+
+/**
+ * Sign-in, account-request, forgot-password, reset-password and set-password forms. Built only from
+ * design-system components. Success and error messages are the same whether or not an account exists.
  */
 export function AuthForm({ mode, locale, token, googleEnabled }: Props) {
   const L = (k: UiStringKey) => t(k, locale);
@@ -58,39 +72,41 @@ export function AuthForm({ mode, locale, token, googleEnabled }: Props) {
 
     // Spam trap and a minimum fill time: bots get the normal success message and nothing happens.
     if (mode === "signUp" && (data.get("website") || Date.now() - startedAt.current < 1500)) {
-      setDone("auth.signUp.sent");
+      setDone("auth.accountRequest.sent");
       return;
     }
-    if ((mode === "signUp" || mode === "reset") && password.length < MIN_PASSWORD) {
+    if ((mode === "reset" || mode === "setPassword") && password.length < MIN_PASSWORD) {
       setFieldError(L("auth.error.passwordShort"));
       return;
     }
 
     setBusy(true);
     try {
-      const callbackURL = `/${locale}/verify-email`;
+      if (mode === "signUp") {
+        // Every answer but "too many requests" shows the neutral message (no account discovery).
+        const { status } = await requestAccount(email, locale);
+        if (status === 429) setError("auth.error.rateLimited");
+        else setDone("auth.accountRequest.sent");
+        return;
+      }
       const result =
         mode === "signIn"
-          ? await authClient.signIn.email({ email, password, callbackURL })
-          : mode === "signUp"
-            ? await authClient.signUp.email({ email, password, name: String(data.get("name") ?? "").trim(), callbackURL })
-            : mode === "forgot"
-              ? await authClient.requestPasswordReset({ email, redirectTo: `/${locale}/reset-password` })
-              : await authClient.resetPassword({ newPassword: password, token: token ?? "" });
+          ? await authClient.signIn.email({ email, password }) // no callbackURL: the form routes below (/two-factor or /account)
+          : mode === "forgot"
+            ? await authClient.requestPasswordReset({ email, redirectTo: `/${locale}/reset-password` })
+            : await authClient.resetPassword({ newPassword: password, token: token ?? "" });
 
       if (result.error) {
-        // Sign-up and forgot-password always show the neutral message (no account discovery).
-        if (mode === "signUp" && result.error.status !== 429) setDone("auth.signUp.sent");
-        else if (mode === "forgot" && result.error.status !== 429) setDone("auth.forgot.sent");
+        // Forgot-password always shows the neutral message (no account discovery).
+        if (mode === "forgot" && result.error.status !== 429) setDone("auth.forgot.sent");
         else setError(errorKey(result.error.status, result.error.code));
         return;
       }
       // Password correct, account has two-factor on: no session yet, the code page finishes sign-in.
       if (mode === "signIn" && (result.data as { twoFactorRedirect?: boolean } | null)?.twoFactorRedirect) router.push(`/${locale}/two-factor`);
       else if (mode === "signIn") router.push(`/${locale}/account`);
-      else if (mode === "signUp") setDone("auth.signUp.sent");
       else if (mode === "forgot") setDone("auth.forgot.sent");
-      else setDone("auth.reset.done");
+      else setDone(mode === "setPassword" ? "auth.setPassword.done" : "auth.reset.done");
     } catch {
       setError("auth.error.generic");
     } finally {
@@ -102,7 +118,8 @@ export function AuthForm({ mode, locale, token, googleEnabled }: Props) {
     return (
       <Stack gap={4}>
         <Text role="status">{L(done)}</Text>
-        {done === "auth.reset.done" ? (
+        {done === "auth.accountRequest.sent" ? <Text tone="secondary">{L("auth.accountRequest.retry")}</Text> : null}
+        {done === "auth.reset.done" || done === "auth.setPassword.done" ? (
           <Text>
             <a href={`/${locale}/sign-in`}>{L("auth.signIn.title")}</a>
           </Text>
@@ -116,26 +133,36 @@ export function AuthForm({ mode, locale, token, googleEnabled }: Props) {
     signUp: "auth.submit.signUp",
     forgot: "auth.forgot.submit",
     reset: "auth.reset.submit",
+    setPassword: "auth.setPassword.submit",
   };
+  const needsPassword = mode === "signIn" || mode === "reset" || mode === "setPassword";
   const required = L("form.required");
 
   return (
     <Stack gap={5} className={styles.column}>
       <form onSubmit={onSubmit} noValidate={false} aria-describedby={error ? `${uid}-error` : undefined}>
         <Stack gap={4}>
-          {mode === "signUp" ? (
-            <TextField id={`${uid}-name`} name="name" label={L("auth.field.name")} requirementText={required} autoComplete="name" required maxLength={200} />
+          {mode === "signIn" || mode === "signUp" || mode === "forgot" ? (
+            <TextField
+              id={`${uid}-email`}
+              name="email"
+              type="email"
+              label={L("auth.field.email")}
+              hint={mode === "signUp" ? L("auth.accountRequest.hint") : undefined}
+              requirementText={required}
+              autoComplete="email"
+              inputMode="email"
+              required
+              maxLength={254}
+            />
           ) : null}
-          {mode !== "reset" ? (
-            <TextField id={`${uid}-email`} name="email" type="email" label={L("auth.field.email")} requirementText={required} autoComplete="email" inputMode="email" required maxLength={254} />
-          ) : null}
-          {mode !== "forgot" ? (
+          {needsPassword ? (
             <TextField
               id={`${uid}-password`}
               name="password"
               type="password"
-              label={L(mode === "reset" ? "auth.field.newPassword" : "auth.field.password")}
-              hint={mode === "signUp" || mode === "reset" ? L("auth.passwordHint") : undefined}
+              label={L(mode === "signIn" ? "auth.field.password" : "auth.field.newPassword")}
+              hint={mode === "signIn" ? undefined : L("auth.passwordHint")}
               error={fieldError}
               requirementText={required}
               autoComplete={mode === "signIn" ? "current-password" : "new-password"}
