@@ -83,6 +83,16 @@ Seen once (`dc19f1f`, attempt 1; 1 of the last 25 admin-browser runs): `DELETE F
 
 **`auth.spec.ts` has no CI job.** Its documented recipe (`scripts/serve-gallery.sh` + `next start`) cannot work: since Phase 6a production mode enables accounts only with SMTP fully set, while the mail outbox is used only without SMTP. It passes against `next dev` (12/12 locally). Proposal: a dev-mode browser job in CI — **needs owner approval** (workflow change).
 
+**D16 finding 3: allowlisted addresses answered faster under load. Fix in PR #20** (Option A, owner-approved 4 Nov 2026; open, awaiting owner review, not merged; merge = deploy).
+- **Cause:** `isKnown()` in `src/server/security/auth-abuse-gate.ts` skipped the user lookup for allowlisted addresses, and that time falls before the reservation, which the adaptive hold does not pad.
+- **Fix:** the same indexed lookup runs first for every address; two lines and a comment. The classification, limits, thresholds, statuses, alerts and audit are unchanged.
+- **Evidence:**
+  - Deterministic statement-order test `tests/integration/r4-allowlist-lookup.test.ts`: fails for the three allowlisted shapes without the fix, 6/6 with it.
+  - Integration suite: 251 + 6 on MariaDB 11.8.9.
+  - Finding 3 timing harness (from PR #16): −52 ms → about 0 ms at +50 ms per round trip.
+- **Details:** `docs/backend/data-and-auth.md` → "Same lookup before the reservation". The analysis is `docs/reports/d16-timing/finding-3-allowlist-timing.md` (PR #16).
+- **Order:** land before the first Church Admin activation. The D16 runs should include an allowlisted-account class (PR #16, `acceptance-criterion.md`).
+
 **§9.3 (independent review) — owner hPanel check before merge.** Owner confirms the hPanel variable list contains none of the env-guard values (`NODE_TLS_REJECT_UNAUTHORIZED=0`; `BETTER_AUTH_SECRET` containing `test-only`/`harness-only`; `DATABASE_URL` containing `nltag-local-dev-only`/`ci-only`; loopback `SMTP_HOST`; `SMTP_USER`/`SMTP_PASS` = `harness`). With any of them present the merged code fails every request on the live site. Owner action — Claude must not read or change hPanel.
 
 **§10 deferred items (merge → before first Church Admin activation):**
