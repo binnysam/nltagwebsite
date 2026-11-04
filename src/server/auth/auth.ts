@@ -147,7 +147,10 @@ function createAuth() {
       cookieCache: { enabled: false },
     },
 
-    verification: { storeIdentifier: "hashed" },
+    // M1 option B (owner decision 4 Nov 2026): no expired-row range delete on every lookup (it
+    // deadlocked against the two-factor consume transaction on MariaDB 11.8.9). Every consumer
+    // checks expiry itself; verification-purge.ts removes expired rows by primary key instead.
+    verification: { storeIdentifier: "hashed", disableCleanup: true },
 
     // R4: Better Auth's limiter keys on a client IP the CDN cannot give us (one shared bucket per
     // path = anyone can close /reset-password for everyone). Every allowed endpoint is limited by
