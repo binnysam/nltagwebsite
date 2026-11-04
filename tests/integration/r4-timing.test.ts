@@ -25,57 +25,60 @@ async function timed(email: string): Promise<{ ms: number; status: number; body:
 }
 
 const memberKey = signInAccountKey(hashEmail(MEMBER));
-/**
- * Before every known probe: the member's own schedule AND the global K class windows
- * (`class:K:<window>`). Every known wrong-password check takes a K slot that only a correct password
- * gives back, so without this the hourly K ceiling (120) fills during the file and both classes
- * then get the same 429 at the floor (post-deployment review §6.2): the comparison would be
- * 429 vs 429, not the password-check path D16 is about.
- */
-const freshMemberBudget = async () => {
-  await getDb().execute(sql`DELETE FROM rate_limit_bucket WHERE bucket_key = ${memberKey}`);
-  await getDb().execute(sql`DELETE FROM rate_limit_bucket WHERE bucket_key LIKE 'class:K:%'`);
-};
+const freshMemberBudget = () => getDb().execute(sql`DELETE FROM rate_limit_bucket WHERE bucket_key = ${memberKey}`);
+/** The global K class windows (`class:K:<window>`, CLASS_CEILINGS.K in auth-abuse-gate.ts). */
+const clearKClassWindows = () => getDb().execute(sql`DELETE FROM rate_limit_bucket WHERE bucket_key LIKE 'class:K:%'`);
 
 let u = 0;
-/** Interleaved known/unknown probes; every timed sample's status is recorded and must be 401. */
+/**
+ * Interleaved known/unknown probes for the floored and flood tests. Owner approval 4 Nov 2026
+ * (PR #16, test-only): before every pair the member's own key AND every `class:K:*` window are
+ * cleared, and every probe's status is returned so the tests can require 401. Every known
+ * wrong-password check takes a K slot that only a correct password gives back; without the
+ * clearing the 15-minute K ceiling (90) fills after about 90 known probes and from then on both
+ * classes get the same 429, held to the same floor: the comparison would be 429 vs 429, not the
+ * wrong-password path. Unknown probes take no K slot, so clearing once per pair is enough. The
+ * adaptive timing estimator is deliberately NOT reset here: it is part of what these tests measure.
+ */
 async function sample(n: number) {
   const known: number[] = [];
   const unknown: number[] = [];
   const statuses: { known: number[]; unknown: number[] } = { known: [], unknown: [] };
-  const probeKnown = async () => {
-    await freshMemberBudget();
-    const r = await timed(MEMBER);
-    statuses.known.push(r.status);
-    known.push(r.ms);
-  };
-  const probeUnknown = async () => {
-    const r = await timed(`nobody.${u++}@nltag.test`);
-    statuses.unknown.push(r.status);
-    unknown.push(r.ms);
-  };
   for (let i = 0; i < n; i++) {
-    if (i % 2 === 0) {
-      await probeKnown();
-      await probeUnknown();
-    } else {
-      await probeUnknown();
-      await probeKnown();
-    }
+    await freshMemberBudget();
+    await clearKClassWindows();
+    const order = i % 2 === 0;
+    const a = order ? await timed(MEMBER) : await timed(`nobody.${u++}@nltag.test`);
+    const b = order ? await timed(`nobody.${u++}@nltag.test`) : await timed(MEMBER);
+    (order ? known : unknown).push(a.ms);
+    (order ? unknown : known).push(b.ms);
+    (order ? statuses.known : statuses.unknown).push(a.status);
+    (order ? statuses.unknown : statuses.known).push(b.status);
   }
-  // D16 measures the wrong-password path: a 429 (or anything else) would compare the wrong thing.
+  return { known, unknown, statuses };
+}
+
+/**
+ * Every timed probe of sample() must have taken the wrong-password path (401). On failure, print
+ * which probes did not (index within its class, status) before asserting.
+ */
+function expectAll401(label: string, statuses: { known: number[]; unknown: number[] }, n: number) {
+  const off = (xs: number[]) => xs.flatMap((s, i) => (s === 401 ? [] : [[i, s]]));
+  if (off(statuses.known).length || off(statuses.unknown).length) {
+    console.error(`${label}: non-401 probes [index, status]`, JSON.stringify({ known: off(statuses.known), unknown: off(statuses.unknown) }));
+  }
   expect(statuses.known).toEqual(Array(n).fill(401));
   expect(statuses.unknown).toEqual(Array(n).fill(401));
-  return { known, unknown };
 }
 
 type Probe = { pair: number; kind: "known" | "unknown"; ms: number; status: number };
 
 /**
  * Sampling for the raw test only (owner approval 4 Nov 2026; test-only). The floored and flood
- * tests keep using sample() unchanged. Three measurement corrections:
+ * tests use sample(), which clears the same windows and requires 401 but keeps the estimator.
+ * Three measurement corrections:
  *  1. Before every known probe the member's own key AND every `class:K:*` window are cleared (as
- *     PR #16 does), so every known probe is a real wrong-password check answered 401. Without it
+ *     sample() does), so every known probe is a real wrong-password check answered 401. Without it
  *     the 15-minute K ceiling (90) filled during this test and its last known probes were 429s
  *     that never ran a password check.
  *  2. The adaptive timing estimator is reset before every probe. With the fixed floor at 0 an
@@ -168,10 +171,11 @@ describe("R4 change 5: unknown and known addresses are indistinguishable", () =>
   }, 120_000);
 
   it(`floored: ${N} known vs ${N} unknown interleaved — medians within 5 ms, p90 within 10 ms`, async () => {
-    const { known, unknown } = await sample(N);
+    const { known, unknown, statuses } = await sample(N);
     const k = summary(known);
     const x = summary(unknown);
     console.info("R8 floored known", JSON.stringify(k), "unknown", JSON.stringify(x));
+    expectAll401("R8 floored", statuses, N);
     expect(Math.abs(k.median - x.median)).toBeLessThanOrEqual(5);
     expect(Math.abs(k.p90 - x.p90)).toBeLessThanOrEqual(10);
     expect(k.median).toBeGreaterThanOrEqual(TIMING_FLOOR_MS.signInFailure);
@@ -187,12 +191,14 @@ describe("R4 change 5: unknown and known addresses are indistinguishable", () =>
       }
     };
     const workers = Array.from({ length: 24 }, worker);
-    const { known, unknown } = await sample(Math.min(N, 100));
+    const n = Math.min(N, 100);
+    const { known, unknown, statuses } = await sample(n);
     stop = true;
     await Promise.all(workers);
     const k = summary(known);
     const x = summary(unknown);
     console.info(`R8 under in-process flood (${flooded} flood requests) known`, JSON.stringify(k), "unknown", JSON.stringify(x));
+    expectAll401("R8 under in-process flood", statuses, n);
     expect(Math.abs(k.median - x.median)).toBeLessThanOrEqual(15);
   }, 300_000);
 });
