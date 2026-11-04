@@ -1,19 +1,24 @@
 // D16 harness P3 — the timing probes (a third OS process). Sequential, interleaved, the class order
-// rotating every round. Classes: "known" (an account, wrong password), "unknown" (no account, not
-// listed) and, when D16_LISTED is set, "listed" (on the allowlist, no account: Better Auth's dummy
-// hash). Before each known/listed probe it deletes that address's sign-in schedule key and every
-// `class:K:*` window in the SCRATCH database, so every timed request takes the wrong-password path
-// and must answer 401 (post-deployment review §6.2). The status of every probe is recorded; the run
-// is rejected if any timed probe is not 401.
+// rotating every round. Classes:
+//   "known"          an account NOT on the allowlist, wrong password
+//   "unknown"        no account, not on the allowlist (a fresh address every probe)
+//   "listed"         (when D16_LISTED is set) on the allowlist, no account: Better Auth's dummy hash
+//   "listedAccount"  (when D16_LISTED_ACCOUNTS is set) on the allowlist WITH an account, wrong
+//                    password: the shape of every production staff account (D16 finding 3)
+// Before each probe of an existing or listed address it deletes that address's sign-in schedule key
+// and every `class:K:*` window in the SCRATCH database, so every timed request takes the
+// wrong-password path and must answer 401 (post-deployment review §6.2). The status of every probe is
+// recorded; the run is rejected if any timed probe is not 401.
 //
 // Environment (no defaults for anything secret):
-//   D16_BASE       loopback URL of P1, e.g. http://127.0.0.1:3200
-//   D16_DB_URL     the scratch MariaDB (loopback host; database name must contain "d16")
-//   D16_SECRET     the BETTER_AUTH_SECRET P1 runs with (random per run, never committed)
-//   D16_KNOWN      comma-separated fictional @nltag.test addresses that have accounts
-//   D16_LISTED     optional comma-separated fictional allowlisted addresses without accounts
-//   D16_N          probes per class (default 200)
-//   D16_OUT        CSV file to write
+//   D16_BASE             loopback URL of P1, e.g. http://127.0.0.1:3200
+//   D16_DB_URL           the scratch MariaDB (loopback host; database name must contain "d16")
+//   D16_SECRET           the BETTER_AUTH_SECRET P1 runs with (random per run, never committed)
+//   D16_KNOWN            comma-separated fictional @nltag.test addresses that have accounts (not listed)
+//   D16_LISTED           optional comma-separated fictional allowlisted addresses without accounts
+//   D16_LISTED_ACCOUNTS  optional comma-separated fictional allowlisted addresses WITH accounts
+//   D16_N                probes per class (default 200)
+//   D16_OUT              CSV file to write
 import http from "node:http";
 import { createHmac, randomUUID } from "node:crypto";
 import { writeFileSync } from "node:fs";
@@ -35,6 +40,8 @@ const known = env("D16_KNOWN").split(",").filter(Boolean);
 if (!known.every((a) => a.endsWith("@nltag.test"))) throw new Error("D16 probe: fictional @nltag.test addresses only");
 const listed = (process.env.D16_LISTED ?? "").split(",").filter(Boolean);
 if (!listed.every((a) => a.endsWith("@nltag.test"))) throw new Error("D16 probe: fictional @nltag.test addresses only");
+const listedAccounts = (process.env.D16_LISTED_ACCOUNTS ?? "").split(",").filter(Boolean);
+if (!listedAccounts.every((a) => a.endsWith("@nltag.test"))) throw new Error("D16 probe: fictional @nltag.test addresses only");
 const N = Number(process.env.D16_N ?? 200);
 const out = env("D16_OUT");
 
@@ -62,7 +69,7 @@ function signIn(email) {
   });
 }
 
-const classes = ["known", "unknown", ...(listed.length ? ["listed"] : [])];
+const classes = ["known", "unknown", ...(listed.length ? ["listed"] : []), ...(listedAccounts.length ? ["listedAccount"] : [])];
 const rows = ["seq,round,class,position,status,ms"];
 let seq = 0;
 let bad = 0;
@@ -73,6 +80,7 @@ for (let round = 0; round < N; round++) {
     let address;
     if (cls === "known") address = known[round % known.length];
     else if (cls === "listed") address = listed[round % listed.length];
+    else if (cls === "listedAccount") address = listedAccounts[round % listedAccounts.length];
     else address = `d16-unknown-${randomUUID()}@nltag.test`;
     if (cls !== "unknown") await freshBudget(address);
     const r = await signIn(address);
@@ -83,5 +91,5 @@ for (let round = 0; round < N; round++) {
 writeFileSync(out, rows.join("\n") + "\n");
 await db.end();
 agent.destroy();
-console.log(JSON.stringify({ probes: seq, non401: bad }));
+console.log(JSON.stringify({ classes, probes: seq, non401: bad }));
 process.exit(bad ? 2 : 0);
