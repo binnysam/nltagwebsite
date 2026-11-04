@@ -18,7 +18,8 @@ Harness and procedure: `scripts/d16/README.md`. The question D16 asks: under a s
 | 4. Saturation level (CPU) | Informational, unchanged. |
 | 5. Single-process test asserts `401` and clears K windows | **Superseded:** `tests/integration/r4-timing.test.ts` was revised after the merge. The raw test uses `sampleRaw()` (PR #19); the floored and flood tests use `sample()`, which clears the K windows before every pair and requires `401` on every probe (PR #16). |
 
-- **No new D16 runs have been made yet.** The owner adopted the criterion on 4 Nov 2026 (option 2, 600 probes per class per run, Rules A–E): `acceptance-criterion.md`.
+- **Final runs made on 4 Nov 2026 on `main` at `1d3ffb6`: pooled verdict PASS** (three valid runs, Rules A–E pass; awaiting owner review). Results, evidence and deviations: `2026-11-main-1d3ffb6/README.md`.
+- *(Before those runs:)* The owner adopted the criterion on 4 Nov 2026 (option 2, 600 probes per class per run, Rules A–E): `acceptance-criterion.md`.
 - **The final runs follow the pre-registered plan in `plan-2026-11.md`.** It covers four classes (with an allowlisted account), the smoke test and frozen connection rule, three runs and the pooled verdict from `scripts/d16/pooled.mjs`.
 - **When:** after the tooling PR is merged, on a commit that contains the finding 3 fix (`21c4b3a` or later). Results go in `2026-11-main-<sha>/`, all of them published.
 
