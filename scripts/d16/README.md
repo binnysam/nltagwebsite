@@ -51,4 +51,10 @@ Repeat with `run-2` and `run-3` at separate times. Each run writes `docs/reports
 
 Options (environment): `D16_CONNECTIONS` (256), `D16_N` (200), `D16_RAMP_S` (10), `D16_P1_CPUS` (`0-1`), `D16_P2_CPUS` (`2-3`), `D16_P3_CPUS` (`3`), `D16_STRESS` (0), `D16_PORT` (3200), `D16_SMTP_PORT` (2525). The database container can be pinned away from P1 with `docker update --cpuset-cpus 2-3 nltag-d16-db`; record it if you do.
 
-`docs/reports/d16-timing/README.md` records the runs actually made for the readiness PR, with their verdicts.
+`docs/reports/d16-timing/README.md` records the runs actually made for the readiness PR, with their verdicts. Those runs tested `b4e37a8` and are superseded; no runs have been made on current `main` yet.
+
+Related tooling (read-only or scratch-only; neither changes the criteria above):
+- `criterion-evidence.mjs` reads committed `probes.csv` files and prints how precise a run is, plus what a confidence-based criterion would need (finding 1). The proposal is in `docs/reports/d16-timing/acceptance-criterion.md`.
+- `finding-3/` is a one-process experiment with added database latency, comparing allowlisted, account and unknown addresses (finding 3). Results are in `docs/reports/d16-timing/finding-3-allowlist-timing.md`.
+
+Before the next runs: the classes will include an allowlisted account, the production shape (finding 3), and the analysis is to be agreed and committed first (`acceptance-criterion.md` §4).
