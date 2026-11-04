@@ -129,6 +129,15 @@ Code: `src/server/security/auth-abuse-gate.ts`, `auth-routes.ts`, `process-limit
 
 **Malformed requests are no oracle (v6.1 B).** The gate validates the address with Better Auth's own rule (`z.email()`, exactly as given — no trimming) before the known-address lookup and before any reservation, for sign-in and reset requests. A malformed address gets the same `400` for every address and never spends a real address's budget.
 
+**Same lookup before the reservation (D16 finding 3; owner-approved fix, PR #20, 4 Nov 2026).**
+- **Why it matters:** a failed sign-in is held until 400 ms, or until its own time up to the rate-limit reservation plus 1.1 × the slowest recent password work, whichever is later. That first part is not padded, so it must cost the same for every address.
+- **Rule:** `isKnown()` runs one indexed `SELECT` on `user` by email for **every** address first, and checks `NLTAG_SIGNUP_ALLOWLIST` only afterwards. The result is unchanged: an existing account or an allowlisted address counts as known.
+- **Before the fix:** the allowlist check returned early, so under load every allowlisted address (no account, account requested but no password, or active account) answered one query faster than any other address. It separated staff addresses from all others, but did not show activation status.
+  - Finding 3 harness (one process, +50 ms per database round trip): −51.5 to −52.9 ms on `0d77c75`; −0.9 to +0.7 ms with the fix, every 95 % interval including 0.
+  - The saturated D16 sandbox runs measured −89 to −139 ms.
+- **Cost:** one extra lookup per attempt for allowlisted addresses only: a `const` probe on `user_email_uq` that reads only the index.
+- **Test:** `tests/integration/r4-allowlist-lookup.test.ts`, deterministic, no timing. With an explicit staff allowlist it records the statement order and requires exactly one user lookup before the first `rate_limit_bucket` statement, for five address shapes.
+
 **Audit parity (v6.1 B).** Every wrong-address-or-password answer writes one `auth.sign_in.fail` row (no address; IP hash only when a trusted client IP exists — none while `CLIENT_IP_SOURCE` is unset), for known and unknown addresses alike, fire-and-forget and capped at 5 rows per second per process.
 
 **Two-factor routes (G1, D6).** `/two-factor/verify-totp` and `/verify-backup-code` are forwarded only when the request carries the plugin's challenge cookie, and the gate strips session cookies from them, so Better Auth can only run its sign-in challenge there. Enabling, confirming, disabling and new recovery codes exist only as the account page's server actions (`2fa-manage` limit). `tests/unit/server-api-allowlist.test.ts` (G2) fails on any server-side Better Auth API call outside the approved list. The two-factor page shows only the number of recovery codes left (`auth/recovery-codes.ts`); decrypted codes never reach it.
