@@ -2,6 +2,16 @@
 
 New Life Tamil AG Church (NLTAG), Kuwait. Bilingual (Tamil default `/ta`, English `/en`) Next.js site with an LLM-readable design system. Light mode only at launch.
 
+## Handoff — read first
+Active work: PR #12, branch `security/r4-v6.1-mailbox-first` (R4 v6.1 mailbox-first auth hardening). State, open items, test recipes, decisions and rejected approaches: **`docs/handoff/HANDOFF.md`**.
+
+Standing rules (owner approval in chat required to break any of them):
+- No merge to `main` (merge auto-deploys to Hostinger). No deploy.
+- No database migration (0004 deferred).
+- No change to Hostinger hPanel env, the production database, `CLIENT_IP_SOURCE` (stays unset) or the Church Admin account.
+- Never weaken or delete tests (no skip/only/todo, no loosened assertions).
+- Anything that needs owner approval: stop and ask.
+
 ## Source hierarchy (highest first)
 1. Owner gate decisions (Gate 0, Gate 1 in the claude.ai project "NLTAGWebsite"; summary in `docs/reference/README.md`)
 2. `docs/reference/NLTAG-PHASE-1-VISUAL-FOUNDATIONS.md` and `src/design-system/tokens/tokens.css` (approved)
