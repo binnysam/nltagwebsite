@@ -338,11 +338,20 @@ export async function gateAuthRequest(req: Request, next: Next): Promise<Respons
   }
 }
 
-/** True when the address is on the allowlist or already has an account (one indexed SELECT). */
+/**
+ * True when the address already has an account or is on the allowlist.
+ *
+ * Every address must do the same database lookup before the rate-limit reservation: this indexed
+ * SELECT runs first, for every address, and the allowlist check only comes after it. The time up to
+ * the reservation is the request's own (`commonMs`) and the adaptive hold does not pad it, so a
+ * lookup skipped for some addresses would make them answer faster under load (D16 finding 3: an
+ * early return for allowlisted addresses separated every staff address from all others). The
+ * result is the same as checking the allowlist first; only the cost is now identical.
+ * tests/integration/r4-allowlist-lookup.test.ts checks the statement order.
+ */
 async function isKnown(email: string): Promise<boolean> {
-  if (signupPolicy().kind === "allowlist" && signupAllowed(email)) return true;
   const [row] = await getDb().select({ id: userTable.id }).from(userTable).where(eq(userTable.email, normaliseEmail(email))).limit(1);
-  return Boolean(row);
+  return Boolean(row) || (signupPolicy().kind === "allowlist" && signupAllowed(email));
 }
 
 async function signIn(req: Request, next: Next): Promise<Response> {
