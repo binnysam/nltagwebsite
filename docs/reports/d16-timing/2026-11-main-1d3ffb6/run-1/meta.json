@@ -1,0 +1,14 @@
+{
+  "runId": "run-1",
+  "commit": "1d3ffb6cf0ced23958b63a90862dfd4efe1cdb38",
+  "worktreeClean": true,
+  "classes": "known,unknown,listed,listedAccount",
+  "recordedAt": "2026-11-04T21:33:50Z",
+  "database": "nltag_d16 (MariaDB 11.8.9-MariaDB-ubu2404, scratch)",
+  "node": "v22.23.4",
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.80GHz x 4",
+  "p1Cpus": "0-1", "p2Cpus": "2-3", "p3Cpus": "3", "stressLoops": 0,
+  "connections": 256, "probesPerClass": 600, "rampSeconds": 10,
+  "probeStartOffsetMs": 10046, "probeEndOffsetMs": 2562479,
+  "probeExit": 0, "timingFloorExceededLogLines": 40
+}
