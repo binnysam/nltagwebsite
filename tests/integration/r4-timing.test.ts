@@ -24,20 +24,47 @@ async function timed(email: string): Promise<{ ms: number; status: number; body:
 }
 
 const memberKey = signInAccountKey(hashEmail(MEMBER));
-const freshMemberBudget = () => getDb().execute(sql`DELETE FROM rate_limit_bucket WHERE bucket_key = ${memberKey}`);
+/**
+ * Before every known probe: the member's own schedule AND the global K class windows
+ * (`class:K:<window>`). Every known wrong-password check takes a K slot that only a correct password
+ * gives back, so without this the hourly K ceiling (120) fills during the file and both classes
+ * then get the same 429 at the floor (post-deployment review §6.2): the comparison would be
+ * 429 vs 429, not the password-check path D16 is about.
+ */
+const freshMemberBudget = async () => {
+  await getDb().execute(sql`DELETE FROM rate_limit_bucket WHERE bucket_key = ${memberKey}`);
+  await getDb().execute(sql`DELETE FROM rate_limit_bucket WHERE bucket_key LIKE 'class:K:%'`);
+};
 
 let u = 0;
+/** Interleaved known/unknown probes; every timed sample's status is recorded and must be 401. */
 async function sample(n: number) {
   const known: number[] = [];
   const unknown: number[] = [];
-  for (let i = 0; i < n; i++) {
+  const statuses: { known: number[]; unknown: number[] } = { known: [], unknown: [] };
+  const probeKnown = async () => {
     await freshMemberBudget();
-    const order = i % 2 === 0;
-    const a = order ? await timed(MEMBER) : await timed(`nobody.${u++}@nltag.test`);
-    const b = order ? await timed(`nobody.${u++}@nltag.test`) : await timed(MEMBER);
-    (order ? known : unknown).push(a.ms);
-    (order ? unknown : known).push(b.ms);
+    const r = await timed(MEMBER);
+    statuses.known.push(r.status);
+    known.push(r.ms);
+  };
+  const probeUnknown = async () => {
+    const r = await timed(`nobody.${u++}@nltag.test`);
+    statuses.unknown.push(r.status);
+    unknown.push(r.ms);
+  };
+  for (let i = 0; i < n; i++) {
+    if (i % 2 === 0) {
+      await probeKnown();
+      await probeUnknown();
+    } else {
+      await probeUnknown();
+      await probeKnown();
+    }
   }
+  // D16 measures the wrong-password path: a 429 (or anything else) would compare the wrong thing.
+  expect(statuses.known).toEqual(Array(n).fill(401));
+  expect(statuses.unknown).toEqual(Array(n).fill(401));
   return { known, unknown };
 }
 

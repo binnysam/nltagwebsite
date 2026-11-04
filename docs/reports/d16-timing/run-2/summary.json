@@ -1,0 +1,55 @@
+{
+  "stats": {
+    "known": {
+      "n": 200,
+      "median": 981.462,
+      "p90": 1229.675,
+      "p10": 574.152,
+      "max": 1741.274
+    },
+    "unknown": {
+      "n": 200,
+      "median": 989.037,
+      "p90": 1280.235,
+      "p10": 524.754,
+      "max": 1731.764
+    },
+    "listed": {
+      "n": 200,
+      "median": 859.422,
+      "p90": 1124.175,
+      "p10": 542.116,
+      "max": 1524.942
+    }
+  },
+  "medianDiffMs": -7.575,
+  "medianDiffPct": -0.766,
+  "p90DiffMs": -50.56,
+  "p90DiffPct": -3.949,
+  "non401": 0,
+  "cpu": {
+    "samples": 548,
+    "median": 104.4,
+    "p10": 80.5,
+    "min": 39,
+    "max": 145,
+    "atOrAbove95": 392
+  },
+  "load": {
+    "requests": 130121,
+    "ratePerSecond": 232.7,
+    "statuses": {
+      "401": 130112,
+      "429": 9
+    },
+    "errors": 0
+  },
+  "checks": {
+    "allProbes401": true,
+    "medianUnder5pct": true,
+    "p90Under5pct": true,
+    "notPositiveWithin1ms": true,
+    "p1Saturated": true
+  },
+  "verdict": "PASS"
+}
