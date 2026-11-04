@@ -9,6 +9,7 @@ import {
   phase5ApprovedTamil,
   phase4bApprovedTamil,
   phase6bApprovedTamil,
+  r4D9ApprovedTamil,
 } from "@/content/tamil-approvals";
 
 /**
@@ -164,15 +165,6 @@ const PENDING = [
   "auth.or",
   "email.signInThrottled.subject",
   "email.signInThrottled.body",
-  // R4 D9 (Nov 2026): mailbox-first registration and set-password wording, awaiting owner review (gate G-D).
-  "email.setPassword.subject",
-  "email.setPassword.body",
-  "auth.accountRequest.hint",
-  "auth.accountRequest.sent",
-  "auth.accountRequest.retry",
-  "auth.setPassword.title",
-  "auth.setPassword.submit",
-  "auth.setPassword.done",
 ];
 
 /** The 26 recommended drafts the owner approved unchanged ("rest all is fine"). */
@@ -205,10 +197,35 @@ const APPROVED_AS_RECOMMENDED: [string, string][] = [
   ["special.empty", "சிறப்புக் கூட்டங்கள் தனித்தனியாக அறிவிக்கப்படும்."],
 ];
 
+/**
+ * R4 D9: approved by the owner on 4 Nov 2026 (decision O1), English and Tamil, with the owner's
+ * wording for auth.accountRequest.retry ("request the link again" / "மீண்டும் இணைப்பைக் கோருங்கள்").
+ * Written out again here, character for character.
+ */
+const R4_D9_APPROVED: Record<string, { en: string; ta: string }> = {
+  "email.setPassword.subject": { en: "Set your password", ta: "உங்கள் கடவுச்சொல்லை அமைக்கவும்" },
+  "email.setPassword.body": {
+    en: "An account has been requested for this email address. Open the link below to choose your password. It works for 1 hour.",
+    ta: "இந்த மின்னஞ்சல் முகவரிக்கு ஒரு கணக்கு கோரப்பட்டுள்ளது. உங்கள் கடவுச்சொல்லைத் தேர்ந்தெடுக்க கீழே உள்ள இணைப்பைத் திறக்கவும். அது 1 மணி நேரம் செல்லுபடியாகும்.",
+  },
+  "auth.accountRequest.hint": { en: "We will email you a link to choose your password.", ta: "உங்கள் கடவுச்சொல்லைத் தேர்ந்தெடுக்க ஒரு இணைப்பை மின்னஞ்சலில் அனுப்புவோம்." },
+  "auth.accountRequest.sent": {
+    en: "Check your email. If this address can be registered, we have sent a link to choose your password. It works for 1 hour.",
+    ta: "உங்கள் மின்னஞ்சலைப் பாருங்கள். இந்த முகவரியைப் பதிவு செய்ய முடிந்தால், உங்கள் கடவுச்சொல்லைத் தேர்ந்தெடுக்க ஒரு இணைப்பை அனுப்பியுள்ளோம். அது 1 மணி நேரம் செல்லுபடியாகும்.",
+  },
+  "auth.accountRequest.retry": {
+    en: "The email may take a few minutes to arrive. If nothing arrives within 10 minutes, please request the link again.",
+    ta: "மின்னஞ்சல் வர சில நிமிடங்கள் ஆகலாம். 10 நிமிடங்களுக்குள் எதுவும் வரவில்லை என்றால், மீண்டும் இணைப்பைக் கோருங்கள்.",
+  },
+  "auth.setPassword.title": { en: "Choose your password", ta: "உங்கள் கடவுச்சொல்லைத் தேர்ந்தெடுக்கவும்" },
+  "auth.setPassword.submit": { en: "Save password", ta: "கடவுச்சொல்லைச் சேமி" },
+  "auth.setPassword.done": { en: "Your password is set. Please sign in.", ta: "உங்கள் கடவுச்சொல் அமைக்கப்பட்டது. உள்நுழையவும்." },
+};
+
 describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
-  it("approves 146 items: 22 owner-supplied, 26 recommended (1 Nov), 15 Phase 5, 38 Phase 4b and 45 Phase 6b (2 Nov)", () => {
+  it("approves 154 items: 22 owner-supplied, 26 recommended (1 Nov), 15 Phase 5, 38 Phase 4b and 45 Phase 6b (2 Nov), 8 R4 D9 (4 Nov)", () => {
     const items = reviewItems();
-    expect(items.filter((i) => i.status === "confirmed")).toHaveLength(146);
+    expect(items.filter((i) => i.status === "confirmed")).toHaveLength(154);
     // Only the two Google sign-in strings remain under review.
     expect(items.filter((i) => i.status !== "confirmed").map((i) => i.id).sort()).toEqual([...PENDING].sort());
     for (const i of items.filter((x) => x.status !== "confirmed")) expect(i.status, i.id).toBe("draft-review");
@@ -217,6 +234,24 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
     expect(items.filter((i) => i.source === "phase5-approved")).toHaveLength(15);
     expect(items.filter((i) => i.source === "phase4b-approved")).toHaveLength(38);
     expect(items.filter((i) => i.source === "phase6b-approved")).toHaveLength(45);
+    expect(items.filter((i) => i.source === "r4d9-approved")).toHaveLength(8);
+  });
+
+  it("reproduces every R4 D9 approved string exactly, English and Tamil (owner sign-off, 4 Nov 2026)", () => {
+    expect(Object.keys(R4_D9_APPROVED)).toHaveLength(8);
+    expect(Object.keys(r4D9ApprovedTamil).sort()).toEqual(Object.keys(R4_D9_APPROVED).sort());
+    const byId = Object.fromEntries(reviewItems().map((i) => [i.id, i]));
+    for (const [id, { en, ta }] of Object.entries(R4_D9_APPROVED)) {
+      expect(r4D9ApprovedTamil[id as keyof typeof r4D9ApprovedTamil], id).toBe(ta);
+      const v = uiStrings[id as keyof typeof uiStrings];
+      expect(v.en, id).toBe(en);
+      expect(v.ta, id).toBe(ta);
+      expect(v.taStatus, id).toBe("confirmed");
+      expect(byId[id]?.source, id).toBe("r4d9-approved");
+      expect(ta, id).toBe(ta.normalize("NFC"));
+      expect(ta, id).toBe(ta.trim());
+      expect(PENDING, id).not.toContain(id);
+    }
   });
 
   it("reproduces every Phase 4b and Phase 6b approved string exactly (owner sign-off, 2 Nov 2026)", () => {
@@ -278,7 +313,7 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
     }
   });
 
-  it("leaves no draft-review Tamil outside the Google sign-in, throttle-alert and R4 D9 strings, and no open alternatives", () => {
+  it("leaves no draft-review Tamil outside the Google sign-in and throttle-alert strings, and no open alternatives", () => {
     for (const [key, v] of Object.entries(uiStrings)) {
       if (v.taStatus !== "confirmed") expect(PENDING, key).toContain(key);
       expect((v as { taAlternatives?: unknown }).taAlternatives, key).toBeUndefined();
@@ -296,10 +331,10 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
     expect(readFileSync(REVIEW_SHEET, "utf8")).toBe(md);
     const pending = reviewItems().filter((i) => i.status !== "confirmed").length;
     expect(md).toContain(
-      "(22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings; 38 Phase 4b account and email strings and 45 Phase 6b two-factor strings, 2026-11-02)",
+      "(22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings; 38 Phase 4b account and email strings and 45 Phase 6b two-factor strings, 2026-11-02) **and on 2026-11-04** (8 R4 D9 set-password strings, English and Tamil)",
     );
     expect(pending).toBe(PENDING.length);
-    expect(md).toContain("146 of 158 items approved; 12 still awaiting review");
+    expect(md).toContain("154 of 158 items approved; 4 still awaiting review");
     for (const line of md.split("\n").filter((l) => l.includes("draft-review") && l.startsWith("| "))) {
       expect(PENDING).toContain(line.split("|")[1]!.trim());
     }

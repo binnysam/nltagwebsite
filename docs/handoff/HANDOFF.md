@@ -1,10 +1,23 @@
 # NLTAG — Handoff: R4 v6.1 mailbox-first security work (PR #12)
 
-Written 4 Nov 2026 (Kuwait); updated the same day after the M1 test-only fix (`ef95410`). Read this, then `CLAUDE.md`, before touching this branch.
+Written 4 Nov 2026 (Kuwait); updated the same day after the M1 test-only fix (`ef95410`), and again after PR #12 was merged and deployed and the post-deployment review (`NLTAG-R4-POST-DEPLOYMENT-READINESS.md`, 4 Nov 2026) was answered. Read §0 first, then `CLAUDE.md`. §1–§4 below are the PR #12 history and are kept for reference; where they disagree with §0, §0 is current.
 Source reports copied alongside: `NLTAG-PR12-REVIEW-FIXES-REPORT.md` (latest, 4 Nov) and
 `NLTAG-PR12-INDEPENDENT-REVIEW.md` (the review it answers; §9.3 and §10 are referenced below).
 
-## 1. Where things stand
+## 0. Current status (post-deployment, 4 Nov 2026)
+
+| Item | State |
+|---|---|
+| PR #12 | **Merged** into `main` on 4 Nov 2026 (`b4e37a8`); CI run 41795977099 green; deployed to Hostinger (owner-reported: public site works, account routes 404). |
+| Accounts in production | **Off.** No Church Admin is registered, bootstrapped or activated. |
+| Owner decisions, 4 Nov 2026 (post-deployment review) | **D9 (O1):** all 8 strings approved, English and Tamil; `auth.accountRequest.retry` uses "…please request the link again." / "…மீண்டும் இணைப்பைக் கோருங்கள்." Approval is needed before runbook § 3 (the strings are live from then). **Migration 0003 (O2):** production status **unknown** — the repository records it as not applied and nobody has checked production; it is established only from the § 1 export in the activation runbook; applying it needs separate explicit approval after a verified backup. **M1 (O3):** option B (`verification.disableCleanup: true` + bounded primary-key purge) before first-admin activation. **`NEXT_MANUAL_SIG_HANDLE` (O4):** stays unset. **D16 (O5):** isolated two-process procedure, 3 independent runs, valid `401` samples only, median and p90 differences < 5 %, median difference ≤ 1 ms. **Runbook (O6):** § 9 and § 10 and the § 8.2 items corrected. **L6, L1 (O7):** test-only PRs before activation. |
+| Readiness work (one PR each, open for owner review, not merged) | **A** M1 option B (`claude/wonderful-einstein-wg3oqv`) · **B** this runbook/docs/D9 approval PR (`claude/post-deploy-runbook`) · **C** D16 timing test fix + two-process harness + run results (`claude/d16-timing-harness`) · **D** L6 production-cookie G1 test + L1 stricter allowlist test (`claude/l6-l1-auth-tests`). |
+| Still deferred / later | L2 (env guard at boot, more loopback forms; behaviour change), L4 code fix (release the request slot on final mail failure; runbook note added now), L7 (form error mapping), alert-email English wording (O8), D18 durable outbox, migration 0004. L3 and L5 accepted. |
+| Before the first Church Admin | PRs A–D reviewed, merged and deployed; production `0003` status established (runbook § 1) and, if absent, applied only with explicit approval (§ 2); D16 evidence accepted or waived by the owner; hPanel re-check (runbook § 0) immediately before § 3; a separate activation approval (G-E). |
+
+Standing rules (§3 below) still apply, except rule 7: the branch for each piece of work is the one named in its task.
+
+## 1. Where things stand (PR #12 history, before the merge)
 
 | Item | Value |
 |---|---|
@@ -34,7 +47,7 @@ R4 hardens sign-in, sign-up and password reset before the **first Church Admin**
 - **v6.1 corrections**: B (malformed-address oracle fixed; identical audit for known/unknown, capped 5/s) · G1 (two-factor verify routes require the challenge cookie; session cookies stripped) · G2 (unit test allowlisting every server-side `getAuth().api` / `$context` call) · account-request limit **3 per 15 min** · §2 reliability (release slot on failure, SMTP connection-failure retry 0/5/30 s, 10 s drain, audit `provisioned`/`link_issued`) · §5 production env guard + explicit SMTP `rejectUnauthorized: true`.
 - **M2** (review): password sign-in no longer passes `callbackURL: /verify-email` (`AuthForm.tsx`, one line). Causal check: reverted → mailbox-first browser test fails 2/2; fixed → 2/2.
 - **M1 option 1** (owner choice, 4 Nov 2026; `ef95410`): test-only — `playwright.config.ts` sets `workers: 1` when `E2E_AUTH=1`, so the phone and desktop projects never sign in the seeded Church Admin at the same moment. No app, `ci.yml` or assertion change. Options 2/3 deferred (§4).
-- D9 Tamil strings (8: `email.setPassword.*`, `auth.accountRequest.*`, `auth.setPassword.*`) are in, still `draft-review`.
+- D9 Tamil strings (8: `email.setPassword.*`, `auth.accountRequest.*`, `auth.setPassword.*`) were `draft-review` at merge; **approved by the owner on 4 Nov 2026** (§0).
 
 Full behaviour: `docs/backend/data-and-auth.md` → "R4 auth abuse gate".
 
@@ -50,7 +63,7 @@ Full behaviour: `docs/backend/data-and-auth.md` → "R4 auth abuse gate".
 
 ## 4. Open items (from the PR #12 fixes report)
 
-**M1 — MariaDB 11.8.9 deadlock on `verification`. Test side fixed (option 1, `ef95410`); production possibility remains.**
+**M1 — MariaDB 11.8.9 deadlock on `verification`. Test side fixed (option 1, `ef95410`); 4 Nov 2026: owner chose option 3 below ("option B" in the post-deployment review), implemented in readiness PR A.**
 Seen once (`dc19f1f`, attempt 1; 1 of the last 25 admin-browser runs): `DELETE FROM verification WHERE expires_at < ?` → `ER_LOCK_DEADLOCK` (1213). Better Auth 1.7.15 `findVerificationValue` range-deletes expired rows on every lookup unless `verification.disableCleanup` is set; two-factor verify then calls `consumeVerificationValue` (transaction deleting by identifier). Two concurrent verifies take index locks in opposite orders. Triggered by test setup: two Playwright projects signed in the same seeded Church Admin and `freshStep()` aligned their TOTP submits to the same 30 s step. Library behaviour, not introduced by the PR.
 1. **Done — test-only (owner choice 4 Nov 2026, `ef95410`):** `playwright.config.ts` → `workers: process.env.E2E_AUTH === "1" ? 1 : undefined`. All database-backed auth runs (admin, two-factor, auth) are serial: every phone-390 test, then every desktop-1280 test. Chosen over staggering the TOTP submits because Better Auth also touches `verification` in the password step (two-factor challenge), and one worker needs no timing logic. `ci.yml` unchanged (its `--workers=1` on the two-factor step is now redundant but harmless). Other suites keep Playwright's default. Passing `--workers=N` explicitly on an `E2E_AUTH=1` run would bring the race back.
 2. **Deferred — retry once on `ER_LOCK_DEADLOCK`** around the verification cleanup/consume path (small app change). Owner decision **before the first Church Admin activation**.
@@ -64,11 +77,11 @@ Seen once (`dc19f1f`, attempt 1; 1 of the last 25 admin-browser runs): `DELETE F
 **§9.3 (independent review) — owner hPanel check before merge.** Owner confirms the hPanel variable list contains none of the env-guard values (`NODE_TLS_REJECT_UNAUTHORIZED=0`; `BETTER_AUTH_SECRET` containing `test-only`/`harness-only`; `DATABASE_URL` containing `nltag-local-dev-only`/`ci-only`; loopback `SMTP_HOST`; `SMTP_USER`/`SMTP_PASS` = `harness`). With any of them present the merged code fails every request on the live site. Owner action — Claude must not read or change hPanel.
 
 **§10 deferred items (merge → before first Church Admin activation):**
-- D16 saturation timing: two-process harness, 3 runs, < 5 % and not positive, on merged code (M3; harness not committed, so not reproducible yet).
-- Graceful shutdown on Hostinger: decide and test `NEXT_MANUAL_SIG_HANDLE`; add to the activation runbook. Do not set it blind.
+- D16 saturation timing: two-process harness, 3 runs, < 5 % and not positive, on merged code (M3). **4 Nov 2026:** criteria fixed by the owner (§0); harness and runs in readiness PR C.
+- Graceful shutdown on Hostinger: `NEXT_MANUAL_SIG_HANDLE`. **4 Nov 2026: stays unset** (owner decision); recorded in the runbook § 0.
 - L1 G2 guard misses `getAuth().handler(...)` outside `/api/auth` and aliasing · L2 env guard runs on first `serverEnv()` not boot; loopback check misses `0.0.0.0`, `::ffff:127.0.0.1`, `localhost.` · L3 SMTP retry may duplicate mail; 35 s retry span > 10 s drain · L4 failed mail does not release the `acct-req` slot · L5 two live links used at the same instant can both succeed · L6 no production-config G1 test (`__Secure-` cookie names) · L7 malformed address on the request form gets 400 but page shows "Check your email".
-- M1 options 2/3 (above): owner decision before activation; either is an app change needing approval.
-- Activation gates already listed: D9 Tamil approval; confirm production `__drizzle_migrations` contains `0003`. D18 durable outbox stays deferred.
+- M1 options 2/3 (above): **decided 4 Nov 2026 — option 3 / B** (readiness PR A).
+- Activation gates already listed: D9 Tamil approval (**done 4 Nov 2026**); production `__drizzle_migrations` and `0003` (**still unknown**; runbook § 1/§ 2). D18 durable outbox stays deferred.
 
 **Outdated test comments — done (`ef95410`).** `tests/e2e/admin.spec.ts:37` and `tests/e2e/two-factor.spec.ts:117` now say what the form does since M2: password sign-in goes to `/account`, or to `/two-factor` when the account has two-factor on; never `/verify-email`. Comments only; the assertion beside the two-factor one (`not.toHaveURL(/\/two-factor$/)`) is unchanged.
 
