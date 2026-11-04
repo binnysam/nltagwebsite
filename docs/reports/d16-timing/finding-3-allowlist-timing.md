@@ -1,8 +1,9 @@
 # D16 finding 3: allowlisted addresses answer faster under load
 
-**Status: open security finding. It needs an owner decision before the first Church Admin activation.**
+**Status: fix in PR #20.** Option 1 below was owner-approved on 4 Nov 2026. The PR is open and awaiting owner review; it is not merged, and merging it deploys.
+- Until PR #20 is merged, `main` still has the difference. Results with the fix are in "Fix (PR #20) and verification" below.
 - Investigated on 4 Nov 2026, on current `main` (`0d77c75`, merged into PR #16).
-- No production code was changed. The mitigation below was tried only in a throwaway copy of the code.
+- This PR (#16) contains no production code. The fix is only in PR #20.
 - Accounts are still off in production (`/api/auth` answers 404), so nothing is exposed today.
 
 ## Summary
@@ -19,7 +20,7 @@
   Every production account is created through the allowlist. So in production, under load, the signal separates staff addresses, activated or not, from every other address. In effect it is an account-existence signal for staff.
 - **The original report framed it differently.** It compared "listed" (allowlisted, no account) with "known" (an account **not** on the allowlist). That is a difference in allowlist membership, not in activation.
 - **Exploitability:** possible from outside in principle, but it needs the site held under sustained saturation, which is itself a denial of service, and a few dozen counted attempts per guessed address. Likelihood is low and impact low to moderate: it confirms which addresses are staff accounts and grants no access.
-- **Recommended mitigation (needs approval):** run the same `SELECT` for every address before the allowlist check, a two-line change. It leaves limits, thresholds, expiry periods, statuses and the set of addresses treated as known unchanged. Measured in a throwaway copy: the difference disappears (within ±1.5 ms).
+- **Mitigation (owner-approved 4 Nov 2026; implemented in PR #20, not merged):** run the same `SELECT` for every address before the allowlist check, a two-line change. It leaves limits, thresholds, expiry periods, statuses and the set of addresses treated as known unchanged. Measured in a throwaway copy: the difference disappears (within ±1.5 ms).
 
 ## Evidence
 
@@ -120,7 +121,7 @@ Why existing checks missed it:
 - **Activation status:** no. L0 → L1 → L2 does not change the timing, so repeated measurement over time does not show when an account is activated.
 - **Account existence outside the allowlist:** no. K and U are indistinguishable.
 
-## Mitigation options (none implemented)
+## Mitigation options (option 1 approved and implemented in PR #20; not merged)
 
 1. **Recommended: a uniform lookup in `isKnown()`.**
 
@@ -151,8 +152,35 @@ Why existing checks missed it:
    - This narrows the exposure but does not remove it.
 4. **Edge rate limiting** for `/api/auth` at Hostinger's CDN makes saturation harder and also helps against denial of service. It is outside the application and is a decision for the owner and Hostinger.
 
-**Recommendation:**
-- Approve option 1 as a small separate security PR, with its regression test, before the first Church Admin activation.
+**Recommendation (as written before the decision):**
+- Approve option 1 as a small separate security PR, with its regression test, before the first Church Admin activation. *Done: owner-approved 4 Nov 2026, PR #20.*
 - Add the allowlisted-account class to the D16 design (`acceptance-criterion.md` §3) so the runs measure the production shape.
+
+## Fix (PR #20) and verification
+
+- **Code** (`src/server/security/auth-abuse-gate.ts`): option 1 exactly, i.e. the two-line diff above, plus a function comment saying every address must do the same lookup before the reservation. `isKnown()` returns the same result for every input. Limits, thresholds, expiry periods, statuses, alerts and audit are unchanged. No migration, dependency, environment or Tamil change.
+- **Regression test** (`tests/integration/r4-allowlist-lookup.test.ts`, deterministic, no timing):
+  - Uses an explicit staff allowlist, with fixtures made through the real account-request and set-password routes.
+  - Records every statement sent through `getPool().query` during a wrong-password sign-in.
+  - Requires exactly one user lookup by email before the first `rate_limit_bucket` statement.
+  - Results:
+
+    | Address | `main` without the fix | With the fix |
+    |---|---|---|
+    | Allowlisted, no account | fails (no lookup before the reservation) | passes |
+    | Allowlisted, account requested, no password | fails | passes |
+    | Allowlisted, active account | fails | passes |
+    | Not allowlisted, active account | passes | passes |
+    | Not allowlisted, no account | passes | passes |
+
+- **Suites with the fix** (local, MariaDB 11.8.9): `npm run verify` passes (257 unit tests), and `npm run test:integration` gives 251/251 plus 6/6, with no existing test changed.
+- **Timing harness** (`scripts/d16/finding-3/run.sh 50 40`, same session, both runs back to back). Median difference from an unknown address, ms, with 95 % CI:
+
+  | Code | K | L0 | L1 | L2 |
+  |---|---|---|---|---|
+  | `main` `0d77c75` | 0.0 [−1.7, +2.4] | **−51.5** [−53.7, −49.0] | **−52.9** [−54.7, −50.3] | **−52.0** [−53.7, −50.2] |
+  | PR #20 `ecf8535` | +0.7 [−8.6, +7.7] | −0.6 [−10.1, +6.0] | −0.9 [−11.9, +5.0] | +0.4 [−8.7, +6.7] |
+
+  The unknown-address medians were 730.5 and 731.2 ms. With no added latency, every class is on the 400 ms floor in both versions, and every probe returned `401`.
 
 **Not investigated here:** the password-reset request path holds to its own 250 ms floor plus the same estimator, but runs different Better Auth work for existing addresses. It was not measured, and it deserves the same check.

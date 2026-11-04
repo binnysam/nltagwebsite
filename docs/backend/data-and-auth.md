@@ -230,7 +230,7 @@ npm run test:integration        MariaDB-backed tests (TEST_DATABASE_URL, *_test 
     - `isKnown()` in the gate returns early for addresses on `NLTAG_SIGNUP_ALLOWLIST` and skips the user `SELECT` that every other address runs. That time falls in the unpadded part of the adaptive hold (`commonMs`).
     - At idle, everything is held to the 400 ms floor. Under load, every allowlisted address (no row, row without password, or full account) answers one query faster than any other address: −50 to −54 ms with +50 ms per round trip on current `main`, and −89 to −139 ms in the saturated sandbox runs.
     - This reveals allowlist membership (in production, every staff address), not activation status.
-    - Mitigation, measured but not applied: the same `SELECT` for every address before the allowlist check (two lines; no change to limits, thresholds or statuses). Owner approval is needed before the first Church Admin activation.
+    - **Fix in PR #20** (owner-approved Option A, 4 Nov 2026; open, not merged): the same `SELECT` for every address before the allowlist check (two lines; no change to limits, thresholds or statuses). Until it is merged, `main` still has the difference. It should land before the first Church Admin activation.
     - Details: `docs/reports/d16-timing/finding-3-allowlist-timing.md`.
     - Note: `tests/integration/r4-timing.test.ts` runs without an allowlist (the "open" policy, where every address counts as allowlisted) and at idle, so it cannot see this class of difference.
 - Google OAuth client (D3): church-owned Google Cloud project; until then the button is hidden.

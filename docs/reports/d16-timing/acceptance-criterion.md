@@ -96,4 +96,4 @@ The attacker-effort row assumes the sandbox's noise, one address compared with a
 3. Harness hygiene found in the PR #16 review:
    - `next start` also loads `.env.local` / `.env.production` / `.env` from the checkout for any variable `run.sh` does not set. Refuse to run when such files exist.
    - `.p1.log` is git-ignored only under the default output folder.
-4. Decide whether the finding 3 mitigation lands first. If it does not, the allowlisted-account class is expected to fail (`finding-3-allowlist-timing.md`).
+4. Land the finding 3 fix (PR #20, owner-approved, open) before the runs. Without it, the allowlisted-account class is expected to fail (`finding-3-allowlist-timing.md`).
