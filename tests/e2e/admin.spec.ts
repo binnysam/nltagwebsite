@@ -34,7 +34,7 @@ async function signIn(page: Page, email: string) {
   await page.getByLabel(/Email address/).fill(email);
   await page.getByLabel(/^Password/).fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
-  // Better Auth may land on the account or verify-email page; either means a session exists.
+  // The form sends the user to /account, or to /two-factor when the account has two-factor on.
   await page.waitForURL((u) => !u.pathname.endsWith("/sign-in"));
   // Phase 6b: the seeded Church Admin has two-factor on; answer the challenge with its test app.
   if (new URL(page.url()).pathname.endsWith("/two-factor")) {
