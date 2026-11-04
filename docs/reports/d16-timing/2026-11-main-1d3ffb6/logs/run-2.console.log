@@ -1,0 +1,68 @@
+D16 run-2: migrate + accounts (scratch nltag_d16)
+.env.local not found. Continuing without it.
+.env.local not found. Continuing without it.
+D16 run-2: P1 next start on 127.0.0.1:3200 (cpus 0-1)
+D16 run-2: P2 load (256 connections, cpus 2-3), ramp 10s
+D16 run-2: P3 probes (N=600 per class, cpus 3)
+{"classes":["known","unknown","listed","listedAccount"],"probes":2400,"non401":0}
+{
+  "stats": {
+    "known": {
+      "n": 600,
+      "median": 1085.186,
+      "p90": 1397.117,
+      "p10": 838.18,
+      "max": 1790.21
+    },
+    "unknown": {
+      "n": 600,
+      "median": 1100.883,
+      "p90": 1387.627,
+      "p10": 851.987,
+      "max": 1890.494
+    },
+    "listed": {
+      "n": 600,
+      "median": 1095.351,
+      "p90": 1360.274,
+      "p10": 842.63,
+      "max": 1972.349
+    },
+    "listedAccount": {
+      "n": 600,
+      "median": 1080.425,
+      "p90": 1352.917,
+      "p10": 826.659,
+      "max": 1929.719
+    }
+  },
+  "medianDiffMs": -15.697,
+  "medianDiffPct": -1.426,
+  "p90DiffMs": 9.49,
+  "p90DiffPct": 0.684,
+  "non401": 0,
+  "cpu": {
+    "samples": 2642,
+    "median": 112.8,
+    "p10": 96.9,
+    "min": 34,
+    "max": 152.8,
+    "atOrAbove95": 2431
+  },
+  "load": {
+    "requests": 623718,
+    "ratePerSecond": 234.8,
+    "statuses": {
+      "401": 623718
+    },
+    "errors": 0
+  },
+  "checks": {
+    "allProbes401": true,
+    "medianUnder5pct": true,
+    "p90Under5pct": true,
+    "notPositiveWithin1ms": true,
+    "p1Saturated": true
+  },
+  "verdict": "PASS"
+}
