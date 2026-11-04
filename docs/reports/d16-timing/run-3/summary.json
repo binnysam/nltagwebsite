@@ -1,0 +1,55 @@
+{
+  "stats": {
+    "known": {
+      "n": 200,
+      "median": 960.437,
+      "p90": 1249.947,
+      "p10": 571.311,
+      "max": 1783.774
+    },
+    "unknown": {
+      "n": 200,
+      "median": 979.63,
+      "p90": 1277.779,
+      "p10": 550.617,
+      "max": 1647.698
+    },
+    "listed": {
+      "n": 200,
+      "median": 842.091,
+      "p90": 1084.339,
+      "p10": 526.152,
+      "max": 1471.862
+    }
+  },
+  "medianDiffMs": -19.193,
+  "medianDiffPct": -1.959,
+  "p90DiffMs": -27.832,
+  "p90DiffPct": -2.178,
+  "non401": 1,
+  "cpu": {
+    "samples": 538,
+    "median": 106.8,
+    "p10": 82.9,
+    "min": 55,
+    "max": 142.7,
+    "atOrAbove95": 413
+  },
+  "load": {
+    "requests": 130327,
+    "ratePerSecond": 237.2,
+    "statuses": {
+      "401": 130310,
+      "429": 17
+    },
+    "errors": 0
+  },
+  "checks": {
+    "allProbes401": false,
+    "medianUnder5pct": true,
+    "p90Under5pct": true,
+    "notPositiveWithin1ms": true,
+    "p1Saturated": true
+  },
+  "verdict": "INVALID (non-401 probes)"
+}

@@ -32,3 +32,4 @@ yarn-error.log*
 
 # Local data (dev mail outbox with live links, local uploads)
 .data/
+docs/reports/d16-timing/**/.p1.log

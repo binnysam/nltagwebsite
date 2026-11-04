@@ -1,0 +1,55 @@
+{
+  "stats": {
+    "known": {
+      "n": 200,
+      "median": 938.324,
+      "p90": 1200.847,
+      "p10": 560.886,
+      "max": 1709.297
+    },
+    "unknown": {
+      "n": 200,
+      "median": 929.272,
+      "p90": 1240.468,
+      "p10": 532.096,
+      "max": 1746.059
+    },
+    "listed": {
+      "n": 200,
+      "median": 839.851,
+      "p90": 1074.803,
+      "p10": 508.391,
+      "max": 1472.867
+    }
+  },
+  "medianDiffMs": 9.052,
+  "medianDiffPct": 0.974,
+  "p90DiffMs": -39.621,
+  "p90DiffPct": -3.194,
+  "non401": 0,
+  "cpu": {
+    "samples": 523,
+    "median": 105.9,
+    "p10": 84.8,
+    "min": 41.9,
+    "max": 142.9,
+    "atOrAbove95": 397
+  },
+  "load": {
+    "requests": 130214,
+    "ratePerSecond": 243.8,
+    "statuses": {
+      "401": 130210,
+      "429": 4
+    },
+    "errors": 0
+  },
+  "checks": {
+    "allProbes401": true,
+    "medianUnder5pct": true,
+    "p90Under5pct": true,
+    "notPositiveWithin1ms": false,
+    "p1Saturated": true
+  },
+  "verdict": "FAIL"
+}
