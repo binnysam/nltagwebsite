@@ -39,12 +39,15 @@ If a saved variable does not seem to apply (for example the account pages still 
 - [ ] `/ta/sign-in`, `/ta/two-factor` and `/admin` still show "Not Found".
 - [ ] You know the first admin's address (a church staff mailbox that person can open).
 - [ ] The first admin has a phone with an authenticator app installed (free: **Google Authenticator** or **Microsoft Authenticator**), and the phone's clock is set automatically.
-- [ ] PR #10 is merged and the Hostinger build for that `main` commit **completed** (its log: `No migration requested`, `No admin bootstrap requested`).
-- [ ] Tamil: the 38 Phase 4b and 45 Phase 6b strings are approved (2 Nov 2026, `docs/content/tamil-content-review.md`). Only `auth.google` and `auth.or` stay draft; they appear only if Google sign-in is configured, and it is not.
+- [ ] The Hostinger build for the current `main` commit **completed**: its log names that commit and says `No migration requested` and `No admin bootstrap requested`. (PR #10, Phase 6b, was merged on 2 Nov 2026; later security PRs are on `main` too.)
+- [ ] Tamil: the 38 Phase 4b and 45 Phase 6b strings are approved (2 Nov 2026, `docs/content/tamil-content-review.md`). Still `draft-review`:
+  - the **8 R4 D9** set-password strings (`email.setPassword.*`, `auth.accountRequest.*`, `auth.setPassword.*`). They must be approved before § 4 (gate G-D, below).
+  - the two `email.signInThrottled.*` alert strings. The alert is sent in English only until they are approved.
+  - `auth.google` and `auth.or`. They appear only if Google sign-in is configured, and it is not.
 - [ ] You have a way to keep the first admin's recovery codes offline (printed and locked away, or in a password manager).
 - [ ] **R4 (Nov 2026):** the R4 v6.1 PR is merged and deployed (gate G-C); the D9 set-password strings, Tamil included, are approved (gate G-D); first Church Admin activation is approved (gate G-E).
 - [ ] **R4:** production `__drizzle_migrations` is confirmed to contain `0003_two_factor` (or § 2 is done first).
-- [ ] **R4 (M1):** the owner has decided on the Better Auth `verification` deadlock — leave as is (rare 500, user retries), retry once on deadlock, or turn off cleanup with a periodic purge (`docs/handoff/HANDOFF.md` §4). Either change is an app change on its own PR.
+- [ ] **R4 (M1), decided:** the owner chose option B for the Better Auth `verification` deadlock (cleanup off, bounded primary-key purge), merged in PR #13 (`7bcedde`, 4 Nov 2026; `docs/handoff/HANDOFF.md` §4). Check only that the deployed build is from `7bcedde` or later.
 - [ ] **R4 environment checklist** (hPanel → the site's environment variables; names and values checked by the owner, nothing copied out): `CLIENT_IP_SOURCE` is **not set**; none of these test/harness values is present — `NODE_TLS_REJECT_UNAUTHORIZED=0`; a `BETTER_AUTH_SECRET` containing `test-only` or `harness-only`; a `DATABASE_URL` containing `nltag-local-dev-only` or `ci-only`; `SMTP_HOST` of `127.0.0.1`/`localhost`; `SMTP_USER` or `SMTP_PASS` of `harness`. (The site also refuses to start with any of them.) `NLTAG_RECOGNISED_BROWSER_KEY_VERSION` is unset or a positive integer.
 
 ## 1. Fresh database backup

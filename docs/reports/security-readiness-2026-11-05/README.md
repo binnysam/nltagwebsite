@@ -54,9 +54,9 @@
    - They contain no secrets or addresses, only sandbox paths, so they are safe to publish.
    - They will be lost when this session's container is reclaimed. **Decision needed:** publish them, or let them go.
 
-**Wording corrections (not yet made; awaiting your approval):**
-- The README calls `mirror.gcr.io` "Docker Hub's official mirror". It is **Google's** mirror of Docker Hub's official images.
-- "Copies … are kept in the session sandbox" is true only until the session ends.
+**Wording corrections (made on 5 Nov 2026, as the owner asked; the D16 data is unchanged):**
+- The README called `mirror.gcr.io` "Docker Hub's official mirror". It is **Google's** mirror of Docker Hub's official images.
+- "Copies … are kept in the session sandbox" was true only until the session ends. The logs are not published; that needs the owner's explicit approval.
 
 **CI on PR #23 is red.**
 - **Run:** 41933839419, `verify` job.
@@ -286,10 +286,10 @@ The new site is deployed (2 Nov 2026), `noindex, nofollow`, with accounts off. I
 4. **The R4 environment checklist** (§6), including `CLIENT_IP_SOURCE` unset and no harness values.
 5. **D16 accepted by the owner** (PR #23, PASS), and gate G-E: the first activation approved.
 6. **`NEXT_MANUAL_SIG_HANDLE` / graceful shutdown on Hostinger:** decide and test (HANDOFF §10).
-7. **Runbook §0 corrections** (docs; awaiting approval):
-   - the M1 checkbox is already resolved (PR #13);
-   - the Tamil line says only `auth.google` and `auth.or` are draft, which is now 12 strings;
-   - the "PR #10" checks are historical.
+7. **Runbook §0 corrections. Made on 5 Nov 2026 in this PR,** as the owner asked:
+   - the M1 checkbox is marked decided (PR #13, `7bcedde`);
+   - the Tamil line now lists all 12 `draft-review` strings: the 8 D9 strings, the 2 alert strings, and `auth.google` and `auth.or`;
+   - the "PR #10" check is replaced by a check of the current `main` build.
 8. **Accept or schedule the low-severity items from the independent review (HANDOFF §10):**
    - L1: G2 guard gaps;
    - L2: env guard runs on first use, and loopback variants;

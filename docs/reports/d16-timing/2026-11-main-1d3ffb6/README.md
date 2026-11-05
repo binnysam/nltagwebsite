@@ -77,7 +77,7 @@ The plan is `../plan-2026-11.md`, pre-registered and unchanged. The owner approv
 | Database and server on localhost only | `environment-checks/run-N.txt`, taken during every run (the procedure is described below the table). |
 | No production credentials, environment variables or real addresses | See "Isolation" below. |
 | Fresh server and fresh rate-limit tables each run | See "Fresh state" below. |
-| Raw results and logs preserved | Everything is in this folder, except P1's own log, which the plan keeps local (git-ignored). Copies of the three P1 logs are kept in the session sandbox; they contain no addresses or secrets and can be published on request. |
+| Raw results and logs preserved | Everything is in this folder, except P1's own log, which the plan keeps local (git-ignored). Copies of the three P1 logs exist only in the session sandbox and are available **only until that sandbox ends**; they are not published. They contain no addresses or secrets; publishing them needs the owner's explicit approval. *(Corrected 5 Nov 2026: this row said the copies "are kept".)* |
 | Every run published | All three runs, as produced. There were no invalid runs to publish. |
 | No change to rules, thresholds, sample counts or connections | No file in `scripts/d16/` or the plan was changed; the runs used commit `1d3ffb6` unchanged. |
 | No deploy, production change, migration on production, or account activation | Nothing was deployed or merged. Hostinger and the production database were not contacted. The only migrations ran on the scratch database (`run.sh`, as in the plan). |
@@ -110,7 +110,7 @@ The plan is `../plan-2026-11.md`, pre-registered and unchanged. The owner approv
   - Its raw folder was not pushed from that session's sandbox, which no longer exists, so it cannot be published from here.
   - The plan (§7) lists the smoke folder among the outputs. This is a publication gap, not a change to the runs: the smoke test is excluded from the verdict, and the connection count it fixed (256) was given in the approval.
   - Repeating the smoke test was not part of the approval, so it was not repeated.
-- **The MariaDB image came from Docker Hub's official mirror, `mirror.gcr.io/library/mariadb:11.8.9`.**
+- **The MariaDB image came from Google's mirror of Docker Hub, `mirror.gcr.io/library/mariadb:11.8.9`,** which serves Docker Hub's official images. *(Corrected 5 Nov 2026: this line called it "Docker Hub's official mirror".)*
   - Docker Hub answered `429 Too Many Requests`.
   - Same tag; the image ID was `sha256:c4124d1a…` and the server reports `11.8.9-MariaDB-ubu2404`.
   - The container was started with the plan's exact settings (`-p 127.0.0.1:3307:3306`, database `nltag_d16`, collation set to `utf8mb4_uca1400_ai_ci`).
