@@ -98,6 +98,10 @@ In the 4 Nov failure:
 
 PR #22's working explanation ("the CI runner slowed down, so both classes slow together") **does not fit this occurrence**.
 - **Still undetermined:** whether it is database write contention on the known path or something in the sign-in path itself.
+- **Follow-up, 5 Nov 2026:** see `raw-timing-flake/README.md`.
+  - Across both diagnosable failures the spikes hit single probes, and known probes about 2.5 to 5 times as often.
+  - A runner-wide slowdown that hits every probe alike is rejected (pooled p = 0.0008).
+  - The split fits short database stalls on the path that writes about 2.5× more (measured: 6.6 writes per known probe, 2.6 per unknown).
 - **What PR #22 adds:** its control would show which, next time. Slow probes with normal controls point to the sign-in path.
 - **Why this is not a production timing finding:** the raw test runs with the floor at 0. The production path keeps the 400 ms adaptive floor, and the D16 saturation runs (Rules A–E) passed with it. It still deserves to be understood.
 
