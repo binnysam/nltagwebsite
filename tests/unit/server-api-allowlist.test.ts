@@ -28,8 +28,18 @@ const API_ALLOWLIST: Record<string, readonly string[]> = {
   verifyBackupCode: [AUTH],
   generateBackupCodes: [TWO_FACTOR_ACTIONS],
   disableTwoFactor: [TWO_FACTOR_ACTIONS],
-  // Mailbox-first provisioning (D1), after the reply, listed addresses only.
-  requestPasswordReset: ["src/server/auth/request-account.ts"],
+  requestPasswordReset: [
+    // Mailbox-first provisioning (D1), after the reply, listed addresses only.
+    "src/server/auth/request-account.ts",
+    // Forgot-password job (owner approval 5 Nov 2026, PR #24). Rationale: through Better Auth's HTTP
+    // handler, its router printed non-API errors raw (a failed query's parameters carry the address);
+    // the server API throws to the gate, which logs through the redacting logger. Conditions, pinned
+    // by "the gate's reset call" below and by tests/integration/r4-reset-request.test.ts: one call
+    // site, inside runResetJob(), reached only from resetRequest() after every gate check (body,
+    // origin, redirect, shutdown, queue bound, per-address window) and after the reply is decided; it
+    // is not a route, and reset requests never reach the HTTP handler.
+    "src/server/security/auth-abuse-gate.ts",
+  ],
 };
 
 /** Files allowed to touch `$context`, and what they may use from it. */
@@ -104,6 +114,30 @@ describe("v6.1 G2: Better Auth server API allowlist", () => {
     const gate = files.find((f) => f.path === "src/server/security/auth-abuse-gate.ts")!.src;
     const uses = [...gate.matchAll(/\bctx\s*\.\s*([A-Za-z0-9_$]+)/g)].map((m) => m[1]!);
     expect(new Set(uses)).toEqual(new Set(["createAuthCookie", "authCookies"]));
+  });
+
+  it("the gate's reset call: one call site, in runResetJob, started only from resetRequest after the reply is decided", () => {
+    const gate = files.find((f) => f.path === "src/server/security/auth-abuse-gate.ts")!.src;
+    // Exactly one server-API call in the gate, and it is requestPasswordReset.
+    expect([...gate.matchAll(/\.api\s*\.\s*([A-Za-z0-9_$]+)\s*\(/g)].map((m) => m[1])).toEqual(["requestPasswordReset"]);
+    // It lives in runResetJob ...
+    const job = gate.match(/async function runResetJob\([^)]*\)[^{]*\{([\s\S]*?)\n\}/);
+    expect(job?.[1]).toMatch(/getAuth\(\)\s*\.api\s*\.\s*requestPasswordReset\(\{ body \}\)/);
+    // ... which is referenced exactly twice: its definition, and one start inside resetRequest, in the
+    // continuation of the decided-reply promise (never directly, never from another function).
+    expect([...gate.matchAll(/runResetJob\b/g)]).toHaveLength(2);
+    const reset = gate.match(/async function resetRequest\([^)]*\)[^{]*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+    expect(reset).toMatch(/decided\.then\(\(\) => runResetJob\(jobBody\)\)/);
+    // Every gate check comes before the job is created.
+    const at = (re: RegExp) => reset.search(re);
+    const created = at(/decided\.then/);
+    for (const check of [/badRequest\(\)/, /sameOrigin\(req\)/, /localTarget\(/, /isDraining\(\)/, /RESET_REQUEST_MAX_PENDING/, /reserveWindow\(/, /slot\.allowed/]) {
+      expect(at(check), String(check)).toBeGreaterThanOrEqual(0);
+      expect(at(check), String(check)).toBeLessThan(created);
+    }
+    // The reset policy no longer forwards to Better Auth's HTTP handler.
+    expect(reset).not.toMatch(/\bnext\(/);
+    expect(gate).toMatch(/case "resetRequest":\s*return resetRequest\(req\);/);
   });
 
   it("the guard itself fails on an unlisted call (self-check)", () => {

@@ -157,6 +157,14 @@ function createAuth() {
     // the route gate instead (src/server/security/auth-abuse-gate.ts).
     rateLimit: { enabled: false },
 
+    // Better Auth's own log lines go through the redacting server logger (security/log.ts): its
+    // default logger printed a failed query's error as is, parameters included, so a database error
+    // during a sign-in or reset request wrote the address to the server log. Same level as before.
+    logger: {
+      level: "warn",
+      log: (level, message, ...args) => log(level === "debug" ? "info" : level, "better_auth", { message, args }),
+    },
+
     advanced: {
       cookiePrefix: "nltag",
       // Explicit: Better Auth skips these checks when NODE_ENV=test by default, which would let
