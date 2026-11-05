@@ -8,7 +8,7 @@ import { inArray } from "drizzle-orm";
 import { getDb } from "@/server/db/client";
 import { flushEmailQueueForTests } from "@/server/email/send";
 import { memoryOutbox } from "@/server/email/transport";
-import { flushGateAuditsForTests } from "@/server/security/auth-abuse-gate";
+import { flushGateAuditsForTests, flushResetRequestsForTests } from "@/server/security/auth-abuse-gate";
 import { SEED_TOTP_SECRET, SEED_USERS } from "../../scripts/db/seed";
 import { base32Decode, freshStep, totp } from "../support/totp";
 
@@ -46,6 +46,9 @@ export async function call(path: string, opts: CallOptions = {}) {
   // getAuth().handler directly: protection that lives in the route must be under test.
   const req = new Request(url, { method: opts.method ?? (opts.body !== undefined ? "POST" : "GET"), headers, body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined, redirect: "manual" });
   const res = await (req.method === "GET" ? routeGET : routePOST)(req);
+  // The reset request answers before its Better Auth work runs; wait for that job (and the mail it
+  // queues below) so a test reads the outcome. Timing tests call the route directly instead.
+  await flushResetRequestsForTests();
   await flushGateAuditsForTests();
   await flushEmailQueueForTests();
   return res;

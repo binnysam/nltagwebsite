@@ -25,6 +25,7 @@ import { purgeExpiredVerificationsSometimes } from "../auth/verification-purge";
 import { readCookie, recognisedBrowserCookieName, recognisedBrowserId } from "../auth/recognised-browser";
 import { normaliseEmail, signupAllowed, signupPolicy } from "../auth/signup-allowlist";
 import { clientIpOf } from "./client-ip";
+import { isDraining, registerDrainWaiter } from "../lifecycle";
 import { hashEmail } from "./hash";
 import { log } from "./log";
 import { ProcessLimiter } from "./process-limiter";
@@ -427,17 +428,72 @@ async function alertAccountHolder(email: string, emailHash: string) {
   if (first && row) sendAlertInBackground("signin-throttled", row.email, row.id);
 }
 
+/**
+ * Forgot-password request (security-readiness review 5 Nov 2026, item 4). The answer is decided
+ * BEFORE anything about the address is looked up: Better Auth's work (user lookup, reset token,
+ * set-password/reset mail) runs after the reply, as a tracked background job, the same pattern as
+ * /api/account-request (D1). Before this, Better Auth did about four more database round trips (one
+ * a write) for an address with an account, so once a round trip took ~25 ms or more the answer
+ * came later for accounts than for unknown addresses, despite the 250 ms floor.
+ *
+ * What the reply can depend on is therefore only address-independent: the body shape, origin and
+ * redirect checks, shutdown, the per-process queue bound, and the per-address window (5 per 15 min,
+ * counted the same for every address). The 250 ms floor is kept. The answer is Better Auth's own
+ * 200 body for every address (pinned against Better Auth in r4-reset-request.test.ts).
+ */
+export const RESET_REQUEST_ACCEPTED = {
+  status: true,
+  message: "If this email exists in our system, check your email for the reset link",
+} as const;
+/**
+ * At most this many reset jobs waiting per process. The reply no longer waits for Better Auth, so
+ * without a bound a slow database would let jobs pile up in memory. A full queue answers 503 to
+ * every address alike, before the per-address window is touched.
+ */
+export const RESET_REQUEST_MAX_PENDING = 32;
+
+const resetJobs = new Set<Promise<unknown>>();
+/** Waits for every queued reset job (shutdown drain; tests). */
+export async function waitForResetRequests() {
+  while (resetJobs.size) await Promise.all([...resetJobs]);
+}
+export const flushResetRequestsForTests = waitForResetRequests;
+registerDrainWaiter("reset-requests", waitForResetRequests);
+
+const tryAgain = () => json(503, { message: "Please try again shortly.", code: "TRY_AGAIN" }, { "Retry-After": "30" });
+
+async function runResetJob(next: Next, forward: Request) {
+  // Better Auth answers 200 for every address once the gate's checks have passed; anything else
+  // means something failed. Log the status only: never the address, token or link.
+  const res = await next(forward);
+  if (res.status !== 200) log("warn", "auth.reset_request.job_status", { status: res.status });
+}
+
 async function resetRequest(req: Request, next: Next): Promise<Response> {
   const started = performance.now();
   const body = await readJson(req);
   const parsed = body ? resetRequestSchema.safeParse(body.value) : null;
   if (!body || !parsed?.success) return badRequest();
   if (!sameOrigin(req) || !localTarget(parsed.data.redirectTo)) return json(403, { message: "Invalid origin", code: "INVALID_ORIGIN" });
+  // Shutting down, or the queue is full: no new job, and the same answer for every address.
+  if (isDraining() || resetJobs.size >= RESET_REQUEST_MAX_PENDING) return holdUntil(started, TIMING_FLOOR_MS.resetRequest, tryAgain(), "reset-503");
   // Per address, every address alike. Mail itself is capped separately (3 per hour per address).
   const slot = await reserveWindow(`reset-req:${hashEmail(parsed.data.email)}`, LIMITS.resetRequestPerAddress);
   if (!slot.allowed) return holdUntil(started, TIMING_FLOOR_MS.resetRequest, tooMany(slot.retryAfterSeconds), "reset-429");
-  const res = await next(rebuild(req, body.text));
-  return holdUntil(started, TIMING_FLOOR_MS.resetRequest, res, "reset-request");
+  // The job is counted in the queue now but starts only once the reply is decided, so no lookup for
+  // this address runs, or competes for the database, while the reply is being held. The request is
+  // rebuilt now, while it is still in scope.
+  const forward = rebuild(req, body.text);
+  let replyDecided!: () => void;
+  const decided = new Promise<void>((resolve) => (replyDecided = resolve));
+  const job = decided.then(() => runResetJob(next, forward)).catch((error) => log("error", "auth.reset_request.failed", { error }));
+  resetJobs.add(job);
+  void job.finally(() => resetJobs.delete(job));
+  try {
+    return await holdUntil(started, TIMING_FLOOR_MS.resetRequest, json(200, RESET_REQUEST_ACCEPTED), "reset-request");
+  } finally {
+    replyDecided();
+  }
 }
 
 /** Better Auth stores sha256(identifier), base64url (verification.storeIdentifier = "hashed"). */
