@@ -145,8 +145,16 @@ Code: `src/server/security/auth-abuse-gate.ts`, `auth-routes.ts`, `process-limit
   - Measured with the finding 3 latency proxy, an address with an account answered **+40 ms** later at 30 ms per round trip, and **+208 ms** later at 50 ms.
   - This held for an account off the allowlist, an allowlisted account and an allowlisted address with a requested account, alike.
 - **Rule now:** `resetRequest()` decides the answer before anything about the address is looked up. The answer is always Better Auth's own `200` body (`RESET_REQUEST_ACCEPTED`, pinned against Better Auth by test).
-  - Better Auth's work runs afterwards, through the same gated handler: lookup, token (single use, 1 hour, hashed identifier) and set-password or reset mail under the usual mail caps.
+  - Better Auth's work runs afterwards: lookup, token (single use, 1 hour, hashed identifier) and set-password or reset mail under the usual mail caps.
   - It runs as a tracked background job, like `/api/account-request`. The job is counted at once but starts only after the reply is decided, so no lookup for the address runs while the reply is being held.
+  - **The job calls Better Auth's server API, `getAuth().api.requestPasswordReset({ body })`**, with exactly the body the gate validated (owner decision 5 Nov 2026, PR #24). Reset requests never reach Better Auth's HTTP handler.
+    - It is G2-approved: `tests/unit/server-api-allowlist.test.ts` lists the gate as the second caller, with the rationale.
+    - That test also pins a single call site in `runResetJob()`, reached only from `resetRequest()` after every gate check and once the reply is decided.
+- **The answer's floor:** the 250 ms floor, or the shared sign-in estimator if that is higher (the slowest of the last 32 password checks × 1.1), the same for every address.
+  - The estimator keeps a slow sample until 32 newer ones replace it, so after one slow sign-in every reset answer can take longer for a while, for every address alike. This is pre-existing and unchanged.
+- **The form (`AuthForm.tsx`):** every answer that means a request was accepted shows the neutral "if an account exists" message.
+  - `429` shows `auth.error.rateLimited` and `503` shows `auth.error.generic` ("Something went wrong. Please try again."): both mean nothing was queued, and both are the same for every address.
+  - Tests: `tests/unit/auth-form.test.tsx`.
 - **What the answer can still depend on:** only address-independent things:
   - the request shape (`400`);
   - the origin and redirect target (`403`);
@@ -155,10 +163,11 @@ Code: `src/server/security/auth-abuse-gate.ts`, `auth-routes.ts`, `process-limit
 
   The 250 ms floor is unchanged.
 - **Logs:**
-  - The job logs only a status (`auth.reset_request.job_status`) or a redacted error (`auth.reset_request.failed`).
-  - Better Auth's own log lines now go through the redacting server logger (`logger.log` in `auth.ts`, level `warn` as before), so a failed query's parameters are masked (`[email]`).
-  - **Known gap (pre-existing, every Better Auth endpoint; owner decision):** Better Auth's HTTP router (`better-call`) also prints a non-API error raw with `console.error("# SERVER_ERROR: ", error)`, outside any logger option, so a database failure can still write an address to the server log.
-  - Options: (a) run the reset job through the server API (`getAuth().api.requestPasswordReset`), which throws to our redacting catch instead, but needs a G2 allowlist entry, which needs approval; (b) a process-wide redaction of `console.error`/`console.warn`.
+  - A failing job is logged once, redacted, as `auth.reset_request.failed`. The server API throws, so nothing else prints it: a test checks that no console line of any source carries the address.
+  - Better Auth's own log lines go through the redacting server logger (`logger.log` in `auth.ts`, level `warn` as before), so a failed query's parameters are masked (`[email]`).
+  - **Still open, other endpoints (pre-existing):** for requests that do go through Better Auth's HTTP handler (sign-in, set-password and reset with a token, two-factor, session), its router (`better-call`) prints a non-API error raw with `console.error("# SERVER_ERROR: ", error)`, outside any logger option. A database failure there can write an address to the server log.
+    - The owner decided against redacting `console.error` or `console.warn` for the whole process.
+    - Closing it needs a narrow fix per path, or a change in Better Auth.
 - **Shutdown:** queued jobs are part of the 10 s drain (`registerDrainWaiter("reset-requests")`); a lost job leaves a recoverable state (the person asks again).
 - **Tests:** `tests/integration/r4-reset-request.test.ts`, with the shapes U, K, L0, L1 and L2 created through the real routes:
   - identical status, body and headers, and only real accounts get mail;
@@ -169,7 +178,8 @@ Code: `src/server/security/auth-abuse-gate.ts`, `auth-routes.ts`, `process-limit
   - origin, redirect and malformed checks;
   - `503` while draining and when the queue is full;
   - the floor;
-  - logs.
+  - logs;
+  - **no path around the gate:** an accepted request makes one server-API call, after the hold and never through the HTTP handler; every refused request (400, 403, 429, 503) reaches neither; and the route sends reset requests only to the gate, with `404` when accounts are off.
 - **Timing harness:** `scripts/d16/finding-3/reset-run.sh` (latency proxy). Results before and after the fix: `docs/reports/reset-request-timing/README.md`.
 
 **Two-factor routes (G1, D6).** `/two-factor/verify-totp` and `/verify-backup-code` are forwarded only when the request carries the plugin's challenge cookie, and the gate strips session cookies from them, so Better Auth can only run its sign-in challenge there. Enabling, confirming, disabling and new recovery codes exist only as the account page's server actions (`2fa-manage` limit). `tests/unit/server-api-allowlist.test.ts` (G2) fails on any server-side Better Auth API call outside the approved list. The two-factor page shows only the number of recovery codes left (`auth/recovery-codes.ts`); decrypted codes never reach it.
@@ -274,7 +284,7 @@ npm run test:integration        MariaDB-backed tests (TEST_DATABASE_URL, *_test 
     - **Fixed, merged to `main` in PR #20 (`21c4b3a`, 4 Nov 2026)** (owner-approved Option A): the same `SELECT` for every address before the allowlist check (two lines; no change to limits, thresholds or statuses). See "Same lookup before the reservation" above. Confirmation under saturation is part of the final D16 runs.
     - Details: `docs/reports/d16-timing/finding-3-allowlist-timing.md`.
     - Note: `tests/integration/r4-timing.test.ts` runs without an allowlist (the "open" policy, where every address counts as allowlisted) and at idle, so it cannot see this class of difference.
-- **Password-reset request timing: measured 5 Nov 2026, fix proposed (PR awaiting owner review).** An account answered later once database round trips took about 25 ms or more (+40 ms at 30 ms, +208 ms at 50 ms). The fix answers before the lookup: "Reset request: answered before the lookup" above. Remaining, owner decision: the raw `# SERVER_ERROR` print by Better Auth's router (same section).
+- **Password-reset request timing: measured 5 Nov 2026, fix proposed (PR awaiting owner review).** An account answered later once database round trips took about 25 ms or more (+40 ms at 30 ms, +208 ms at 50 ms). The fix answers before the lookup and runs the work through Better Auth's server API (G2-approved): "Reset request: answered before the lookup" above. Still open for the other Better Auth endpoints: the raw `# SERVER_ERROR` print by Better Auth's router (same section). Also open: the sign-up form shows "sent" on the account-request route's `503` while shutting down; it was not changed in PR #24.
 - **Intermittent raw timing test failure on CI.** `r4-timing.test.ts` "raw (no floor)" asserts p99 < 400 ms over 100 probes, i.e. the maximum. One transient slow request failed it on `2b1c7a0` (774.5 ms). Under investigation; the assertion is not changed without owner approval.
 - Google OAuth client (D3): church-owned Google Cloud project; until then the button is hidden.
 - Client IP behind Hostinger's CDN: resolver built (Nov 2026 security fix); `CLIENT_IP_SOURCE` stays unset until the header-shape capture confirms the hop count (`docs/backend/client-ip.md` §5). `TRUSTED_PROXIES` is no longer used.

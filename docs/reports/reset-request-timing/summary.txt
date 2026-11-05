@@ -19,22 +19,22 @@
   L1  n=40 median 473.8 p90 476.8 diff vs U +208.4 ms [206.9, 210.4]
   L2  n=40 median 472.3 p90 478.6 diff vs U +207.0 ms [206.1, 208.9]
 == after plus-0ms (non-200: 0)
-  U   n=40 median 251.5 p90 252.2
-  K   n=40 median 251.5 p90 252.1 diff vs U -0.1 ms [-0.4, 0.0]
-  L1  n=40 median 251.6 p90 252.1 diff vs U +0.0 ms [-0.4, 0.2]
-  L2  n=40 median 251.4 p90 252.3 diff vs U -0.1 ms [-0.4, 0.1]
+  U   n=40 median 250.7 p90 251.6
+  K   n=40 median 250.7 p90 251.7 diff vs U -0.0 ms [-0.3, 0.3]
+  L1  n=40 median 250.7 p90 251.5 diff vs U -0.0 ms [-0.3, 0.2]
+  L2  n=40 median 250.9 p90 251.3 diff vs U +0.2 ms [-0.2, 0.4]
 == after plus-20ms (non-200: 0)
-  U   n=40 median 251.5 p90 252.0
-  K   n=40 median 251.4 p90 251.8 diff vs U -0.1 ms [-0.3, 0.1]
-  L1  n=40 median 251.4 p90 252.0 diff vs U -0.1 ms [-0.3, 0.2]
-  L2  n=40 median 251.4 p90 251.7 diff vs U -0.1 ms [-0.4, 0.1]
+  U   n=40 median 250.7 p90 251.3
+  K   n=40 median 250.7 p90 251.2 diff vs U -0.0 ms [-0.3, 0.2]
+  L1  n=40 median 250.8 p90 251.2 diff vs U +0.2 ms [-0.2, 0.3]
+  L2  n=40 median 250.7 p90 251.1 diff vs U -0.0 ms [-0.4, 0.2]
 == after plus-30ms (non-200: 0)
-  U   n=40 median 251.5 p90 252.0
-  K   n=40 median 251.6 p90 252.1 diff vs U +0.1 ms [-0.2, 0.3]
-  L1  n=40 median 251.3 p90 252.0 diff vs U -0.1 ms [-0.4, 0.2]
-  L2  n=40 median 251.3 p90 252.0 diff vs U -0.2 ms [-0.4, 0.2]
+  U   n=40 median 250.7 p90 251.2
+  K   n=40 median 250.7 p90 251.3 diff vs U -0.0 ms [-0.3, 0.2]
+  L1  n=40 median 250.8 p90 251.2 diff vs U +0.1 ms [-0.2, 0.4]
+  L2  n=40 median 250.7 p90 251.1 diff vs U -0.0 ms [-0.3, 0.2]
 == after plus-50ms (non-200: 0)
-  U   n=40 median 251.5 p90 251.9
-  K   n=40 median 251.5 p90 252.3 diff vs U +0.0 ms [-0.3, 0.3]
-  L1  n=40 median 251.4 p90 251.9 diff vs U -0.0 ms [-0.3, 0.3]
-  L2  n=40 median 251.5 p90 251.9 diff vs U -0.0 ms [-0.3, 0.3]
+  U   n=40 median 250.7 p90 251.2
+  K   n=40 median 250.7 p90 251.2 diff vs U +0.0 ms [-0.4, 0.2]
+  L1  n=40 median 250.8 p90 251.2 diff vs U +0.1 ms [-0.1, 0.3]
+  L2  n=40 median 250.7 p90 251.3 diff vs U +0.1 ms [-0.2, 0.4]

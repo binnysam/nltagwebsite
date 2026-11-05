@@ -326,7 +326,7 @@ export async function gateAuthRequest(req: Request, next: Next): Promise<Respons
     case "signIn":
       return signIn(req, next);
     case "resetRequest":
-      return resetRequest(req, next);
+      return resetRequest(req);
     case "token":
       return token(req, route, url, next);
     case "secondFactor":
@@ -431,8 +431,9 @@ async function alertAccountHolder(email: string, emailHash: string) {
 /**
  * Forgot-password request (security-readiness review 5 Nov 2026, item 4). The answer is decided
  * BEFORE anything about the address is looked up: Better Auth's work (user lookup, reset token,
- * set-password/reset mail) runs after the reply, as a tracked background job, the same pattern as
- * /api/account-request (D1). Before this, Better Auth did about four more database round trips (one
+ * set-password/reset mail) runs after the reply, as a tracked background job through Better Auth's
+ * server API (runResetJob), the same pattern as /api/account-request (D1). Reset requests never
+ * reach Better Auth's HTTP handler. Before this, Better Auth did about four more database round trips (one
  * a write) for an address with an account, so once a round trip took ~25 ms or more the answer
  * came later for accounts than for unknown addresses, despite the 250 ms floor.
  *
@@ -462,14 +463,22 @@ registerDrainWaiter("reset-requests", waitForResetRequests);
 
 const tryAgain = () => json(503, { message: "Please try again shortly.", code: "TRY_AGAIN" }, { "Retry-After": "30" });
 
-async function runResetJob(next: Next, forward: Request) {
-  // Better Auth answers 200 for every address once the gate's checks have passed; anything else
-  // means something failed. Log the status only: never the address, token or link.
-  const res = await next(forward);
-  if (res.status !== 200) log("warn", "auth.reset_request.job_status", { status: res.status });
+/**
+ * The reset job. Owner decision (5 Nov 2026, PR #24, G2): it uses Better Auth's server API, not the
+ * HTTP handler. Through the HTTP handler, Better Auth's router printed any non-API error raw
+ * (`console.error("# SERVER_ERROR: ", error)`), so a database failure wrote the address to the server
+ * log; the server API throws instead, and the caller logs through the redacting logger.
+ *
+ * Reached only from resetRequest() below, after every gate check has passed (body, origin, redirect,
+ * shutdown, queue bound, per-address window) and only once the reply has been decided. The body is
+ * exactly what the gate validated (strict schema: the address as given, an optional local path).
+ * tests/unit/server-api-allowlist.test.ts and tests/integration/r4-reset-request.test.ts pin this.
+ */
+async function runResetJob(body: { email: string; redirectTo?: string }) {
+  await getAuth().api.requestPasswordReset({ body });
 }
 
-async function resetRequest(req: Request, next: Next): Promise<Response> {
+async function resetRequest(req: Request): Promise<Response> {
   const started = performance.now();
   const body = await readJson(req);
   const parsed = body ? resetRequestSchema.safeParse(body.value) : null;
@@ -481,12 +490,12 @@ async function resetRequest(req: Request, next: Next): Promise<Response> {
   const slot = await reserveWindow(`reset-req:${hashEmail(parsed.data.email)}`, LIMITS.resetRequestPerAddress);
   if (!slot.allowed) return holdUntil(started, TIMING_FLOOR_MS.resetRequest, tooMany(slot.retryAfterSeconds), "reset-429");
   // The job is counted in the queue now but starts only once the reply is decided, so no lookup for
-  // this address runs, or competes for the database, while the reply is being held. The request is
-  // rebuilt now, while it is still in scope.
-  const forward = rebuild(req, body.text);
+  // this address runs, or competes for the database, while the reply is being held. Any failure is
+  // logged through the redacting logger (no address, token or link).
+  const jobBody = { email: parsed.data.email, redirectTo: parsed.data.redirectTo };
   let replyDecided!: () => void;
   const decided = new Promise<void>((resolve) => (replyDecided = resolve));
-  const job = decided.then(() => runResetJob(next, forward)).catch((error) => log("error", "auth.reset_request.failed", { error }));
+  const job = decided.then(() => runResetJob(jobBody)).catch((error) => log("error", "auth.reset_request.failed", { error }));
   resetJobs.add(job);
   void job.finally(() => resetJobs.delete(job));
   try {

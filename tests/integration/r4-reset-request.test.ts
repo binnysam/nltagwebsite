@@ -352,16 +352,13 @@ describe("forgot-password request: logs", () => {
   });
 
   /**
-   * KNOWN GAP, not covered here and not hidden: when Better Auth's HTTP handler hits an error that
-   * is not an APIError (for example a database failure), its router (better-call) also prints the
-   * raw error itself with console.error("# SERVER_ERROR: ", error), outside any logger option. A
-   * failed query's message includes its parameters, so that line can contain the address. This is
-   * pre-existing and applies to every Better Auth endpoint; closing it needs an owner decision
-   * (docs/backend/data-and-auth.md → "Reset request: answered before the lookup"). This test pins
-   * what this change guarantees: the server logger's lines (ours and Better Auth's logger, which
-   * auth.ts now routes through it) never carry the address.
+   * A database failure inside the job. Through Better Auth's HTTP handler its router printed such an
+   * error raw (`# SERVER_ERROR`), parameters and address included; the job now uses the server API
+   * (owner decision, G2), which throws to the gate's redacting logger. So EVERY console line is
+   * checked here, not only the logger's. (Other Better Auth endpoints still go through the HTTP
+   * handler: docs/backend/data-and-auth.md → "Reset request: answered before the lookup".)
    */
-  it("a failing job: the server logger's lines are redacted, and the answer is unchanged", async () => {
+  it("a failing job: nothing printed carries the address, and the answer is unchanged", async () => {
     const pool = getPool();
     const original = pool.query.bind(pool) as (...args: unknown[]) => Promise<unknown>;
     vi.spyOn(pool, "query").mockImplementation(((...args: unknown[]) => {
@@ -376,12 +373,96 @@ describe("forgot-password request: logs", () => {
     const healthy = await probe(addressOf("U"));
     expect(failing.status).toBe(healthy.status);
     expect(failing.text).toBe(healthy.text);
+    expect(lines.length).toBeGreaterThan(0); // the failure is visible ...
+    for (const l of lines) expect(l).not.toContain(L2); // ... in no line with the address (any source)
+    expect(lines.some((l) => l.includes("# SERVER_ERROR"))).toBe(false);
     // Lines written by the server logger (security/log.ts) are JSON objects with an `event`.
     const loggerLines = lines.filter((l) => l.startsWith('{"level"'));
     const events = loggerLines.map((l) => (JSON.parse(l) as { event: string }).event);
-    expect(events).toContain("better_auth"); // Better Auth's own error line, through the redacting logger
-    expect(events).toContain("auth.reset_request.job_status"); // our status-only line (500)
-    for (const l of loggerLines) expect(l).not.toContain(L2);
+    expect(events).toContain("auth.reset_request.failed");
     expect(loggerLines.join("\n")).toContain("[email]"); // the address was there, and was masked
+  });
+});
+
+describe("forgot-password request: no path around the gate", () => {
+  /** Spies on the two ways into Better Auth: its server API call, and its HTTP handler. */
+  function spyOnBetterAuth() {
+    const auth = getAuth();
+    const api = vi.spyOn(auth.api, "requestPasswordReset");
+    const handler = vi.spyOn(auth, "handler");
+    return { api, handler };
+  }
+
+  it("an accepted request: one server-API call, made only once the held answer is decided, never the HTTP handler", async () => {
+    await freshBudgets();
+    await quietPurges();
+    // Record when the job calls Better Auth: the hold (at least the 250 ms floor) must have ended.
+    // That no statement about the address runs during the hold is checked for every shape by the
+    // statement-order test above.
+    const auth = getAuth();
+    const real = auth.api.requestPasswordReset;
+    let calledAt = 0;
+    const api = vi.spyOn(auth.api, "requestPasswordReset").mockImplementation(((...a: Parameters<typeof real>) => {
+      calledAt = performance.now();
+      return real(...a);
+    }) as typeof real);
+    const handler = vi.spyOn(auth, "handler");
+    const t0 = performance.now();
+    const res = await routePOST(resetRequest(L2));
+    const answeredAt = performance.now();
+    expect(res.status).toBe(200);
+    await flushResetRequestsForTests();
+    await flushEmailQueueForTests();
+    expect(api).toHaveBeenCalledTimes(1);
+    expect(api.mock.calls[0]![0]).toEqual({ body: { email: L2, redirectTo: "/en/reset-password" } });
+    expect(handler).not.toHaveBeenCalled();
+    // The call came after the hold had ended (the floor), not while the answer was being held.
+    expect(calledAt - t0).toBeGreaterThanOrEqual(TIMING_FLOOR_MS.resetRequest - 1);
+    expect(calledAt).toBeLessThanOrEqual(answeredAt + 1_000);
+  });
+
+  it("every refused request reaches neither the server API nor the HTTP handler", async () => {
+    const refused: { name: string; status: number }[] = [];
+    const run = async (name: string, send: () => Promise<Response>) => {
+      const { api, handler } = spyOnBetterAuth();
+      const res = await send();
+      await flushResetRequestsForTests();
+      refused.push({ name, status: res.status });
+      expect(api, name).not.toHaveBeenCalled();
+      expect(handler, name).not.toHaveBeenCalled();
+      vi.restoreAllMocks();
+    };
+    await run("malformed address", () => call("/request-password-reset", { body: { email: ` ${L2} ` } }));
+    await run("extra field", () => call("/request-password-reset", { body: { email: L2, callbackURL: "/en" } }));
+    await run("foreign origin", () => call("/request-password-reset", { body: { email: L2 }, origin: "https://evil.example" }));
+    await run("no origin", () => call("/request-password-reset", { body: { email: L2 }, origin: null }));
+    await run("foreign redirect", () => call("/request-password-reset", { body: { email: L2, redirectTo: "https://evil.example/x" } }));
+    await run("protocol-relative redirect", () => call("/request-password-reset", { body: { email: L2, redirectTo: "//evil.example/x" } }));
+    // Window used up: 5 accepted first (their jobs run), then the 6th is refused.
+    await getDb().execute(sql`DELETE FROM rate_limit_bucket WHERE bucket_key LIKE 'reset-req:%'`);
+    for (let i = 0; i < 5; i++) await call("/request-password-reset", { body: { email: K } });
+    await run("window used up", () => call("/request-password-reset", { body: { email: K } }));
+    // Shutting down.
+    await drain(1_000);
+    await run("draining", () => call("/request-password-reset", { body: { email: L2 } }));
+    resetLifecycleForTests();
+    expect(refused.map((r) => r.status)).toEqual([400, 400, 403, 403, 403, 403, 429, 503]);
+  });
+
+  it("the route sends reset requests to the gate, never straight to Better Auth (accounts on), and 404s them with accounts off", async () => {
+    const { api, handler } = spyOnBetterAuth();
+    await freshBudgets();
+    expect((await call("/request-password-reset", { body: { email: L0 } })).status).toBe(200);
+    expect(handler).not.toHaveBeenCalled();
+    expect(api).toHaveBeenCalledTimes(1);
+    const saved = process.env.NLTAG_ACCOUNTS_ENABLED;
+    process.env.NLTAG_ACCOUNTS_ENABLED = "0";
+    try {
+      expect((await call("/request-password-reset", { body: { email: L0 } })).status).toBe(404);
+    } finally {
+      restoreEnv("NLTAG_ACCOUNTS_ENABLED", saved);
+    }
+    expect(api).toHaveBeenCalledTimes(1);
+    expect(handler).not.toHaveBeenCalled();
   });
 });

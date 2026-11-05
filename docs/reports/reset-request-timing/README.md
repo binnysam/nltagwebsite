@@ -23,12 +23,14 @@ Security-readiness review of 5 Nov 2026, item 4. The behaviour and the rule are 
 
 | Delay per round trip | Before (`main` `1d3ffb6`): K / L1 / L2 | After (this PR): K / L1 / L2 |
 |---|---|---|
-| 0 | −0.3 / −0.2 / −0.3 | −0.1 / +0.0 / −0.1 |
-| 20 ms | −0.1 / −0.4 / −0.2 | −0.1 / −0.1 / −0.1 |
-| 30 ms | **+40.3 / +40.1 / +39.6** | +0.1 / −0.1 / −0.2 |
-| 50 ms | **+208.1 / +208.4 / +207.0** | +0.0 / −0.0 / −0.0 |
+| 0 | −0.3 / −0.2 / −0.3 | −0.0 / −0.0 / +0.2 |
+| 20 ms | −0.1 / −0.4 / −0.2 | −0.0 / +0.2 / −0.0 |
+| 30 ms | **+40.3 / +40.1 / +39.6** | −0.0 / +0.1 / −0.0 |
+| 50 ms | **+208.1 / +208.4 / +207.0** | +0.0 / +0.1 / +0.1 |
 
-**After the fix:** every 95 % interval includes 0 or lies within ±0.4 ms, and U's median is 251.4–251.5 ms at every delay. Before the fix, at 50 ms the unknown address itself took 265.3 ms and an account 472–474 ms.
+**After the fix:** every 95 % interval includes 0 and lies within ±0.4 ms, and U's median is 250.7 ms at every delay. Before the fix, at 50 ms the unknown address itself took 265.3 ms and an account 472–474 ms.
+
+The "after" figures were measured on the final version of this PR, in which the job uses Better Auth's server API. The first version, which went through the HTTP handler, measured the same: every difference within ±0.2 ms.
 
 ## In-suite check
 `tests/integration/r4-reset-request.test.ts` delays every pool statement in the process. It covers U, K, L0, L1 and L2 at 0, 20, 30 and 50 ms. With the fix, every median falls within 249.8–252.0 ms.

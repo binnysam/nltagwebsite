@@ -97,8 +97,11 @@ export function AuthForm({ mode, locale, token, googleEnabled }: Props) {
             : await authClient.resetPassword({ newPassword: password, token: token ?? "" });
 
       if (result.error) {
-        // Forgot-password always shows the neutral message (no account discovery).
-        if (mode === "forgot" && result.error.status !== 429) setDone("auth.forgot.sent");
+        // Forgot-password shows the neutral message (no account discovery), except for the two
+        // answers that mean nothing was queued and are the same for every address: 429 (this
+        // address's window is used up) and 503 (shutting down or the queue is full). Those ask the
+        // person to try again instead of claiming a link was sent.
+        if (mode === "forgot" && result.error.status !== 429 && result.error.status !== 503) setDone("auth.forgot.sent");
         else setError(errorKey(result.error.status, result.error.code));
         return;
       }
