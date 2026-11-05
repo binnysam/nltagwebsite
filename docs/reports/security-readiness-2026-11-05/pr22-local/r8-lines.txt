@@ -1,0 +1,46 @@
+R8 raw (floor 0) known {"n":100,"p10":102.5,"median":108.4,"p90":134.6,"p99":180.7,"max":180.7} unknown {"n":100,"p10":94.6,"median":99.6,"p90":111.8,"p99":153,"max":153}
+R8 raw control scrypt {"n":100,"p10":82.5,"median":87.2,"p90":105.3,"p99":114.7,"max":114.7} db {"n":100,"p10":0.8,"median":1,"p90":1.3,"p99":5.1,"max":5.1}
+ Test Files  23 passed (23)
+      Tests  251 passed (251)
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+R8 raw (floor 0) known {"n":100,"p10":102.1,"median":108.9,"p90":132.4,"p99":157.3,"max":157.3} unknown {"n":100,"p10":94.1,"median":100.1,"p90":123.2,"p99":134.9,"max":134.9}
+R8 raw control scrypt {"n":100,"p10":82.9,"median":88,"p90":106.5,"p99":133.9,"max":133.9} db {"n":100,"p10":0.8,"median":1,"p90":1.3,"p99":2.4,"max":2.4}
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+R8 raw (floor 0) known {"n":100,"p10":106.7,"median":114.5,"p90":134,"p99":155,"max":155} unknown {"n":100,"p10":98.8,"median":106.7,"p90":127.4,"p99":170.5,"max":170.5}
+R8 raw control scrypt {"n":100,"p10":84.7,"median":91.3,"p90":105,"p99":122.7,"max":122.7} db {"n":100,"p10":0.8,"median":1,"p90":1.4,"p99":6.8,"max":6.8}
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+R8 raw (floor 0) known {"n":100,"p10":104,"median":111.1,"p90":130.8,"p99":142.4,"max":142.4} unknown {"n":100,"p10":95,"median":101.1,"p90":118.9,"p99":138.6,"max":138.6}
+R8 raw control scrypt {"n":100,"p10":82.3,"median":86.1,"p90":101.6,"p99":117.6,"max":117.6} db {"n":100,"p10":0.9,"median":1,"p90":1.2,"p99":2.7,"max":2.7}
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+R8 raw (floor 0) known {"n":100,"p10":107,"median":115.8,"p90":138.5,"p99":150,"max":150} unknown {"n":100,"p10":97.4,"median":104.5,"p90":128.1,"p99":162,"max":162}
+R8 raw control scrypt {"n":100,"p10":85.2,"median":91.4,"p90":111,"p99":154.5,"max":154.5} db {"n":100,"p10":0.9,"median":1,"p90":1.2,"p99":5,"max":5}
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+R8 raw (floor 0) known {"n":100,"p10":103.3,"median":108.6,"p90":120.8,"p99":134.8,"max":134.8} unknown {"n":100,"p10":94.7,"median":100.4,"p90":115.8,"p99":158.6,"max":158.6}
+R8 raw control scrypt {"n":100,"p10":82.6,"median":86.4,"p90":102.8,"p99":116.2,"max":116.2} db {"n":100,"p10":0.8,"median":1,"p90":1.3,"p99":3.8,"max":3.8}
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+R8 raw (floor 0) known {"n":100,"p10":105.5,"median":113.8,"p90":133.1,"p99":147.1,"max":147.1} unknown {"n":100,"p10":97.6,"median":104.7,"p90":125,"p99":136.6,"max":136.6}
+R8 raw control scrypt {"n":100,"p10":84,"median":90.8,"p90":98.9,"p99":118,"max":118} db {"n":100,"p10":0.9,"median":1,"p90":1.3,"p99":2.8,"max":2.8}
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+R8 raw (floor 0) known {"n":100,"p10":101.2,"median":107.5,"p90":126.5,"p99":163.7,"max":163.7} unknown {"n":100,"p10":94.2,"median":98.1,"p90":115.8,"p99":171.1,"max":171.1}
+R8 raw control scrypt {"n":100,"p10":82,"median":86.7,"p90":96.3,"p99":139.3,"max":139.3} db {"n":100,"p10":0.8,"median":1,"p90":1.2,"p99":4.1,"max":4.1}
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+R8 raw (floor 0) known {"n":100,"p10":100.9,"median":106.7,"p90":117.6,"p99":147,"max":147} unknown {"n":100,"p10":92.4,"median":99.1,"p90":114.7,"p99":165.2,"max":165.2}
+R8 raw control scrypt {"n":100,"p10":80.6,"median":86,"p90":96.5,"p99":120,"max":120} db {"n":100,"p10":0.8,"median":0.9,"p90":1.2,"p99":3,"max":3}
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+R8 raw (floor 0) known {"n":100,"p10":104.5,"median":110.5,"p90":120.4,"p99":151.6,"max":151.6} unknown {"n":100,"p10":96.4,"median":101.2,"p90":115.1,"p99":124.5,"max":124.5}
+R8 raw control scrypt {"n":100,"p10":83.3,"median":87.9,"p90":98.2,"p99":125.7,"max":125.7} db {"n":100,"p10":0.9,"median":1,"p90":1.3,"p99":1.7,"max":1.7}
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+R8 raw (floor 0) known {"n":100,"p10":108.8,"median":118.7,"p90":134.2,"p99":207.9,"max":207.9} unknown {"n":100,"p10":98.9,"median":107.8,"p90":124.1,"p99":135.8,"max":135.8}
+R8 raw control scrypt {"n":100,"p10":85.9,"median":94.8,"p90":109,"p99":126.3,"max":126.3} db {"n":100,"p10":0.9,"median":1,"p90":1.2,"p99":3.7,"max":3.7}
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
