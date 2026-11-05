@@ -1,0 +1,36 @@
+D16 run-1 environment checks — 2026-11-04T20:50:54Z
+boot_id_before: efad36a0-3d5c-4d0a-aac2-a3574a033bb9
+uptime_before_s: 202.85
+commit: 1d3ffb6cf0ced23958b63a90862dfd4efe1cdb38
+worktree_status_lines: 0
+env_files_present: 
+db_publish: 3306/tcp -> 127.0.0.1:3307 
+db_version: 11.8.9-MariaDB-ubu2404
+db_image: sha256:c4124d1afa875e47f2892edf26b482fa54f796e2f342d3717a04ca091a22a9bd
+port_3200_free_before: yes
+next_processes_before: 0
+shell_env_production_like_vars: 
+rate_limit_rows_before (run.sh clears both tables before P1 starts and again after warm-up): tables not created yet
+user_emails_not_nltag_test: table not created yet
+listeners_during_run (20:51:18Z):
+  0.0.0.0:2024
+  127.0.0.1:2525
+  127.0.0.1:3200
+  127.0.0.1:3307
+  127.0.0.1:41011
+  127.0.0.1:41991
+p1_and_sink_bound_non_loopback: 
+reachable_on_192.0.2.2:3200: no
+reachable_on_192.0.2.2:2525: no
+reachable_on_192.0.2.2:3307: no
+run_sh_started: 2026-11-04T20:50:54Z
+run_sh_finished: 2026-11-04T21:33:51Z
+run_sh_exit: 0
+boot_id_after: efad36a0-3d5c-4d0a-aac2-a3574a033bb9
+uptime_after_s: 2779.95
+next_processes_after: 0
+user_emails_not_nltag_test_after: 0
+smtp_json: {"connections":0}
+probes_csv_lines: 2401
+probes_csv_contains_at_sign: 0
+p1_log_lines: 1897

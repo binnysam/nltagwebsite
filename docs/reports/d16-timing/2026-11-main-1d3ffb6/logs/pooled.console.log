@@ -1,0 +1,9 @@
+D16 pooled verdict: PASS
+  listedAccount vs unknown: 0.886 % (90 % CI -0.081 … 1.838 %; one-sided 95 % upper 1.838 %) B=PASS
+  known vs unknown: 0.847 % (90 % CI -0.21 … 1.879 %; one-sided 95 % upper 1.879 %) B=PASS
+  listed vs unknown: 0.913 % (90 % CI -0.16 … 1.984 %; one-sided 95 % upper 1.984 %) B=PASS
+  listedAccount vs listed: -0.047 % (90 % CI -1.078 … 0.988 %; one-sided 95 % upper 0.988 %) B=PASS
+  p90 listedAccount vs unknown: -1.211 % (90 % CI -2.621 … 0.708 %) D=PASS
+  C=PASS E=PASS
+  written: docs/reports/d16-timing/2026-11-main-1d3ffb6/pooled-summary.json
+exit=0

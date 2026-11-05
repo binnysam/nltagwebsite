@@ -1,0 +1,20 @@
+== no-added-latency (non-200: 0)
+  U   n=40 median 250.6 p90 250.9
+  K   n=40 median 250.3 p90 250.9 diff vs U -0.3 ms [-0.5, -0.0]
+  L1  n=40 median 250.4 p90 250.9 diff vs U -0.2 ms [-0.4, -0.0]
+  L2  n=40 median 250.2 p90 250.7 diff vs U -0.3 ms [-0.6, -0.2]
+== plus-20ms (non-200: 0)
+  U   n=40 median 250.2 p90 250.6
+  K   n=40 median 250.1 p90 250.7 diff vs U -0.1 ms [-0.4, 0.2]
+  L1  n=40 median 249.8 p90 250.8 diff vs U -0.4 ms [-0.6, 0.0]
+  L2  n=40 median 250.0 p90 250.6 diff vs U -0.2 ms [-0.5, 0.0]
+== plus-30ms (non-200: 0)
+  U   n=40 median 250.2 p90 250.7
+  K   n=40 median 290.5 p90 293.6 diff vs U +40.3 ms [39.7, 40.8]
+  L1  n=40 median 290.3 p90 294.2 diff vs U +40.1 ms [39.3, 41.0]
+  L2  n=40 median 289.9 p90 293.4 diff vs U +39.6 ms [39.0, 40.6]
+== plus-50ms (non-200: 0)
+  U   n=40 median 265.3 p90 268.0
+  K   n=40 median 473.4 p90 477.6 diff vs U +208.1 ms [206.7, 209.6]
+  L1  n=40 median 473.8 p90 476.8 diff vs U +208.4 ms [206.9, 210.4]
+  L2  n=40 median 472.3 p90 478.6 diff vs U +207.0 ms [206.1, 208.9]
