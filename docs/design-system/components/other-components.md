@@ -65,8 +65,8 @@ Built from existing tokens only; in the gallery ("Entry list", footer at the bot
 ### EntryList (`EntryList/`)
 - **When:** lists of CMS records on the public site — announcements, sermons, ministries, testimonies. Not for the schedule (ScheduleList) or special meetings (SpecialMeetingCard).
 - **Anatomy:** `<ul role="list" aria-label>` with hairline top and row dividers (same rhythm as ScheduleList, padding 24px) → each row: meta line (14px secondary, tabular numerals) → title (`h3` by default; Anek Tamil 400 / Inter Tight 400, h3 size) → body (reading measure 64ch / 60ch) → at most one action.
-- **API:** `entries: { id, title, titleLang?, meta?, children?, action? }[]`, `headingLevel?` (2 | 3), `label?`.
-- **States:** static; no hover tint (rows are not links). Links inside keep 44px targets.
+- **API:** `entries: { id, title, href?, titleLang?, meta?, children?, action? }[]`, `headingLevel?` (2 | 3), `label?`.
+- **States:** static; no hover tint (rows are not links). With `href` (Nov 2026, Phase A) the title is a hairline-underlined link to the record's own page (44px min height, `--border-width-strong` underline on hover, colour unchanged). Links inside keep 44px targets.
 - **A11y:** list named by its section; titles are headings in the page outline; Markdown headings inside a body start at h4 (`<Markdown headingLevel={4}>`).
 
 ### SiteFooter (`SiteFooter/`)

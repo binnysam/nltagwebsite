@@ -173,6 +173,21 @@ const PENDING = [
   "auth.setPassword.title",
   "auth.setPassword.submit",
   "auth.setPassword.done",
+  // Website completion Phase A (Nov 2026): 404, share, sermon search and pagination. Awaiting owner
+  // review; the Phase A PR is not merged (merge = deploy) until these are approved.
+  "notFound.title",
+  "notFound.body",
+  "share.copied",
+  "sermon.search",
+  "sermon.speaker",
+  "filter.allSpeakers",
+  "filter.submit",
+  "filter.clear",
+  "filter.noResults",
+  "pagination.label",
+  "pagination.previous",
+  "pagination.next",
+  "pagination.status",
 ];
 
 /** The 26 recommended drafts the owner approved unchanged ("rest all is fine"). */
@@ -278,7 +293,7 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
     }
   });
 
-  it("leaves no draft-review Tamil outside the Google sign-in, throttle-alert and R4 D9 strings, and no open alternatives", () => {
+  it("leaves no draft-review Tamil outside the Google sign-in, throttle-alert, R4 D9 and Phase A strings, and no open alternatives", () => {
     for (const [key, v] of Object.entries(uiStrings)) {
       if (v.taStatus !== "confirmed") expect(PENDING, key).toContain(key);
       expect((v as { taAlternatives?: unknown }).taAlternatives, key).toBeUndefined();
@@ -299,7 +314,7 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
       "(22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings; 38 Phase 4b account and email strings and 45 Phase 6b two-factor strings, 2026-11-02)",
     );
     expect(pending).toBe(PENDING.length);
-    expect(md).toContain("146 of 158 items approved; 12 still awaiting review");
+    expect(md).toContain("146 of 171 items approved; 25 still awaiting review");
     for (const line of md.split("\n").filter((l) => l.includes("draft-review") && l.startsWith("| "))) {
       expect(PENDING).toContain(line.split("|")[1]!.trim());
     }

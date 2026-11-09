@@ -8,7 +8,7 @@ import { formatDateKey, formatKuwaitDate, formatKuwaitMeetingTime } from "@/lib/
 import { Markdown } from "@/lib/markdown";
 import type { PublicItem, PublicMinistry, PublicSermon, PublicTestimony, PublicVerse } from "@/server/cms/public";
 import type { BilingualMeeting } from "@/server/cms/public-site";
-import { href, type PublicRoute } from "./site";
+import { detailHref, href, type PublicRoute } from "./site";
 import styles from "../public.module.css";
 
 /**
@@ -98,13 +98,18 @@ export function MeetingCards({ items, locale, limit }: { items: BilingualMeeting
 }
 
 /* ── Sermons ───────────────────────────────────────────────────── */
-export function SermonEntries({ items, locale, limit, full = false }: { items: PublicSermon[]; locale: L; limit?: number; full?: boolean }) {
-  if (!items.length) return <Empty locale={locale} />;
+/** Date · speaker · Bible reference, as one meta line. */
+export const sermonMeta = (s: PublicSermon, locale: L) =>
+  [s.sermonDate ? formatDateKey(s.sermonDate, locale) : "", s.speaker, s.bibleReference].filter(Boolean).join(" · ");
+
+export function SermonEntries({ items, locale, limit, full = false, emptyText }: { items: PublicSermon[]; locale: L; limit?: number; full?: boolean; emptyText?: string }) {
+  if (!items.length) return <Empty locale={locale} text={emptyText} />;
   const entries: Entry[] = (limit ? items.slice(0, limit) : items).map((s) => {
-    const meta = [s.sermonDate ? formatDateKey(s.sermonDate, locale) : "", s.speaker, s.bibleReference].filter(Boolean).join(" · ");
+    const meta = sermonMeta(s, locale);
     return {
       id: s.id,
       title: s.title,
+      href: detailHref(locale, "sermons", s),
       meta: meta || undefined,
       children: body(s, full),
       action: s.videoUrl ? (
@@ -137,6 +142,7 @@ export function TestimonyEntries({ items, locale, limit, full = false }: { items
   const entries: Entry[] = (limit ? items.slice(0, limit) : items).map((x) => ({
     id: x.id,
     title: x.title,
+    href: detailHref(locale, "testimonies", x),
     meta: x.author ?? t("testimony.anonymous", locale),
     children: body(x, full),
   }));
