@@ -28,7 +28,7 @@ export async function requireStaffPage(permission: Permission = "admin.access"):
     await audit({ actorUserId: me.userId, action: "auth.2fa.required", outcome: "DENIED", entity: "permission", reason: permission, ip: clientIp(h) });
     redirect("/en/account/two-factor");
   }
-  if (!can(me.principal, "admin.access") || !can(me.principal, permission)) {
+  if (!can(me.principal, "staff.portal") || !can(me.principal, permission)) {
     await audit({ actorUserId: me.userId, action: "policy.deny", outcome: "DENIED", entity: "permission", reason: permission, ip: clientIp(h) });
     notFound();
   }
@@ -77,6 +77,11 @@ export const ERROR_MESSAGES = {
   "last-admin": "The last Church Admin cannot be removed.",
   self: "You cannot change your own roles.",
   invalid: "The request was not valid. Nothing was changed.",
+  "photo-permission": "Record the photo permission before publishing.",
+  "photo-note": "Say where the photo permission is documented.",
+  "photo-caption": "Add a caption in at least one language before publishing (it is also the image description).",
+  "photo-processing": "The image could not be prepared for the website. Nothing was published.",
+  "already-decided": "This submission has already been decided.",
   generic: "Something went wrong. Nothing was changed. Try again.",
 } as const;
 export type ErrorKey = keyof typeof ERROR_MESSAGES;
@@ -85,6 +90,11 @@ export function errorKey(error: unknown): ErrorKey {
   if (error instanceof AuthzError) return error.status === 401 ? "session" : "forbidden";
   if (error instanceof CmsError) {
     if (error.code === "NOT_FOUND") return "not-found";
+    if (/photo permission before/.test(error.message)) return "photo-permission";
+    if (/permission is documented/.test(error.message)) return "photo-note";
+    if (/Add a caption/.test(error.message)) return "photo-caption";
+    if (/prepared for the website|file is missing/.test(error.message)) return "photo-processing";
+    if (/already been decided/.test(error.message)) return "already-decided";
     if (error.code === "NOT_ALLOWED_IN_STATE") return /permission/.test(error.message) ? "testimony-permission" : "state";
     return "invalid";
   }

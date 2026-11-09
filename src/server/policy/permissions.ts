@@ -27,7 +27,23 @@ export const PERMISSIONS = [
   // System
   "staff.manage",
   "audit.read",
+  /** CMS staff area (content lists, editor, media, review). Not granted to Prayer Team. */
   "admin.access",
+  /** The admin shell itself (sign-in landing, dashboard). Every staff role. */
+  "staff.portal",
+  // Public submissions (Nov 2026). Prayer requests: Church Admin and Prayer Team only, never
+  // Content Editors (owner requirement). Contact messages: Church Admin only.
+  "prayer.read",
+  "prayer.manage",
+  "prayer.delete",
+  "contact.read",
+  "contact.manage",
+  "submission.read",
+  "submission.decide",
+  /** Testimony submitters' contact details and deleting submissions. Church Admin only. */
+  "submission.contact",
+  /** Gallery: record photo permission, publish and unpublish photos. Church Admin only. */
+  "gallery.publish",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -46,9 +62,20 @@ const VISITOR: readonly Permission[] = ["content.read_published"];
 const MEMBER: readonly Permission[] = [...VISITOR, "account.manage_own", "membership.own"];
 
 const ROLE_GRANTS: Record<StaffRole, readonly Permission[]> = {
-  CONTENT_EDITOR: ["admin.access", "content.draft.edit", "content.submit_for_review", "media.upload"],
+  CONTENT_EDITOR: ["admin.access", "staff.portal", "content.draft.edit", "content.submit_for_review", "media.upload", "submission.read", "submission.decide"],
+  PRAYER_TEAM: ["staff.portal", "prayer.read", "prayer.manage"],
   CHURCH_ADMIN: [
     "admin.access",
+    "staff.portal",
+    "prayer.read",
+    "prayer.manage",
+    "prayer.delete",
+    "contact.read",
+    "contact.manage",
+    "submission.read",
+    "submission.decide",
+    "submission.contact",
+    "gallery.publish",
     "content.draft.edit",
     "content.publish",
     "media.upload",

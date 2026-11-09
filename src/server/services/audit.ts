@@ -55,6 +55,29 @@ export const AUDIT_ACTIONS = [
   "verse.schedule",
   "media.upload",
   "media.delete",
+  // Public forms and inboxes (Nov 2026). Ids and statuses only; never names, contact details or text.
+  "form.refused",
+  "form.notify_failed",
+  "prayer.received",
+  "prayer.viewed",
+  "prayer.status_changed",
+  "prayer.deleted",
+  "contact.received",
+  "contact.viewed",
+  "contact.status_changed",
+  "contact.deleted",
+  "testimony_submission.received",
+  "testimony_submission.viewed",
+  "testimony_submission.accepted",
+  "testimony_submission.status_changed",
+  "testimony_submission.deleted",
+  // Public gallery (Nov 2026).
+  "gallery.create",
+  "gallery.update",
+  "gallery.permission",
+  "gallery.publish",
+  "gallery.unpublish",
+  "gallery.delete",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

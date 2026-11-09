@@ -58,6 +58,11 @@ const DONE: Record<string, string> = {
   deleted: "Deleted. A Church Admin can restore it from the Deleted filter.",
   permission: "Permission recorded.",
   revoked: "Role removed.",
+  status: "Status updated.",
+  removed: "Deleted permanently.",
+  accepted: "Accepted. A testimony draft was created under Testimonies; it is not published.",
+  added: "Added to the gallery as a draft.",
+  saved: "Saved.",
 };
 
 /** Result banners for redirect-based actions. Only fixed keys are shown, never text from the URL. */

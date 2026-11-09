@@ -236,11 +236,11 @@ describe("fail closed until verified", () => {
 
 describe("accounts gate on staging", () => {
   it("opens with captured mail but still requires the explicit rate-limit switch", () => {
-    expect(accountsEnabled({ ...STAGING, NLTAG_ACCOUNTS_ENABLED: "1" } as NodeJS.ProcessEnv)).toBe(true);
-    expect(accountsEnabled({ ...STAGING, NLTAG_ACCOUNTS_ENABLED: "1", AUTH_RATE_LIMIT: "" } as NodeJS.ProcessEnv)).toBe(false);
-    expect(accountsEnabled({ ...STAGING } as NodeJS.ProcessEnv)).toBe(false);
+    expect(accountsEnabled({ ...STAGING, NLTAG_ACCOUNTS_ENABLED: "1" } as unknown as NodeJS.ProcessEnv)).toBe(true);
+    expect(accountsEnabled({ ...STAGING, NLTAG_ACCOUNTS_ENABLED: "1", AUTH_RATE_LIMIT: "" } as unknown as NodeJS.ProcessEnv)).toBe(false);
+    expect(accountsEnabled({ ...STAGING } as unknown as NodeJS.ProcessEnv)).toBe(false);
     // Production unchanged: SMTP still required.
-    expect(accountsEnabled({ ...PROD, NLTAG_ACCOUNTS_ENABLED: "1", AUTH_RATE_LIMIT: "on" } as NodeJS.ProcessEnv)).toBe(false);
+    expect(accountsEnabled({ ...PROD, NLTAG_ACCOUNTS_ENABLED: "1", AUTH_RATE_LIMIT: "on" } as unknown as NodeJS.ProcessEnv)).toBe(false);
   });
 });
 

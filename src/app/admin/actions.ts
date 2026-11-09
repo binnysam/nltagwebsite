@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { publicFormsEnabled } from "@/server/forms/service";
 import { CONTENT_TYPES, STAFF_ROLES, TESTIMONY_PERMISSIONS, type ContentType, type StaffRole } from "@/server/db/schema";
 import { moduleByType } from "@/server/cms/registry";
 import { dateKeySchema, normalizeText, parseContentForm, translationPermissionSchema } from "@/server/cms/schemas";
@@ -147,6 +148,8 @@ export async function grantRoleAction(prev: ActionState, fd: FormData): Promise<
   const email = normalizeText(fd.get("email"));
   const role = str(fd, "role");
   if (!email || !isRole(role)) return { ok: false, seq, message: "Enter the person's email and choose a role.", errors: { email: "Enter the email of a verified account." } };
+  // The Prayer Team role exists in the database only once migration 0004 is applied (same switch).
+  if (role === "PRAYER_TEAM" && !publicFormsEnabled()) return { ok: false, seq, message: "The Prayer Team role is not available yet." };
   try {
     await grantRoleByEmail(ctx, email, role);
     return { ok: true, seq, message: "Role granted." };

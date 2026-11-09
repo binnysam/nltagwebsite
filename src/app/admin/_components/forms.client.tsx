@@ -72,13 +72,13 @@ export function MediaUploadForm() {
   );
 }
 
-export function GrantRoleForm() {
+export function GrantRoleForm({ prayerTeam = false }: { prayerTeam?: boolean } = {}) {
   const [state, action, pending] = useActionState(grantRoleAction, initial);
   return (
     <form onSubmit={keepValues(action)} className={styles.card}>
       <div className={styles.fieldGrid}>
         <TextField id="email" name="email" type="email" label="Email of a verified account" autoComplete="off" required error={state.errors?.email} />
-        <SelectField id="role" name="role" label="Role" options={[{ value: "CONTENT_EDITOR", label: "Content Editor" }, { value: "CHURCH_ADMIN", label: "Church Admin" }]} />
+        <SelectField id="role" name="role" label="Role" options={[{ value: "CONTENT_EDITOR", label: "Content Editor" }, ...(prayerTeam ? [{ value: "PRAYER_TEAM", label: "Prayer Team" }] : []), { value: "CHURCH_ADMIN", label: "Church Admin" }]} />
       </div>
       <Result state={state} />
       <div><Button type="submit" loading={pending} loadingLabel="Saving">Grant role</Button></div>

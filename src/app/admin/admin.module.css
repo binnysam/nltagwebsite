@@ -179,3 +179,6 @@
 .thumb { width: 100%; aspect-ratio: var(--meeting-art-ratio); object-fit: cover; border-radius: var(--radius-sm); background: var(--color-surface-sunken); }
 .noticeWrap { margin-bottom: var(--space-5); }
 @media (max-width: 767px) { .whoText { display: none; } }
+
+/* Visitor-submitted text (prayer, contact, testimony submissions): keep their line breaks. */
+.preserve { white-space: pre-wrap; overflow-wrap: anywhere; }

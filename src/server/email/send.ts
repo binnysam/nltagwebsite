@@ -80,11 +80,22 @@ export async function sendAlertEmail(kind: AlertKind, to: string, userId?: strin
   return deliver(kind, to, () => renderAlertEmail(kind), userId);
 }
 
-async function deliver(kind: EmailKind | AlertKind, to: string, render: () => RenderedEmail, userId?: string): Promise<SendOutcome> {
+/**
+ * Staff notification about a new public submission (prayer request, contact message, testimony),
+ * sent to the church inbox (NLTAG_CHURCH_INBOX). Same daily cap and transport rules as account
+ * email (staging: captured, never delivered); its own per-inbox ceiling (NOTIFY_PER_INBOX) so a
+ * busy hour is not cut at the 3-per-address limit meant for account mail.
+ */
+export async function sendStaffNotification(kind: "notify.prayer" | "notify.contact" | "notify.testimony", to: string, rendered: RenderedEmail): Promise<SendOutcome> {
+  return deliver(kind, to, () => rendered, undefined, NOTIFY_PER_INBOX);
+}
+const NOTIFY_PER_INBOX = { window: 3600, max: 40 } as const;
+
+async function deliver(kind: string, to: string, render: () => RenderedEmail, userId?: string, perAddress: { window: number; max: number } = LIMITS.emailPerAddress): Promise<SendOutcome> {
   const now = Date.now();
   // F11: reserve (never consume) so a concurrent burst gets exactly the cap, not zero.
   const slotKey = `email:${kind}:${hashEmail(to)}`;
-  const slot = await reserveWindow(slotKey, LIMITS.emailPerAddress, now);
+  const slot = await reserveWindow(slotKey, perAddress, now);
   if (!slot.allowed) {
     await audit({ actorUserId: userId, action: "email.suppress", outcome: "DENIED", entity: "email", reason: `${kind}:per-address-limit` });
     return "suppressed";

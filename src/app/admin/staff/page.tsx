@@ -1,6 +1,7 @@
 import { ConfirmButton, DataTable } from "@/design-system/components";
 import { Heading, Surface, Text } from "@/design-system/primitives";
 import { listStaff } from "@/server/cms/service";
+import { publicFormsEnabled } from "@/server/forms/service";
 import { revokeRoleAction } from "../actions";
 import { requireStaffPage } from "../_lib/staff";
 import { AdminShell } from "../_components/AdminShell";
@@ -10,7 +11,7 @@ import styles from "../admin.module.css";
 
 export const metadata = { title: "Staff and roles" };
 
-const ROLE_NAME = { CHURCH_ADMIN: "Church Admin", CONTENT_EDITOR: "Content Editor" } as const;
+const ROLE_NAME = { CHURCH_ADMIN: "Church Admin", CONTENT_EDITOR: "Content Editor", PRAYER_TEAM: "Prayer Team" } as const;
 
 /** Church Admin only (staff.manage). Shows staff accounts only, never members. */
 export default async function StaffPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -56,8 +57,8 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
       </DataTable>
       <section className={styles.section} aria-labelledby="grant-h">
         <Heading level={2} styleAs="h3" id="grant-h">Grant a role</Heading>
-        <Text variant="small" tone="secondary" measure>Content Editors write and submit content. Church Admins also publish, manage staff and read the audit log.</Text>
-        <Surface><GrantRoleForm /></Surface>
+        <Text variant="small" tone="secondary" measure>Content Editors write and submit content. Church Admins also publish, manage staff and read the audit log.{publicFormsEnabled() ? " Prayer Team members read and look after prayer requests only, and must set up two-factor sign-in." : ""}</Text>
+        <Surface><GrantRoleForm prayerTeam={publicFormsEnabled()} /></Surface>
       </section>
     </AdminShell>
   );

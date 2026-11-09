@@ -2,8 +2,13 @@ import { bigint, index, int, mysqlEnum, mysqlTable, primaryKey, uniqueIndex, var
 import { asciiBin, idColumn, timestamp3 } from "../columns";
 import { user } from "./auth";
 
-/** The two CMS roles approved at Gate 0. A member has no staff role. */
-export const STAFF_ROLES = ["CHURCH_ADMIN", "CONTENT_EDITOR"] as const;
+/**
+ * Staff roles. Church Admin and Content Editor were approved at Gate 0. Prayer Team (owner
+ * requirement, Nov 2026: prayer requests readable by the Church Admin and specifically authorised
+ * prayer-team members only) reads and manages prayer requests and nothing else. A member has no
+ * staff role.
+ */
+export const STAFF_ROLES = ["CHURCH_ADMIN", "CONTENT_EDITOR", "PRAYER_TEAM"] as const;
 export type StaffRole = (typeof STAFF_ROLES)[number];
 
 export const staffRole = mysqlTable(

@@ -8,8 +8,10 @@ import type { StaffRole } from "../db/schema/access";
  * Until the account has a verified authenticator, a Church Admin role grants nothing
  * (permissions.ts), the admin sends the person to set it up, and the first-admin bootstrap
  * refuses to run. Content Editors may turn it on but are not required to (owner decision).
+ * Prayer Team (Nov 2026) reads sensitive prayer requests, so it is required there too
+ * (roadmap D7 recommendation).
  */
-export const TWO_FACTOR_REQUIRED_ROLES: readonly StaffRole[] = ["CHURCH_ADMIN"];
+export const TWO_FACTOR_REQUIRED_ROLES: readonly StaffRole[] = ["CHURCH_ADMIN", "PRAYER_TEAM"];
 
 export function roleRequiresTwoFactor(role: StaffRole): boolean {
   return TWO_FACTOR_REQUIRED_ROLES.includes(role);

@@ -72,3 +72,43 @@ export async function readMediaFile(key: string, sha256: string): Promise<Buffer
 export async function discardMediaFile(key: string): Promise<void> {
   await fs.rm(/* turbopackIgnore: true */ filePath(key), { force: true }).catch(() => undefined);
 }
+
+// ── Derived files (gallery variants) ────────────────────────────────────────────────────────────
+// Resized public copies of an original, next to it: <shard>/<id>.w<width> (no extension, 0600).
+// Written only from verified original bytes; read back only against the hash stored with the row.
+
+export const VARIANT_WIDTHS = [480, 960, 1600] as const;
+export type VariantWidth = (typeof VARIANT_WIDTHS)[number];
+
+function variantPath(id: string, width: VariantWidth): string {
+  if (!(VARIANT_WIDTHS as readonly number[]).includes(width)) throw new Error("Invalid variant width");
+  return `${filePath(storageKey(id))}.w${width}`;
+}
+
+export async function writeVariantFile(id: string, width: VariantWidth, bytes: Uint8Array): Promise<string> {
+  const target = variantPath(id, width);
+  await fs.mkdir(/* turbopackIgnore: true */ path.dirname(target), { recursive: true, mode: 0o700 });
+  const tmp = `${target}.${randomBytes(6).toString("hex")}.tmp`;
+  try {
+    await fs.writeFile(/* turbopackIgnore: true */ tmp, bytes, { flag: "wx", mode: 0o600 });
+    await fs.rename(/* turbopackIgnore: true */ tmp, target);
+  } catch (e) {
+    await fs.rm(/* turbopackIgnore: true */ tmp, { force: true }).catch(() => undefined);
+    throw e;
+  }
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+export async function readVariantFile(id: string, width: VariantWidth, sha256: string): Promise<Buffer | null> {
+  try {
+    const data = await fs.readFile(/* turbopackIgnore: true */ variantPath(id, width));
+    return createHash("sha256").update(data).digest("hex") === sha256 ? data : null;
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw e;
+  }
+}
+
+export async function discardVariantFiles(id: string): Promise<void> {
+  for (const w of VARIANT_WIDTHS) await fs.rm(/* turbopackIgnore: true */ variantPath(id, w), { force: true }).catch(() => undefined);
+}

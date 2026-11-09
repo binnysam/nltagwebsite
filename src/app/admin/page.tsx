@@ -6,6 +6,8 @@ import { upcomingOccurrences } from "@/lib/schedule-occurrences";
 import { can } from "@/server/policy/permissions";
 import { MODULES, moduleByType } from "@/server/cms/registry";
 import { dashboard } from "@/server/cms/service";
+import { inboxCounts } from "@/server/forms/service";
+import { redirect } from "next/navigation";
 import { requireStaffPage } from "./_lib/staff";
 import { AdminShell } from "./_components/AdminShell";
 import { PageHead, StatusTag, Titles, when } from "./_components/parts";
@@ -14,9 +16,12 @@ import styles from "./admin.module.css";
 export const metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
-  const ctx = await requireStaffPage();
+  const ctx = await requireStaffPage("staff.portal");
+  // Prayer Team has no CMS access: its landing page is the prayer inbox.
+  if (!can(ctx.actor.principal, "admin.access")) redirect("/admin/prayer");
   const now = new Date();
   const data = await dashboard(ctx, now);
+  const inbox = await inboxCounts(ctx);
   const regular = upcomingOccurrences(schedule, now, 7);
   const nameOf = (id: string) => schedule.find((s) => s.id === id)?.name.en ?? id;
   const isAdmin = can(ctx.actor.principal, "content.publish");
@@ -31,6 +36,9 @@ export default async function DashboardPage() {
     { label: "Scheduled", value: data.totals.scheduled },
     { label: "In review", value: data.totals.inReview },
     { label: "Drafts", value: data.totals.draft },
+    ...(inbox.prayer !== undefined ? [{ label: "New prayer requests", value: inbox.prayer }] : []),
+    ...(inbox.contact !== undefined ? [{ label: "New contact messages", value: inbox.contact }] : []),
+    ...(inbox.testimony !== undefined ? [{ label: "New testimony submissions", value: inbox.testimony }] : []),
   ];
 
   return (
