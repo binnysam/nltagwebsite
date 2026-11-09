@@ -1,5 +1,12 @@
 /* Staging indicator: the Notice warning tone (status tokens, radius-md, hairline edge), tokens only. */
-.banner { padding: var(--space-2) var(--space-4); background: var(--color-surface-card); }
+.banner {
+  /* Above the header's hidden skip link, which slides up into this area until it is focused
+     (focused, it sits at the top of the header, below the banner, fully visible). */
+  position: relative;
+  z-index: calc(var(--z-skip-link) + var(--z-raised));
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface-card);
+}
 .box {
   display: flex;
   flex-direction: column;

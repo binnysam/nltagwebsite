@@ -178,9 +178,11 @@ describe("testimony submissions", () => {
   const fields = { title: "[Test] A testimony", body: "God answered our prayers for a new job after a long wait.", display: "FIRST_NAME", name: "Test Person", contact: "person@nltag.test", consentPublish: "on", consentOthers: "on" };
 
   it("are never published automatically; accepting creates a draft with permission recorded by the Church Admin", async () => {
+    const published = async () => (await getDb().select({ id: contentItem.id }).from(contentItem).where(and(eq(contentItem.type, "TESTIMONY"), eq(contentItem.status, "PUBLISHED")))).length;
+    const before = await published();
     await submitTestimony("en", form("testimony", fields), when(5));
     const id = (await listTestimonySubmissions(ctx("admin"))).rows[0]!.id;
-    expect((await getDb().select().from(contentItem).where(eq(contentItem.type, "TESTIMONY"))).filter((r) => r.status === "PUBLISHED" && r.createdAt > new Date(Date.now() - 60_000))).toHaveLength(0);
+    expect(await published()).toBe(before);
     const { contentItemId } = await acceptTestimonySubmission(ctx("admin"), id);
     const [item] = await getDb().select().from(contentItem).where(eq(contentItem.id, contentItemId));
     expect(item!.status).toBe("DRAFT");
@@ -188,6 +190,7 @@ describe("testimony submissions", () => {
     expect(detail!.authorDisplayName).toBe("Test");
     expect(detail!.permissionStatus).toBe("GRANTED");
     await expect(acceptTestimonySubmission(ctx("admin"), id)).rejects.toBeInstanceOf(CmsError);
+    expect(await published()).toBe(before);
   });
 
   it("Content Editors read the text but never the submitter's contact; Prayer Team sees nothing", async () => {
