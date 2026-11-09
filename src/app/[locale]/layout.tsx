@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import { fontVariables } from "@/design-system/fonts/fonts";
 import { isLocale, locales } from "@/lib/i18n";
 import { siteOrigin } from "@/content/church";
+import { EnvironmentBanner, titlePrefix } from "@/app/_components/EnvironmentBanner";
+import { publicOrigin } from "@/server/deployment/public-origin";
 import "@/design-system/tokens/tokens.css";
 import "@/design-system/tokens/component-tokens.css";
 import "@/design-system/styles/base.css";
@@ -15,8 +17,10 @@ export function generateStaticParams() {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteOrigin),
-  title: { default: "NLTAG", template: "%s · NLTAG" },
+  // Production: the approved origin. Staging: its own origin, so no canonical, hreflang or link
+  // preview on staging ever points at the live site (or the other way round).
+  metadataBase: new URL(publicOrigin(siteOrigin)),
+  title: { default: `${titlePrefix()}NLTAG`, template: `${titlePrefix()}%s · NLTAG` },
   // Pre-launch: nothing is indexed until Gate 7 authorises the public launch.
   robots: { index: false, follow: false },
 };
@@ -31,7 +35,10 @@ export default async function LocaleLayout({ children, params }: { children: Rea
   if (!isLocale(locale)) notFound();
   return (
     <html lang={locale} className={fontVariables}>
-      <body>{children}</body>
+      <body>
+        <EnvironmentBanner />
+        {children}
+      </body>
     </html>
   );
 }

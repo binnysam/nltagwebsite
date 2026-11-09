@@ -1,7 +1,7 @@
 # Tamil content approval record
 
 **Generated from** `src/content/ui-strings.ts`, `src/content/schedule.ts` and `src/content/tamil-approvals.ts` by `node scripts/tamil-review.ts`. Do not edit by hand; `npm run verify` fails if this file is out of date.
-**Approved by the owner on 2026-11-01** (22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings; 38 Phase 4b account and email strings and 45 Phase 6b two-factor strings, 2026-11-02). 146 of 171 items approved; 25 still awaiting review. Times, days and NECK were confirmed at Gate 0.
+**Approved by the owner on 2026-11-01** (22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings; 38 Phase 4b account and email strings and 45 Phase 6b two-factor strings, 2026-11-02) **and on 2026-11-09** (13 website Phase A strings). 159 of 171 items approved; 12 still awaiting review. Times, days and NECK were confirmed at Gate 0.
 
 Owner-supplied Tamil is approved content and is reproduced exactly as supplied. Do not rephrase, re-spell or "correct" it; a unit test compares every character. Any change needs new owner approval. The language names தமிழ் and English were confirmed at Gate 0 and are not listed.
 
@@ -72,19 +72,19 @@ Owner-supplied Tamil is approved content and is reproduced exactly as supplied. 
 | special.location.tba | Venue to be announced | இடம் பின்னர் அறிவிக்கப்படும் | Approved 2026-11-02 (Phase 5) | — |  | Approved (`confirmed`) |
 | visit.where | Where we meet | நாங்கள் கூடும் இடம் | Approved 2026-11-02 (Phase 5) | — |  | Approved (`confirmed`) |
 | visit.when | Main worship | சபை ஆராதனை | Approved 2026-11-02 (Phase 5) | — | Exactly the owner-approved name of the main worship service (schedule.main-worship). Previous draft: சபை ஆராதனை நேரம். | Approved (`confirmed`) |
-| notFound.title | Page not found | பக்கம் கிடைக்கவில்லை | — | — | Heading of the 404 page. | Awaiting church review (`draft-review`) |
-| notFound.body | This page does not exist or is not published yet. | இந்தப் பக்கம் இல்லை, அல்லது இன்னும் வெளியிடப்படவில்லை. | — | — | 404 page, under the heading. Followed by links to the home page and the site links. | Awaiting church review (`draft-review`) |
-| share.copied | Link copied | இணைப்பு நகலெடுக்கப்பட்டது | — | — | Shown after the Share button (approved verse.share) copies the page link, on browsers without a share sheet. | Awaiting church review (`draft-review`) |
-| sermon.search | Search sermons | தேவ செய்திகளைத் தேடுக | — | — | Search box label on the Sermons page. Uses the approved term தேவ செய்தி (nav.sermons). | Awaiting church review (`draft-review`) |
-| sermon.speaker | Speaker | பிரசங்கியார் | — | — | Filter label: who preached the sermon. | Awaiting church review (`draft-review`) |
-| filter.allSpeakers | All speakers | அனைத்து பிரசங்கியார்களும் | — | — | First option of the speaker filter. | Awaiting church review (`draft-review`) |
-| filter.submit | Search | தேடு | — | — | Button that applies the sermon search and filter. | Awaiting church review (`draft-review`) |
-| filter.clear | Clear search | தேடலை நீக்கு | — | — | Link that removes the search and filter. | Awaiting church review (`draft-review`) |
-| filter.noResults | Nothing matches your search. | உங்கள் தேடலுக்குப் பொருந்தும் எதுவும் இல்லை. | — | — |  | Awaiting church review (`draft-review`) |
-| pagination.label | Pages | பக்கங்கள் | — | — | Screen-reader name of the page links below a list. | Awaiting church review (`draft-review`) |
-| pagination.previous | Previous page | முந்தைய பக்கம் | — | — |  | Awaiting church review (`draft-review`) |
-| pagination.next | Next page | அடுத்த பக்கம் | — | — |  | Awaiting church review (`draft-review`) |
-| pagination.status | Page {page} of {total} | பக்கம் {page} / {total} | — | — | {page} and {total} are numbers, e.g. Page 2 of 5. | Awaiting church review (`draft-review`) |
+| notFound.title | Page not found | பக்கம் கிடைக்கவில்லை | Approved 2026-11-09 (website Phase A) | — | Heading of the 404 page. | Approved (`confirmed`) |
+| notFound.body | This page does not exist or is not published yet. | இந்தப் பக்கம் இல்லை, அல்லது இன்னும் வெளியிடப்படவில்லை. | Approved 2026-11-09 (website Phase A) | — | 404 page, under the heading. Followed by links to the home page and the site links. | Approved (`confirmed`) |
+| share.copied | Link copied | இணைப்பு நகலெடுக்கப்பட்டது | Approved 2026-11-09 (website Phase A) | — | Shown after the Share button (approved verse.share) copies the page link, on browsers without a share sheet. | Approved (`confirmed`) |
+| sermon.search | Search sermons | தேவ செய்திகளைத் தேடுக | Approved 2026-11-09 (website Phase A) | — | Search box label on the Sermons page. Uses the approved term தேவ செய்தி (nav.sermons). | Approved (`confirmed`) |
+| sermon.speaker | Speaker | பிரசங்கியார் | Approved 2026-11-09 (website Phase A) | — | Filter label: who preached the sermon. | Approved (`confirmed`) |
+| filter.allSpeakers | All speakers | அனைத்து பிரசங்கியார்களும் | Approved 2026-11-09 (website Phase A) | — | First option of the speaker filter. | Approved (`confirmed`) |
+| filter.submit | Search | தேடு | Approved 2026-11-09 (website Phase A) | — | Button that applies the sermon search and filter. | Approved (`confirmed`) |
+| filter.clear | Clear search | தேடலை நீக்கு | Approved 2026-11-09 (website Phase A) | — | Link that removes the search and filter. | Approved (`confirmed`) |
+| filter.noResults | Nothing matches your search. | உங்கள் தேடலுக்குப் பொருந்தும் எதுவும் இல்லை. | Approved 2026-11-09 (website Phase A) | — |  | Approved (`confirmed`) |
+| pagination.label | Pages | பக்கங்கள் | Approved 2026-11-09 (website Phase A) | — | Screen-reader name of the page links below a list. | Approved (`confirmed`) |
+| pagination.previous | Previous page | முந்தைய பக்கம் | Approved 2026-11-09 (website Phase A) | — |  | Approved (`confirmed`) |
+| pagination.next | Next page | அடுத்த பக்கம் | Approved 2026-11-09 (website Phase A) | — |  | Approved (`confirmed`) |
+| pagination.status | Page {page} of {total} | பக்கம் {page} / {total} | Approved 2026-11-09 (website Phase A) | — | {page} and {total} are numbers, e.g. Page 2 of 5. | Approved (`confirmed`) |
 | auth.signIn.title | Sign in | உள்நுழைக | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
 | auth.signUp.title | Create an account | கணக்கை உருவாக்குக | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
 | auth.field.name | Full name | முழுப் பெயர் | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |

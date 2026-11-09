@@ -11,6 +11,8 @@ import {
   phase4bApprovedTamil,
   phase5ApprovedTamil,
   phase6bApprovedTamil,
+  phaseAApprovedTamil,
+  PHASEA_APPROVAL_DATE,
   PHASE5_APPROVAL_DATE,
   PHASE6_APPROVAL_DATE,
   TAMIL_APPROVAL_DATE,
@@ -19,7 +21,7 @@ import {
 
 export const REVIEW_SHEET = fileURLToPath(new URL("../docs/content/tamil-content-review.md", import.meta.url));
 
-export type ApprovalSource = "owner-supplied" | "recommended" | "phase5-approved" | "phase4b-approved" | "phase6b-approved";
+export type ApprovalSource = "owner-supplied" | "recommended" | "phase5-approved" | "phase4b-approved" | "phase6b-approved" | "phaseA-approved";
 
 export interface ReviewItem {
   id: string;
@@ -45,7 +47,9 @@ const sourceOf = (id: string, status: ReviewStatus): ApprovalSource | undefined 
           ? "phase4b-approved"
           : id in phase6bApprovedTamil
             ? "phase6b-approved"
-            : "recommended";
+            : id in phaseAApprovedTamil
+              ? "phaseA-approved"
+              : "recommended";
 const previousOf = (id: string, ta: string) => {
   const p = owner[id]?.previousDraft;
   return p && p !== ta ? p : undefined;
@@ -102,7 +106,9 @@ const sourceLabel = (s?: ApprovalSource) =>
           ? `Approved ${PHASE6_APPROVAL_DATE} (Phase 4b accounts and emails)`
           : s === "phase6b-approved"
             ? `Approved ${PHASE6_APPROVAL_DATE} (Phase 6b two-factor)`
-            : "—";
+            : s === "phaseA-approved"
+              ? `Approved ${PHASEA_APPROVAL_DATE} (website Phase A)`
+              : "—";
 
 export function buildTamilReview(): { md: string; count: number } {
   const items = reviewItems();
@@ -112,6 +118,7 @@ export function buildTamilReview(): { md: string; count: number } {
   const phase5Count = items.filter((i) => i.source === "phase5-approved").length;
   const phase4bCount = items.filter((i) => i.source === "phase4b-approved").length;
   const phase6bCount = items.filter((i) => i.source === "phase6b-approved").length;
+  const phaseACount = items.filter((i) => i.source === "phaseA-approved").length;
   const pending = items.length - confirmed.length;
   const rows = items.map(
     (i) => `| ${i.id} | ${esc(i.en)} | ${esc(i.ta)} | ${sourceLabel(i.source)} | ${i.previousDraft ? esc(i.previousDraft) : "—"} | ${esc(i.note)} | ${statusLabel(i.status)} |`,
@@ -119,7 +126,7 @@ export function buildTamilReview(): { md: string; count: number } {
   const md = `# Tamil content approval record
 
 **Generated from** \`src/content/ui-strings.ts\`, \`src/content/schedule.ts\` and \`src/content/tamil-approvals.ts\` by \`node scripts/tamil-review.ts\`. Do not edit by hand; \`npm run verify\` fails if this file is out of date.
-**Approved by the owner on ${TAMIL_APPROVAL_DATE}** (${ownerCount} owner-supplied, ${recommendedCount} recommended drafts approved) **and on ${PHASE5_APPROVAL_DATE}** (${phase5Count} Phase 5 public-site strings; ${phase4bCount} Phase 4b account and email strings and ${phase6bCount} Phase 6b two-factor strings, ${PHASE6_APPROVAL_DATE}). ${confirmed.length} of ${items.length} items approved${pending ? `; ${pending} still awaiting review` : "; none awaiting review"}. Times, days and NECK were confirmed at Gate 0.
+**Approved by the owner on ${TAMIL_APPROVAL_DATE}** (${ownerCount} owner-supplied, ${recommendedCount} recommended drafts approved) **and on ${PHASE5_APPROVAL_DATE}** (${phase5Count} Phase 5 public-site strings; ${phase4bCount} Phase 4b account and email strings and ${phase6bCount} Phase 6b two-factor strings, ${PHASE6_APPROVAL_DATE}) **and on ${PHASEA_APPROVAL_DATE}** (${phaseACount} website Phase A strings). ${confirmed.length} of ${items.length} items approved${pending ? `; ${pending} still awaiting review` : "; none awaiting review"}. Times, days and NECK were confirmed at Gate 0.
 
 Owner-supplied Tamil is approved content and is reproduced exactly as supplied. Do not rephrase, re-spell or "correct" it; a unit test compares every character. Any change needs new owner approval. The language names தமிழ் and English were confirmed at Gate 0 and are not listed.
 

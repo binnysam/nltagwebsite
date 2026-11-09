@@ -1,5 +1,7 @@
 import "server-only";
+import os from "node:os";
 import { z } from "zod";
+import { deploymentConfigProblems } from "./deployment/environment";
 
 /**
  * Server environment. Parsed lazily (on first use) so `next build` and pages that never touch
@@ -86,6 +88,15 @@ export function productionGuardProblems(env: NodeJS.ProcessEnv): string[] {
   return problems;
 }
 
+/** Hosting account home (system user database, not $HOME; see storage/media-dir.ts). */
+function homeDir(): string {
+  try {
+    return os.userInfo().homedir || os.homedir();
+  } catch {
+    return os.homedir();
+  }
+}
+
 let cached: ServerEnv | undefined;
 
 export function serverEnv(): ServerEnv {
@@ -96,7 +107,7 @@ export function serverEnv(): ServerEnv {
     const problems = parsed.error.issues.map((i) => `${i.path.join(".") || "env"}: ${i.message}`).join("; ");
     throw new Error(`Invalid server environment: ${problems}`);
   }
-  const guard = productionGuardProblems(process.env);
+  const guard = [...productionGuardProblems(process.env), ...deploymentConfigProblems(process.env, homeDir())];
   if (guard.length) throw new Error(`Invalid server environment: ${guard.join("; ")}`);
   cached = parsed.data;
   return cached;

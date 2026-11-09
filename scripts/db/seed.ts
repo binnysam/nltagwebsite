@@ -9,6 +9,8 @@ import { closeDb, getDb } from "../../src/server/db/client";
 import { getAuth } from "../../src/server/auth/auth";
 import { account, staffRole, twoFactor, user, type StaffRole } from "../../src/server/db/schema";
 import { serverEnv } from "../../src/server/env";
+import { isStaging } from "../../src/server/deployment/environment";
+import { verificationState } from "../../src/server/deployment/verify";
 
 import { SEED_PASSWORD, SEED_RECOVERY_CODES, SEED_TOTP_SECRET } from "./seed-constants";
 export { SEED_PASSWORD, SEED_RECOVERY_CODES, SEED_TOTP_SECRET };
@@ -23,6 +25,12 @@ export const SEED_USERS: ReadonlyArray<{ name: string; email: string; verified: 
 
 export function assertSeedAllowed() {
   const env = serverEnv();
+  // Staging (docs/operations/staging.md): fictional fixtures are allowed once the live check has
+  // confirmed the staging database and media folder (scripts/staging/staging.ts runs it first).
+  if (isStaging()) {
+    if (verificationState().status !== "verified") throw new Error("Seed refused: staging resources not verified");
+    return;
+  }
   if (env.NODE_ENV === "production") throw new Error("Seed refused: NODE_ENV=production");
   const host = new URL(env.DATABASE_URL).hostname;
   if (!["127.0.0.1", "localhost", "::1", "mariadb"].includes(host)) throw new Error(`Seed refused: database host ${host} is not local`);
@@ -37,11 +45,20 @@ export async function seed() {
   const key = (await getAuth().$context).secretConfig;
   const secret = await symmetricEncrypt({ key, data: SEED_TOTP_SECRET });
   const backupCodes = await symmetricEncrypt({ key, data: JSON.stringify(SEED_RECOVERY_CODES) });
+  // Staging is reachable from the internet and this repository's seed password and authenticator
+  // secret are not secret, so staging gets the fixture authors as records only: no password, no
+  // two-factor, no staff role. Nobody can sign in as them. Staging testers use their own accounts
+  // (mailbox-first request + captured set-password link, docs/operations/staging.md).
+  const recordsOnly = isStaging();
   for (const u of SEED_USERS) {
     const [existing] = await db.select({ id: user.id }).from(user).where(eq(user.email, u.email));
     if (existing) continue;
     const id = randomUUID();
     await db.transaction(async (tx) => {
+      if (recordsOnly) {
+        await tx.insert(user).values({ id, name: u.name, email: u.email, emailVerified: false, twoFactorEnabled: false, createdAt: now, updatedAt: now });
+        return;
+      }
       await tx.insert(user).values({ id, name: u.name, email: u.email, emailVerified: u.verified, twoFactorEnabled: Boolean(u.twoFactor), createdAt: now, updatedAt: now });
       if (u.twoFactor) await tx.insert(twoFactor).values({ id: randomUUID(), userId: id, secret, backupCodes, verified: true });
       await tx.insert(account).values({ id: randomUUID(), accountId: id, providerId: "credential", userId: id, password: hash, createdAt: now, updatedAt: now });

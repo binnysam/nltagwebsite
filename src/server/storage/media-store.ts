@@ -10,6 +10,7 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { assertStagingVerified } from "../deployment/verify";
 import { resolveMediaDir } from "./media-dir";
 
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -22,6 +23,8 @@ export class MediaStorageUnavailable extends Error {
 }
 
 function mediaDir(): string {
+  // Staging: never read or write a folder the live check has not confirmed as staging's own.
+  assertStagingVerified("media storage");
   const r = resolveMediaDir();
   if (!r.ok) throw new MediaStorageUnavailable(r.reason);
   return r.dir;

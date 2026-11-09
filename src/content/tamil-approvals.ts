@@ -174,5 +174,28 @@ export const phase6bApprovedTamil = {
   "account.back": "உங்கள் கணக்குக்குத் திரும்பு",
 } as const satisfies Record<string, string>;
 
+/**
+ * Website completion Phase A (PR #25): the 13 strings for the 404 page, sharing, sermon search and
+ * pagination, approved by the owner on 9 Nov 2026 exactly as proposed in PR #25 ("All 13 previously
+ * reviewed Tamil strings have been approved"). Reproduce EXACTLY; any change needs new owner approval.
+ */
+export const PHASEA_APPROVAL_DATE = "2026-11-09";
+
+export const phaseAApprovedTamil = {
+  "notFound.title": "பக்கம் கிடைக்கவில்லை",
+  "notFound.body": "இந்தப் பக்கம் இல்லை, அல்லது இன்னும் வெளியிடப்படவில்லை.",
+  "share.copied": "இணைப்பு நகலெடுக்கப்பட்டது",
+  "sermon.search": "தேவ செய்திகளைத் தேடுக",
+  "sermon.speaker": "பிரசங்கியார்",
+  "filter.allSpeakers": "அனைத்து பிரசங்கியார்களும்",
+  "filter.submit": "தேடு",
+  "filter.clear": "தேடலை நீக்கு",
+  "filter.noResults": "உங்கள் தேடலுக்குப் பொருந்தும் எதுவும் இல்லை.",
+  "pagination.label": "பக்கங்கள்",
+  "pagination.previous": "முந்தைய பக்கம்",
+  "pagination.next": "அடுத்த பக்கம்",
+  "pagination.status": "பக்கம் {page} / {total}",
+} as const satisfies Record<string, string>;
+
 /** Interface strings confirmed at Gate 0, before the Tamil review. Not part of the 48. */
 export const gate0ConfirmedTamil = ["lang.ta", "lang.en"] as const;

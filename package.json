@@ -25,7 +25,12 @@
     "db:seed:public": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db/seed-public-fixtures.ts",
     "admin:bootstrap": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db/create-first-admin.ts",
     "admin:bootstrap:env": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db/bootstrap-admin-from-env.ts",
-    "test:integration": "vitest run --config vitest.integration.config.ts && vitest run --config vitest.integration.production.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.ts && vitest run --config vitest.integration.production.config.ts",
+    "staging:verify": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/staging/staging.ts verify",
+    "staging:init": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/staging/staging.ts init && tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db/migrate.ts --staging",
+    "staging:migrate": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/db/migrate.ts --staging",
+    "staging:seed": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/staging/staging.ts seed",
+    "staging:bootstrap": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/staging/staging.ts bootstrap"
   },
   "dependencies": {
     "better-auth": "1.7.15",

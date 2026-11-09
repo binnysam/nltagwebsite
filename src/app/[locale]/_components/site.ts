@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { t, type Locale, type UiStringKey } from "@/content/ui-strings";
 import { churchName } from "@/content/church";
+import { titlePrefix } from "@/server/deployment/environment";
 import type { NavItem } from "@/design-system/components";
 
 /** Public routes (Phase 5). Paths are the same in both languages; only the prefix changes. */
@@ -59,7 +60,7 @@ export const footerNav = (locale: Locale, pages: readonly { slug: string; title:
 export function pageMetadata(locale: Locale, route: PublicRoute, opts: { title?: string; description?: string; path?: string } = {}): Metadata {
   const path = opts.path ?? publicRoutes[route];
   const title = opts.title ?? (route === "home" ? churchName[locale] : routeLabel(locale, route));
-  const fullTitle = `${title} · NLTAG`;
+  const fullTitle = `${titlePrefix()}${title} · NLTAG`;
   const description = opts.description || undefined;
   return {
     title: route === "home" ? { absolute: fullTitle } : title,

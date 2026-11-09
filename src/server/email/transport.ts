@@ -1,7 +1,10 @@
 import "server-only";
+import { randomBytes } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import nodemailer, { type Transporter } from "nodemailer";
+import { isStaging, stagingMailDir, stagingMailMode } from "../deployment/environment";
+import { assertStagingVerified } from "../deployment/verify";
 import { serverEnv, smtpConfigured, type ServerEnv } from "../env";
 
 export interface OutgoingMail {
@@ -12,7 +15,7 @@ export interface OutgoingMail {
 }
 
 export interface MailTransport {
-  readonly name: "smtp" | "dev-outbox" | "memory";
+  readonly name: "smtp" | "dev-outbox" | "memory" | "staging-capture";
   send(mail: OutgoingMail): Promise<void>;
 }
 
@@ -89,11 +92,40 @@ function localOutboxAllowed(): boolean {
   return process.env.NLTAG_LOCAL_MAIL_OUTBOX === "1" && ["localhost", "127.0.0.1", "[::1]"].includes(host);
 }
 
+/**
+ * Staging (NLTAG_STAGING_MAIL=capture, the default): nothing is sent. Each message is written as a
+ * JSON file (0600) to the staging mail folder (NLTAG_STAGING_MAIL_DIR, else `mail-capture` next to
+ * the staging media folder), where testers open set-password links through hPanel's File Manager.
+ * The subject is prefixed so a captured message can never be mistaken for a real one.
+ */
+function stagingCapture(): MailTransport {
+  const dir = stagingMailDir();
+  if (!dir) throw new Error("Staging mail folder is not configured");
+  return {
+    name: "staging-capture",
+    async send(mail) {
+      assertStagingVerified("mail capture");
+      mkdirSync(dir, { recursive: true, mode: 0o700 });
+      const file = join(dir, `${new Date().toISOString().replace(/[:.]/g, "-")}-${randomBytes(4).toString("hex")}.json`);
+      writeFileSync(file, JSON.stringify({ capturedBy: "staging", ...mail, subject: `[STAGING] ${mail.subject}` }, null, 2), { mode: 0o600, flag: "wx" });
+    },
+  };
+}
+
 let transport: MailTransport | undefined;
 
 export function getTransport(): MailTransport {
   if (transport) return transport;
   const env = serverEnv();
+  if (isStaging()) {
+    // Staging never reaches a real inbox: capture to files, or a mail sandbox only (environment.ts).
+    const mode = stagingMailMode();
+    if (mode === "sandbox" && smtpConfigured(env)) {
+      const smtp = smtpTransport();
+      transport = { name: "smtp", send: (mail) => (assertStagingVerified("mail sandbox"), smtp.send({ ...mail, subject: `[STAGING] ${mail.subject}` })) };
+    } else transport = stagingCapture();
+    return transport;
+  }
   if (env.NODE_ENV === "test") transport = memory();
   else if (smtpConfigured(env)) transport = smtpTransport();
   else if (env.NODE_ENV === "production" && !localOutboxAllowed()) throw new Error("SMTP is not configured; production cannot send account emails");

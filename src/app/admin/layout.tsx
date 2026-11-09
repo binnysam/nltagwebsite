@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { fontVariables } from "@/design-system/fonts/fonts";
+import { EnvironmentBanner, titlePrefix } from "@/app/_components/EnvironmentBanner";
 import "@/design-system/tokens/tokens.css";
 import "@/design-system/tokens/component-tokens.css";
 import "@/design-system/styles/base.css";
@@ -11,7 +12,7 @@ import "@/design-system/styles/base.css";
  * Access checks run in every page and server action (src/app/admin/_lib/staff.ts).
  */
 export const metadata: Metadata = {
-  title: { default: "Admin", template: "%s · NLTAG Admin" },
+  title: { default: `${titlePrefix()}Admin`, template: `${titlePrefix()}%s · NLTAG Admin` },
   robots: { index: false, follow: false, nocache: true },
 };
 
@@ -23,7 +24,10 @@ export const viewport: Viewport = {
 export default function AdminRootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={fontVariables}>
-      <body>{children}</body>
+      <body>
+        <EnvironmentBanner />
+        {children}
+      </body>
     </html>
   );
 }

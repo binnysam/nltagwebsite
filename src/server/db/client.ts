@@ -1,6 +1,7 @@
 import "server-only";
 import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
+import { assertStagingVerified } from "../deployment/verify";
 import { serverEnv } from "../env";
 import * as schema from "./schema";
 
@@ -15,6 +16,8 @@ let db: Db | undefined;
  */
 export function getPool(): mysql.Pool {
   if (pool) return pool;
+  // Staging: no query before the live check has confirmed this is the staging database.
+  assertStagingVerified("database access");
   pool = mysql.createPool({
     uri: serverEnv().DATABASE_URL,
     connectionLimit: 5,

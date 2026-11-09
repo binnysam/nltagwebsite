@@ -11,12 +11,17 @@ import { clientIpConfig, noteHeaderShape, withTrustedClientIp } from "@/server/s
  * 2. Header-shape capture: logs each distinct forwarding-header layout once (counts, address
  *    classes, positions — never an address). Used to confirm CLIENT_IP_PROXY_HOPS on Hostinger.
  *
+ * 3. Staging (NLTAG_DEPLOYMENT=staging): every response also carries `X-Robots-Tag: noindex,
+ *    nofollow, noarchive`, on top of the pages' own robots meta, so no staging URL is ever indexed.
+ *
  * Never redirects, never blocks, never sets cookies.
  */
 export function proxy(req: NextRequest) {
   const ipConfig = clientIpConfig();
   noteHeaderShape(req.headers, ipConfig);
-  return NextResponse.next({ request: { headers: withTrustedClientIp(req.headers, ipConfig) } });
+  const res = NextResponse.next({ request: { headers: withTrustedClientIp(req.headers, ipConfig) } });
+  if (process.env.NLTAG_DEPLOYMENT?.trim() === "staging") res.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+  return res;
 }
 
 export const config = {

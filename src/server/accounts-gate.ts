@@ -21,6 +21,9 @@ import "server-only";
  */
 export function accountsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   if (env.NLTAG_ACCOUNTS_ENABLED?.trim() !== "1") return false;
+  // Staging: mail is captured (or sandboxed) by design, never delivered, so SMTP is not required;
+  // the explicit rate-limit switch still is. Staging's own configuration checks run elsewhere.
+  if (env.NLTAG_DEPLOYMENT?.trim() === "staging") return env.AUTH_RATE_LIMIT?.trim() === "on";
   if (env.NODE_ENV !== "production") return true;
   const smtp = [env.SMTP_HOST, env.SMTP_USER, env.SMTP_PASS, env.SMTP_FROM];
   if (!smtp.every((v) => typeof v === "string" && v.trim() !== "")) return false;

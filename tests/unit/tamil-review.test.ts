@@ -9,6 +9,7 @@ import {
   phase5ApprovedTamil,
   phase4bApprovedTamil,
   phase6bApprovedTamil,
+  phaseAApprovedTamil,
 } from "@/content/tamil-approvals";
 
 /**
@@ -173,22 +174,27 @@ const PENDING = [
   "auth.setPassword.title",
   "auth.setPassword.submit",
   "auth.setPassword.done",
-  // Website completion Phase A (Nov 2026): 404, share, sermon search and pagination. Awaiting owner
-  // review; the Phase A PR is not merged (merge = deploy) until these are approved.
-  "notFound.title",
-  "notFound.body",
-  "share.copied",
-  "sermon.search",
-  "sermon.speaker",
-  "filter.allSpeakers",
-  "filter.submit",
-  "filter.clear",
-  "filter.noResults",
-  "pagination.label",
-  "pagination.previous",
-  "pagination.next",
-  "pagination.status",
 ];
+
+/**
+ * Website completion Phase A (PR #25), approved by the owner on 9 Nov 2026 exactly as proposed.
+ * Written out again here, character for character, so a change in either place fails the test.
+ */
+const PHASEA_APPROVED: Record<string, string> = {
+  "notFound.title": "பக்கம் கிடைக்கவில்லை",
+  "notFound.body": "இந்தப் பக்கம் இல்லை, அல்லது இன்னும் வெளியிடப்படவில்லை.",
+  "share.copied": "இணைப்பு நகலெடுக்கப்பட்டது",
+  "sermon.search": "தேவ செய்திகளைத் தேடுக",
+  "sermon.speaker": "பிரசங்கியார்",
+  "filter.allSpeakers": "அனைத்து பிரசங்கியார்களும்",
+  "filter.submit": "தேடு",
+  "filter.clear": "தேடலை நீக்கு",
+  "filter.noResults": "உங்கள் தேடலுக்குப் பொருந்தும் எதுவும் இல்லை.",
+  "pagination.label": "பக்கங்கள்",
+  "pagination.previous": "முந்தைய பக்கம்",
+  "pagination.next": "அடுத்த பக்கம்",
+  "pagination.status": "பக்கம் {page} / {total}",
+};
 
 /** The 26 recommended drafts the owner approved unchanged ("rest all is fine"). */
 const APPROVED_AS_RECOMMENDED: [string, string][] = [
@@ -221,9 +227,9 @@ const APPROVED_AS_RECOMMENDED: [string, string][] = [
 ];
 
 describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
-  it("approves 146 items: 22 owner-supplied, 26 recommended (1 Nov), 15 Phase 5, 38 Phase 4b and 45 Phase 6b (2 Nov)", () => {
+  it("approves 159 items: 22 owner-supplied, 26 recommended (1 Nov), 15 Phase 5, 38 Phase 4b and 45 Phase 6b (2 Nov), 13 Phase A (9 Nov)", () => {
     const items = reviewItems();
-    expect(items.filter((i) => i.status === "confirmed")).toHaveLength(146);
+    expect(items.filter((i) => i.status === "confirmed")).toHaveLength(159);
     // Only the two Google sign-in strings remain under review.
     expect(items.filter((i) => i.status !== "confirmed").map((i) => i.id).sort()).toEqual([...PENDING].sort());
     for (const i of items.filter((x) => x.status !== "confirmed")) expect(i.status, i.id).toBe("draft-review");
@@ -232,6 +238,22 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
     expect(items.filter((i) => i.source === "phase5-approved")).toHaveLength(15);
     expect(items.filter((i) => i.source === "phase4b-approved")).toHaveLength(38);
     expect(items.filter((i) => i.source === "phase6b-approved")).toHaveLength(45);
+    expect(items.filter((i) => i.source === "phaseA-approved")).toHaveLength(13);
+  });
+
+  it("reproduces every Phase A approved string exactly (owner sign-off, 9 Nov 2026)", () => {
+    expect(Object.keys(PHASEA_APPROVED)).toHaveLength(13);
+    expect(Object.keys(phaseAApprovedTamil).sort()).toEqual(Object.keys(PHASEA_APPROVED).sort());
+    const byId = Object.fromEntries(reviewItems().map((i) => [i.id, i]));
+    for (const [id, ta] of Object.entries(PHASEA_APPROVED)) {
+      expect(phaseAApprovedTamil[id as keyof typeof phaseAApprovedTamil], id).toBe(ta);
+      const v = uiStrings[id as keyof typeof uiStrings];
+      expect(v.ta, id).toBe(ta);
+      expect(v.taStatus, id).toBe("confirmed");
+      expect(byId[id]?.source, id).toBe("phaseA-approved");
+      expect(ta, id).toBe(ta.normalize("NFC"));
+      expect(ta, id).toBe(ta.trim());
+    }
   });
 
   it("reproduces every Phase 4b and Phase 6b approved string exactly (owner sign-off, 2 Nov 2026)", () => {
@@ -311,10 +333,10 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
     expect(readFileSync(REVIEW_SHEET, "utf8")).toBe(md);
     const pending = reviewItems().filter((i) => i.status !== "confirmed").length;
     expect(md).toContain(
-      "(22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings; 38 Phase 4b account and email strings and 45 Phase 6b two-factor strings, 2026-11-02)",
+      "(22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings; 38 Phase 4b account and email strings and 45 Phase 6b two-factor strings, 2026-11-02) **and on 2026-11-09** (13 website Phase A strings)",
     );
     expect(pending).toBe(PENDING.length);
-    expect(md).toContain("146 of 171 items approved; 25 still awaiting review");
+    expect(md).toContain(`159 of ${reviewItems().length} items approved; ${PENDING.length} still awaiting review`);
     for (const line of md.split("\n").filter((l) => l.includes("draft-review") && l.startsWith("| "))) {
       expect(PENDING).toContain(line.split("|")[1]!.trim());
     }

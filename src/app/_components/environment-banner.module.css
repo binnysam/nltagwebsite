@@ -1,0 +1,5 @@
+/* Staging indicator wrapper: page gutter only; the Notice supplies colour, border and type. */
+.banner {
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface-card);
+}
