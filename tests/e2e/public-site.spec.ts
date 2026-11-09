@@ -89,6 +89,21 @@ test.describe("content visibility", () => {
     expect((await page.goto("/en/Bad_Slug"))?.status()).toBe(404);
   });
 
+  test("unknown addresses get the site's own 404 in the URL's language (Phase A)", async ({ page }) => {
+    for (const [path, h1] of [["/ta/no-such-page", "பக்கம் கிடைக்கவில்லை"], ["/en/a/b/c", "Page not found"], ["/en/sermons/no-such-sermon", "Page not found"], ["/ta/testimonies/x", "பக்கம் கிடைக்கவில்லை"]] as const) {
+      expect((await open(page, path))?.status(), path).toBe(404);
+      await expect(page.getByRole("heading", { level: 1 }), path).toHaveText(h1);
+      await expect(page.getByRole("contentinfo"), path).toBeVisible();
+    }
+    await checkQuality(page);
+  });
+
+  test("the sermon search is not offered when no sermon is published (Phase A)", async ({ page }) => {
+    await open(page, "/en/sermons");
+    await expect(page.getByRole("search")).toHaveCount(0);
+    await expect(page.locator("[data-empty-state]")).toHaveCount(1);
+  });
+
   test("every CMS section shows its designed empty state when nothing is published", async ({ page }) => {
     await open(page, "/ta");
     await expect(page.locator("[data-hero-lead]")).toHaveText("இந்த இணையதளம் தயாராகி வருகிறது.");
@@ -148,6 +163,76 @@ test.describe("published content (seeded fixtures)", () => {
     expect((await page.goto("/ta/no-such-page"))?.status()).toBe(404);
     await open(page, "/en/testimonies");
     await expect(page.locator("main")).toContainText("[E2E fictional testimony]");
+  });
+});
+
+test.describe("Phase A: menu, detail pages, sermon search, 404 (seeded fixtures)", () => {
+  test.skip(!SEEDED, "needs PUBLIC_E2E_SEEDED=1 and npm run db:seed:public");
+
+  test("published public CMS pages are in the footer; unlisted, draft and reserved pages are not", async ({ page }) => {
+    await open(page, "/en/sermons");
+    const footer = page.getByRole("contentinfo");
+    await expect(footer.getByRole("link", { name: "[E2E extra page]" })).toHaveAttribute("href", "/en/e2e-extra-page");
+    await expect(footer).not.toContainText("[E2E hidden page]");
+    await expect(footer).not.toContainText("[E2E welcome]");
+    await expect(footer.getByRole("link", { name: "[E2E about]" })).toHaveCount(0);
+    await open(page, "/ta");
+    await expect(page.getByRole("contentinfo").getByRole("link", { name: "[E2E கூடுதல் பக்கம்]" })).toHaveAttribute("href", "/ta/e2e-extra-page");
+  });
+
+  test("a sermon has its own page with watch, share and back links", async ({ page }) => {
+    await open(page, "/en/sermons");
+    await page.getByRole("link", { name: "[E2E sermon]" }).click();
+    await expect(page).toHaveURL(/\/en\/sermons\/[0-9a-f-]{36}$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("[E2E sermon]");
+    await expect(page.locator("[data-sermon-meta]")).toContainText("[E2E Speaker]");
+    await expect(page.locator("[data-sermon-meta]")).toContainText("[Book 1:1]");
+    await expect(page.getByRole("link", { name: "Watch the sermon" })).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(page.locator("[data-share]")).toBeVisible();
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "[E2E sermon] · NLTAG");
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+    await checkQuality(page);
+    await page.getByRole("main").getByRole("link", { name: "Sermons" }).click();
+    await expect(page).toHaveURL(/\/en\/sermons$/);
+  });
+
+  test("unpublished sermons and testimonies without permission have no page", async ({ page }) => {
+    await open(page, "/en/sermons");
+    const href = await page.getByRole("link", { name: "[E2E sermon]" }).getAttribute("href");
+    expect((await page.goto(href!.replace("/en/", "/ta/")))?.status()).toBe(200);
+    for (const hidden of ["[E2E hidden draft sermon]", "[E2E hidden testimony]"]) await expect(page.locator("body")).not.toContainText(hidden);
+    expect((await page.goto("/en/sermons/00000000-0000-4000-8000-000000000000"))?.status()).toBe(404);
+  });
+
+  test("a testimony has its own page with the permitted author name", async ({ page }) => {
+    await open(page, "/en/testimonies");
+    await page.getByRole("link", { name: "[E2E testimony]" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("[E2E testimony]");
+    await expect(page.locator("[data-testimony-author]")).toHaveText("[E2E Name]");
+    await expect(page.locator("main")).toContainText("[E2E fictional testimony]");
+    await checkQuality(page);
+  });
+
+  test("sermon search and speaker filter work without JavaScript and say when nothing matches", async ({ browser }) => {
+    const ctx = await browser.newContext({ javaScriptEnabled: false });
+    const page = await ctx.newPage();
+    await page.goto("/en/sermons?q=e2e+speaker");
+    await expect(page.locator("main")).toContainText("[E2E sermon]");
+    await page.goto("/en/sermons?q=no-such-words");
+    await expect(page.locator("main")).toContainText("Nothing matches your search.");
+    await expect(page.getByRole("link", { name: "Clear search" })).toHaveAttribute("href", "/en/sermons");
+    await page.goto("/ta/sermons?q=" + encodeURIComponent("[E2E செய்தி]"));
+    await expect(page.locator("main")).toContainText("[E2E செய்தி]");
+    await ctx.close();
+  });
+
+  test("the search form submits and is accessible", async ({ page }) => {
+    await open(page, "/en/sermons");
+    await page.getByRole("searchbox", { name: "Search sermons" }).fill("book 1:1");
+    await page.getByRole("button", { name: "Search" }).click();
+    await expect(page).toHaveURL(/q=book/);
+    await expect(page.locator("main")).toContainText("[E2E sermon]");
+    await checkQuality(page);
   });
 });
 

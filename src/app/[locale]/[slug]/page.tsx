@@ -37,7 +37,7 @@ export default async function CmsPage({ params }: Props) {
   const page = await load(locale, slug);
   if (!page) notFound();
   return (
-    <PublicShell locale={locale} route="home">
+    <PublicShell locale={locale} route="home" currentPath={`/${locale}/${slug}`}>
       <PageHead title={page.title} lead={page.summary} />
       <Container>
         <Section aria-label={page.title}>

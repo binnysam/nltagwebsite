@@ -33,6 +33,18 @@
 }
 .title:lang(en) { font-family: var(--font-stack-en-display); line-height: var(--leading-h3-en); letter-spacing: var(--tracking-h3-en); }
 
+/* Title link (optional): underlined text, 44px target, no new colour */
+.titleLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: var(--border-width-hairline);
+  text-underline-offset: var(--space-1);
+}
+.titleLink:hover { text-decoration-thickness: var(--border-width-strong); }
+
 .body {
   max-width: var(--measure-en);
   color: var(--color-text-primary);

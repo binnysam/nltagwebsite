@@ -85,3 +85,20 @@
 /* Page shell: the footer sits at the bottom of short pages */
 .shell { display: flex; flex-direction: column; min-height: 100dvh; }
 .shell > main { flex: 1 0 auto; }
+
+/* Row of page actions (404, detail pages): wraps on phones, 44px targets come from Button */
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+
+/* Detail pages (sermon, testimony): meta → body → actions, one column at the reading measure */
+.detail { display: flex; flex-direction: column; gap: var(--space-5); }
+
+/* Public list search (Sermons): stacked on phones, one row from 768px */
+.filters { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); align-items: end; margin-bottom: var(--space-6); }
+@media (min-width: 768px) { .filters { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; } }
+.filtersNarrow { composes: filters; }
+@media (min-width: 768px) { .filtersNarrow { grid-template-columns: minmax(0, 1fr) auto; } }
+.filterActions { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+
+/* Pagination: previous · status · next */
+.pagination { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; justify-content: space-between; margin-top: var(--space-6); }
+.paginationStatus { color: var(--color-text-secondary); font-size: var(--text-small); font-variant-numeric: tabular-nums; }

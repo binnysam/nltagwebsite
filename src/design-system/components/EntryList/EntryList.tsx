@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import styles from "./entry-list.module.css";
@@ -8,6 +9,8 @@ export interface Entry {
   /** Short line above the title: date, speaker, reference. Already formatted. */
   meta?: ReactNode;
   title: string;
+  /** Internal address of the record's own page. The title becomes the link (44px target). */
+  href?: string;
   /** Language of the title when it differs from the page (CMS text is per language). */
   titleLang?: string;
   /** Summary or Markdown body, already rendered. */
@@ -37,7 +40,9 @@ export function EntryList({ entries, headingLevel = 3, label, className }: Entry
       {entries.map((e) => (
         <li key={e.id} className={styles.row} data-entry-id={e.id}>
           {e.meta ? <p className={styles.meta}>{e.meta}</p> : null}
-          <H className={styles.title} lang={e.titleLang}>{e.title}</H>
+          <H className={styles.title} lang={e.titleLang}>
+            {e.href ? <Link href={e.href} className={styles.titleLink}>{e.title}</Link> : e.title}
+          </H>
           {e.children ? <div className={styles.body} lang={e.titleLang}>{e.children}</div> : null}
           {e.action ? <div className={styles.action}>{e.action}</div> : null}
         </li>

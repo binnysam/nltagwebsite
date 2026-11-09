@@ -155,6 +155,32 @@ export const uiStrings = {
     note: "Exactly the owner-approved name of the main worship service (schedule.main-worship). Previous draft: சபை ஆராதனை நேரம்.",
   }),
 
+  // Website completion, Phase A (Nov 2026). English proposed; Tamil draft-review. The Phase A PR must
+  // not be merged (merge = deploy) until the owner approves these.
+  "notFound.title": s("Page not found", "பக்கம் கிடைக்கவில்லை", { note: "Heading of the 404 page." }),
+  "notFound.body": s(
+    "This page does not exist or is not published yet.",
+    "இந்தப் பக்கம் இல்லை, அல்லது இன்னும் வெளியிடப்படவில்லை.",
+    { note: "404 page, under the heading. Followed by links to the home page and the site links." },
+  ),
+  "share.copied": s("Link copied", "இணைப்பு நகலெடுக்கப்பட்டது", {
+    note: "Shown after the Share button (approved verse.share) copies the page link, on browsers without a share sheet.",
+  }),
+  "sermon.search": s("Search sermons", "தேவ செய்திகளைத் தேடுக", {
+    note: "Search box label on the Sermons page. Uses the approved term தேவ செய்தி (nav.sermons).",
+  }),
+  "sermon.speaker": s("Speaker", "பிரசங்கியார்", { note: "Filter label: who preached the sermon." }),
+  "filter.allSpeakers": s("All speakers", "அனைத்து பிரசங்கியார்களும்", { note: "First option of the speaker filter." }),
+  "filter.submit": s("Search", "தேடு", { note: "Button that applies the sermon search and filter." }),
+  "filter.clear": s("Clear search", "தேடலை நீக்கு", { note: "Link that removes the search and filter." }),
+  "filter.noResults": s("Nothing matches your search.", "உங்கள் தேடலுக்குப் பொருந்தும் எதுவும் இல்லை."),
+  "pagination.label": s("Pages", "பக்கங்கள்", { note: "Screen-reader name of the page links below a list." }),
+  "pagination.previous": s("Previous page", "முந்தைய பக்கம்"),
+  "pagination.next": s("Next page", "அடுத்த பக்கம்"),
+  "pagination.status": s("Page {page} of {total}", "பக்கம் {page} / {total}", {
+    note: "{page} and {total} are numbers, e.g. Page 2 of 5.",
+  }),
+
   // Accounts and sign-in (Phase 4b). Tamil approved by the owner on 2 Nov 2026 (phase4bApprovedTamil),
   // except auth.google and auth.or (draft-review; shown only if Google sign-in is configured).
   "auth.signIn.title": c("Sign in", "உள்நுழைக"),

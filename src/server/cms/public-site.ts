@@ -25,6 +25,39 @@ import {
 
 export const RESERVED_PAGE_SLUGS = { welcome: "welcome", about: "about", contact: "contact" } as const;
 
+/**
+ * First path segments the website already uses under /{locale}. A CMS page with one of these slugs
+ * can never be reached at /{locale}/{slug} (the fixed route wins), so it is never put in a menu.
+ */
+export const FIXED_ROUTE_SLUGS: ReadonlySet<string> = new Set([
+  ...Object.values(RESERVED_PAGE_SLUGS),
+  "worship-times", "sermons", "ministries", "testimonies", "design-system",
+  "account", "sign-in", "sign-up", "forgot-password", "reset-password", "set-password", "two-factor", "verify-email",
+]);
+
+/** A published CMS page offered in the site menu (footer). */
+export interface MenuPage {
+  slug: string;
+  title: string;
+}
+
+/**
+ * Menu rule (Phase A, Nov 2026): every published, *Public* (not Unlisted) CMS page with a title in
+ * the page language, except reserved and fixed-route slugs, sorted by title. Visibility is the
+ * church's menu control: Unlisted keeps a page out of every menu.
+ */
+export function toMenuPages(pages: readonly PublicItem[], locale: Locale): MenuPage[] {
+  return pages
+    .filter((p) => p.slug && !p.unlisted && p.title && !FIXED_ROUTE_SLUGS.has(p.slug))
+    .map((p) => ({ slug: p.slug!, title: p.title }))
+    .sort((a, b) => a.title.localeCompare(b.title, locale));
+}
+
+export async function loadMenuPages(locale: Locale): Promise<MenuPage[]> {
+  await connection();
+  return safely("menu-pages", async () => toMenuPages(await listPublished("PAGE", locale), locale), []);
+}
+
 const warned = new Set<string>();
 
 async function safely<T>(section: string, load: () => Promise<T>, fallback: T): Promise<T> {
@@ -129,4 +162,23 @@ export async function loadTestimonies(locale: Locale) {
 export async function loadMeetingsNow() {
   await connection();
   return loadSpecialMeetings();
+}
+
+/** Accepted detail-page keys: a CMS slug or a content id (UUID). Anything else is a 404 without a query. */
+const DETAIL_KEY = /^(?:[a-z0-9]+(?:-[a-z0-9]+)*|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
+export const isDetailKey = (key: string) => key.length <= 120 && DETAIL_KEY.test(key);
+
+const byKey = <T extends { id: string; slug: string | null }>(items: T[], key: string) =>
+  items.find((i) => i.slug === key) ?? items.find((i) => i.id === key) ?? null;
+
+/** One published sermon in this language, by slug or id (same visibility rules as the list). */
+export async function loadSermon(locale: Locale, key: string): Promise<PublicSermon | null> {
+  if (!isDetailKey(key)) return null;
+  return byKey(await loadSermons(locale), key);
+}
+
+/** One published testimony (permission Granted) in this language, by slug or id. */
+export async function loadTestimony(locale: Locale, key: string): Promise<PublicTestimony | null> {
+  if (!isDetailKey(key)) return null;
+  return byKey(await loadTestimonies(locale), key);
 }
