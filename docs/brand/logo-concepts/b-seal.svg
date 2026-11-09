@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-labelledby="t"><title id="t">Concept B: Bilingual seal</title>
+  <!-- Seal for print and signage; the inner monogram stands alone at small sizes. -->
+  <defs><path id="ring" d="M100 100m-74 0a74 74 0 1 1 148 0a74 74 0 1 1-148 0"/></defs>
+  <circle cx="100" cy="100" r="96" fill="#FAF8F5" stroke="#1C1915" stroke-width="3"/>
+  <circle cx="100" cy="100" r="62" fill="none" stroke="#1C1915" stroke-width="1.5"/>
+  <text font-family="Noto Sans Tamil, Latha, sans-serif" font-size="13" fill="#1C1915" letter-spacing="0.5"><textPath href="#ring" startOffset="2%">புது வாழ்வு தமிழ் AG சபை · NEW LIFE TAMIL AG CHURCH · KUWAIT ·</textPath></text>
+  <!-- Monogram: an N whose rising diagonal ends in a cross -->
+  <path d="M74 132V72h10l30 42V72" fill="none" stroke="#1C1915" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M126 60v74M114 76h24" stroke="#8A5410" stroke-width="10" stroke-linecap="round"/>
+</svg>

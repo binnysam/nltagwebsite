@@ -60,7 +60,7 @@ let code = 1;
 try {
   code = await main();
 } catch (e) {
-  console.error(`Staging command failed: ${e instanceof Error ? e.name : "error"}`);
+  console.error(`Staging command failed: ${e instanceof Error ? `${e.name}: ${e.message.replace(/mysql:\/\/\S+/g, "[url]")}` : "error"}`);
 } finally {
   await closeDb().catch(() => undefined);
 }

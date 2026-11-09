@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="t"><title id="t">Concept C: Sprout cross (mark)</title>
+  <!-- A cross whose foot opens into two leaves: new life. Green from the approved palette. -->
+  <rect width="64" height="64" rx="14" fill="#FAF8F5"/>
+  <path d="M32 8v34M22 20h20" stroke="#1C1915" stroke-width="6" stroke-linecap="round"/>
+  <path d="M32 42c-2-8-10-12-18-10 2 8 10 12 18 10z" fill="#2E6A4C"/>
+  <path d="M32 42c2-8 10-12 18-10-2 8-10 12-18 10z" fill="#2E6A4C"/>
+  <path d="M32 42v14" stroke="#2E6A4C" stroke-width="4" stroke-linecap="round"/>
+</svg>

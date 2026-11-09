@@ -100,8 +100,17 @@ Read-only. Pages never select content tables: they call the loaders in `src/serv
 **Bible verse:** no published verse → designed fallback ("Today's verse will be published soon"); published but permission not verified → the approved placeholder text with the published reference; verified → the text and exact credit line of the verified translation only.
 
 ## Migrations
-- Local / CI: `npm run db:migrate` (CI applies it to MariaDB 11.8.9 on every run).
+- Local / CI: `npm run db:migrate` (CI applies it to MariaDB 11.8.9 on every run). Staging: `npm run staging:migrate` (docs/operations/staging.md).
+- `0004_forms_gallery` (Nov 2026): additive; **not applied to production** (owner approval, backup and runbook first). It also appends `PRAYER_TEAM` to `staff_role.role`. The R4 "0004" placeholder (deferred) now takes the next free number.
 - Production: **applied 2 Nov 2026** (owner-approved, verified backup first). `0001_cms_content` and `0002_media_file_storage` ran together, once: backup, exact steps, checks and rollback in `docs/operations/production-migration-cms.md`. They only create the CMS tables and insert the two `bible_translation` rows; identity, access and audit tables are untouched.
+
+## Forms, inboxes and gallery (Nov 2026, migration `0004_forms_gallery`)
+- Public forms (`/prayer`, contact form on `/contact`, `/testimonies/share`) and the gallery (`/gallery`, images at `/gallery-image/{id}/{480|960|1600}`) exist only where `NLTAG_PUBLIC_FORMS=1`, i.e. where 0004 has been applied (staging now; production after owner approval). Otherwise the routes return 404 and nothing reads the new tables.
+- All reads/writes: `src/server/forms/service.ts` (prayer_request, contact_message, testimony_submission) and `src/server/gallery/service.ts` (gallery_photo); a unit test fails if anything else imports those tables.
+- Protection without client IPs: honeypot, HMAC form token (3 s – 2 h), 24 h duplicate refusal, ≤ 2 links, site-wide ceilings per form in `rate_limit_bucket` (`FORM_CEILINGS`). Prayer text, name and contact are encrypted (AES-256-GCM, `NLTAG_DATA_KEY`); without the key the prayer form is unavailable.
+- Notifications to `NLTAG_CHURCH_INBOX`: prayer and testimony = notice only; contact = the message. Same mail caps; staging captures them.
+- Testimony submissions never publish: acceptance creates a CMS draft; publishing stays Church Admin.
+- Gallery: publish needs photo permission GRANTED (Church Admin) and a caption; `sharp` (Next.js's own optional dependency, no new package) writes WebP copies without metadata; withdrawn/unpublished/deleted → 404.
 
 ## Testing
 | Command | Covers |

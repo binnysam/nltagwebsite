@@ -82,6 +82,14 @@ Built for the CMS admin from existing tokens only; listed in the gallery (`/[loc
 - **When:** choosing one option from a short fixed list; a single yes/no setting.
 - **Anatomy:** SelectField = TextField anatomy (label 14/500 above, hint, 48px control, radius 12, `border-control`, error in words). CheckboxField = native checkbox (20px, `accent-color: --color-action-primary`) inside its label; the label row is the 44px target.
 - **A11y:** visible label is the accessible name; hint and error via `aria-describedby`; `aria-invalid` on error.
+- **CheckboxField `error` / `required` (Nov 2026):** optional, for required consents on the public forms; the error is a sentence under the box, linked by `aria-describedby`, and the box gets `aria-invalid`. Existing uses are unchanged.
+
+### PublicForm (`src/app/[locale]/_components/forms/PublicForm.client.tsx`, Nov 2026)
+- **What:** the prayer, contact and testimony forms. A composition of TextField, SelectField, CheckboxField, Button (`loading`) and Notice; no new visual values (`public-form.module.css`: tokens only, single column at `--measure-en`).
+- **Behaviour:** works without JavaScript (server action POST); with it, typed text is kept on errors and focus moves to the result Notice. Errors in words in the page language. Honeypot field is `ds-visually-hidden` inside `aria-hidden`.
+
+### VideoEmbed (`src/app/[locale]/_components/VideoEmbed.client.tsx`, Nov 2026)
+- **What:** click-to-load YouTube (privacy-enhanced `youtube-nocookie.com`) on sermon pages. Before "Play video" nothing is requested from YouTube or Google (no thumbnail, script or iframe). 16:9, `--radius-lg`, `--color-surface-sunken`, hairline border; static. The page's "Watch the sermon" link stays as the fallback and the no-JS path.
 
 ### Notice (`Notice/`)
 - **When:** result of an action, page-level warnings, error summaries.

@@ -250,7 +250,8 @@ describe("Hostinger build script (staging path)", () => {
   it("verifies staging before any staging migration, seed or build, and refuses production flags in staging", () => {
     const stagingBlock = build.slice(build.indexOf("if (staging) {"), build.indexOf("process.exit(0);"));
     expect(stagingBlock).toMatch(/migration \|\| bootstrap[\s\S]*?process\.exit\(1\)/);
-    const verify = stagingBlock.indexOf('"staging:verify"');
+    const verify = Math.min(stagingBlock.indexOf('"staging:verify"'), stagingBlock.indexOf('"staging:init"'));
+    expect(stagingBlock.indexOf('"staging:verify"')).toBeGreaterThan(-1);
     expect(verify).toBeGreaterThan(-1);
     for (const step of ['"staging:migrate"', '"staging:seed"', '"next", "build"', '"staging:bootstrap"']) expect(stagingBlock.indexOf(step), step).toBeGreaterThan(verify);
     expect(stagingBlock).not.toContain("db:migrate");

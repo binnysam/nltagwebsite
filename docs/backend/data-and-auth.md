@@ -73,15 +73,22 @@ Database default and every table: `utf8mb4` / `utf8mb4_uca1400_ai_ci` (Tamil). I
 6. CMS writes go through `src/server/cms/service.ts`, which checks permissions itself and applies the workflow rules in `src/server/cms/rules.ts` (Phase 4c used the existing permissions; the matrix is unchanged).
 
 ## Permissions
-| Permission | Visitor | Member | Content Editor | Church Admin |
-|---|---|---|---|---|
-| content.read_published | ✓ | ✓ | ✓ | ✓ |
-| account.manage_own, membership.own | | ✓ | ✓ | ✓ |
-| admin.access, content.draft.edit, media.upload | | | ✓ | ✓ |
-| content.submit_for_review | | | ✓ | |
-| content.publish | | | | ✓ |
-| membership.read_any/decide/birthdays/reports/export | | | | ✓ |
-| staff.manage, audit.read | | | | ✓ |
+| Permission | Visitor | Member | Content Editor | Prayer Team (Nov 2026) | Church Admin |
+|---|---|---|---|---|---|
+| content.read_published | ✓ | ✓ | ✓ | ✓ | ✓ |
+| account.manage_own, membership.own | | ✓ | ✓ | ✓ | ✓ |
+| staff.portal (admin shell) | | | ✓ | ✓ | ✓ |
+| admin.access (CMS area), content.draft.edit, media.upload | | | ✓ | | ✓ |
+| content.submit_for_review | | | ✓ | | |
+| content.publish, gallery.publish | | | | | ✓ |
+| prayer.read, prayer.manage | | | | ✓ | ✓ |
+| prayer.delete, contact.read, contact.manage | | | | | ✓ |
+| submission.read, submission.decide | | | ✓ | | ✓ |
+| submission.contact (submitter contact details, delete) | | | | | ✓ |
+| membership.read_any/decide/birthdays/reports/export | | | | | ✓ |
+| staff.manage, audit.read | | | | | ✓ |
+
+Prayer Team (owner requirement: prayer requests readable only by the Church Admin and specifically authorised prayer-team members) has no CMS access; `/admin` sends it to `/admin/prayer`. Two-factor is required for Prayer Team as for Church Admin. The role exists in the database from migration 0004; the staff page offers it only where `NLTAG_PUBLIC_FORMS=1`.
 
 An unverified email removes every permission except reading published content and managing one's own account.
 **Two-factor (Phase 6b):** the Church Admin role grants nothing until the person has a verified authenticator app (`TWO_FACTOR_REQUIRED_ROLES` in `two-factor-policy.ts`, applied in `permissionsFor`). Content Editors are not required to (owner decision; one-line change to require it).
@@ -208,6 +215,7 @@ There is no SSH step in the deployment, so Hostinger builds use `npm run build:h
 All account pages (`/ta|en/sign-in`, `sign-up`, `forgot-password`, `reset-password`, `verify-email`, `account`) and `/api/auth/*` return **404** until email delivery works. Code: `src/server/accounts-gate.ts`, used by `src/app/[locale]/(account)/layout.tsx` and `src/app/api/auth/[...all]/route.ts`. Read per request (no rebuild baked in). Nothing on the site links to these pages.
 
 - Off by default everywhere. On only when `NLTAG_ACCOUNTS_ENABLED=1` (exact value).
+- Staging (`NLTAG_DEPLOYMENT=staging`, Nov 2026): SMTP is not required because staging mail is captured and never delivered; `AUTH_RATE_LIMIT=on` is still required. See `docs/operations/staging.md`.
 - In production the flag is ignored unless `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` and `SMTP_FROM` are all set **and** `AUTH_RATE_LIMIT` is explicitly `on` (Phase 6a). The limiter itself defaults to on and production refuses `off`; the gate additionally refuses to rely on the default.
 - Tests: `tests/unit/accounts-gate.test.ts`, `tests/e2e/accounts-gate.spec.ts` (every page in both languages, the auth API, no links from the homepage).
 

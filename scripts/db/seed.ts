@@ -47,8 +47,10 @@ export async function seed() {
   const backupCodes = await symmetricEncrypt({ key, data: JSON.stringify(SEED_RECOVERY_CODES) });
   // Staging is reachable from the internet and this repository's seed password and authenticator
   // secret are not secret, so staging gets the fixture authors as records only: no password, no
-  // two-factor, no staff role. Nobody can sign in as them. Staging testers use their own accounts
-  // (mailbox-first request + captured set-password link, docs/operations/staging.md).
+  // two-factor secret, no staff role. Nobody can sign in as them: two_factor_enabled is set without
+  // any authenticator, so even a password set through a reset link ends at a challenge no one can
+  // answer. Staging testers use their own accounts (mailbox-first request + captured link,
+  // docs/operations/staging.md).
   const recordsOnly = isStaging();
   for (const u of SEED_USERS) {
     const [existing] = await db.select({ id: user.id }).from(user).where(eq(user.email, u.email));
@@ -56,7 +58,7 @@ export async function seed() {
     const id = randomUUID();
     await db.transaction(async (tx) => {
       if (recordsOnly) {
-        await tx.insert(user).values({ id, name: u.name, email: u.email, emailVerified: false, twoFactorEnabled: false, createdAt: now, updatedAt: now });
+        await tx.insert(user).values({ id, name: u.name, email: u.email, emailVerified: false, twoFactorEnabled: true, createdAt: now, updatedAt: now });
         return;
       }
       await tx.insert(user).values({ id, name: u.name, email: u.email, emailVerified: u.verified, twoFactorEnabled: Boolean(u.twoFactor), createdAt: now, updatedAt: now });

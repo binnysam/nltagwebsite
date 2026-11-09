@@ -14,6 +14,8 @@
 //
 // Staging (docs/operations/staging.md): the live staging check runs first and the build stops if
 // it fails, so a staging build can never touch a database or media folder that is not staging's.
+//   NLTAG_STAGING_INIT=1                    first build only: claim the NEW, EMPTY staging database
+//                                           (marker row; refused if it already has tables), migrate
 //   NLTAG_STAGING_MIGRATE=1                 migrate the verified staging database (every build may)
 //   NLTAG_STAGING_SEED=1                    add the fictional [E2E …] fixtures (idempotent)
 //   NLTAG_STAGING_BOOTSTRAP_ADMIN_EMAIL     grant Church Admin to a reserved test address
@@ -38,7 +40,8 @@ if (staging) {
   }
   const env = { ...process.env, NODE_ENV: "production" };
   console.info("Staging build: checking that the database and media folder are staging's own.");
-  run("npm", ["run", "staging:verify"], env);
+  if (process.env.NLTAG_STAGING_INIT === "1") run("npm", ["run", "staging:init"], env);
+  else run("npm", ["run", "staging:verify"], env);
   if (process.env.NLTAG_STAGING_MIGRATE === "1") run("npm", ["run", "staging:migrate"], env);
   else console.info("No staging migration requested (NLTAG_STAGING_MIGRATE not set).");
   if (process.env.NLTAG_STAGING_SEED === "1") run("npm", ["run", "staging:seed"], env);
