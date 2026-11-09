@@ -29,7 +29,7 @@ CREATE TABLE `gallery_photo` (
 	`permission_note` varchar(300) NOT NULL DEFAULT '',
 	`permission_recorded_at` datetime(3),
 	`permission_recorded_by_user_id` varchar(64) CHARACTER SET ascii COLLATE ascii_bin,
-	`variants` json,
+	`variants` varchar(300) CHARACTER SET ascii COLLATE ascii_bin,
 	`width` int unsigned,
 	`height` int unsigned,
 	`position` int NOT NULL DEFAULT 0,

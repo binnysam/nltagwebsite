@@ -194,7 +194,7 @@ async function enrollTwoFactor(page: Page, who: keyof typeof STAFF) {
 }
 
 test.describe("staff on staging", () => {
-  test.skip(({ browserName }, info) => info.project.name !== "desktop-1280", "staff flow runs once, at 1280");
+  test.skip(({ viewport }) => (viewport?.width ?? 0) < 1280, "staff flow runs once, at 1280");
 
   test("accounts: mailbox-first request, captured set-password link, two-factor; staging admin bootstrap", async ({ page }) => {
     test.setTimeout(240_000);

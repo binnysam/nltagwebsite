@@ -1,4 +1,4 @@
-import { boolean, index, int, json, mediumtext, mysqlEnum, mysqlTable, text, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { boolean, index, int, mediumtext, mysqlEnum, mysqlTable, text, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { asciiBin, idColumn, timestamp3 } from "../columns";
 import { user } from "./auth";
 import { contentItem, mediaAsset } from "./content";
@@ -107,7 +107,7 @@ export const testimonySubmission = mysqlTable(
  * Public image gallery. A photo is an uploaded media asset plus captions; it is public only when
  * a Church Admin has recorded the photo permission AND published it. Resized WebP variants
  * (metadata stripped, so no camera or GPS data) are written to the media folder on publish; the
- * original stays private. `variants` maps width → SHA-256 of that file.
+ * original stays private. `variants` is JSON text mapping width → SHA-256 of that file.
  */
 export const GALLERY_STATUSES = ["DRAFT", "PUBLISHED", "ARCHIVED"] as const;
 export type GalleryStatus = (typeof GALLERY_STATUSES)[number];
@@ -129,7 +129,8 @@ export const galleryPhoto = mysqlTable(
     permissionNote: varchar("permission_note", { length: 300 }).notNull().default(""),
     permissionRecordedAt: timestamp3("permission_recorded_at"),
     permissionRecordedByUserId: idColumn("permission_recorded_by_user_id").references(() => user.id, { onDelete: "set null" }),
-    variants: json("variants").$type<Record<string, string>>(),
+    /** JSON text {"480": sha256, …}; ascii_bin like every other hash column (not MariaDB JSON, which is utf8mb4_bin). */
+    variants: asciiBin("variants", { length: 300 }),
     width: int("width", { unsigned: true }),
     height: int("height", { unsigned: true }),
     position: int("position").notNull().default(0),

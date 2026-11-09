@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "d26eb34a-d628-42ad-aa8a-629d4e543ba6",
+  "id": "288576d0-03e2-4aee-a617-3ba542a4917f",
   "prevId": "63caca5f-d25d-4db3-a6d4-b6eddb5b03f3",
   "tables": {
     "account": {
@@ -2084,7 +2084,7 @@
         },
         "variants": {
           "name": "variants",
-          "type": "json",
+          "type": "varchar(300) CHARACTER SET ascii COLLATE ascii_bin",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false

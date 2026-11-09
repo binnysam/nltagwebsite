@@ -64,7 +64,8 @@ describe("migration 0003_two_factor (MariaDB)", () => {
     )) as unknown as [{ r: string }[]];
     expect(fk[0]!.r).toBe("CASCADE");
     const [applied] = (await getDb().execute(sql`SELECT COUNT(*) AS k FROM __drizzle_migrations`)) as unknown as [{ k: number }[]];
-    expect(Number(applied[0]!.k)).toBe(4);
+    // 0000–0003, plus 0004_forms_gallery (Nov 2026).
+    expect(Number(applied[0]!.k)).toBe(5);
   });
 });
 

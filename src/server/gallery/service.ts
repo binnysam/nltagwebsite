@@ -141,7 +141,7 @@ export async function publishPhoto(ctx: Ctx, id: string) {
   }
   const variants: Record<string, string> = {};
   for (const f of made.files) variants[String(f.width)] = await writeVariantFile(id, f.width, f.bytes);
-  await db.update(galleryPhoto).set({ status: "PUBLISHED", variants, width: made.width, height: made.height, publishedAt: new Date(), updatedAt: new Date(), version: row.photo.version + 1 }).where(eq(galleryPhoto.id, id));
+  await db.update(galleryPhoto).set({ status: "PUBLISHED", variants: JSON.stringify(variants), width: made.width, height: made.height, publishedAt: new Date(), updatedAt: new Date(), version: row.photo.version + 1 }).where(eq(galleryPhoto.id, id));
   await audit({ actorUserId: ctx.actor.userId, action: "gallery.publish", entity: "gallery_photo", entityId: id, ip: ctx.ip });
 }
 
@@ -164,6 +164,15 @@ export async function removeFromGallery(ctx: Ctx, id: string) {
 // ── Public ─────────────────────────────────────────────────────────────────────────────────────
 
 const publicWhere = () => and(eq(galleryPhoto.status, "PUBLISHED"), eq(galleryPhoto.permission, "GRANTED"), isNull(mediaAsset.deletedAt));
+
+function variantMap(text: string | null): Record<string, string> {
+  try {
+    const v = JSON.parse(text ?? "{}") as unknown;
+    return v && typeof v === "object" ? (v as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
 
 export interface PublicPhoto {
   id: string;
@@ -191,7 +200,7 @@ export async function listPublicGallery(locale: "ta" | "en", page = 1): Promise<
     caption: (locale === "ta" ? r.captionTa || r.captionEn : r.captionEn || r.captionTa) ?? "",
     width: r.width ?? 4,
     height: r.height ?? 3,
-    widths: VARIANT_WIDTHS.filter((w) => r.variants?.[String(w)]),
+    widths: VARIANT_WIDTHS.filter((w) => variantMap(r.variants)[String(w)]),
   }));
   return { photos, total: Number(total?.n ?? 0), page: p, pageSize: GALLERY_PAGE_SIZE };
 }
@@ -205,7 +214,7 @@ export async function publicVariant(id: string, width: number): Promise<Buffer |
     .from(galleryPhoto)
     .innerJoin(mediaAsset, eq(mediaAsset.id, galleryPhoto.mediaAssetId))
     .where(and(eq(galleryPhoto.id, id), publicWhere()));
-  const sha = row?.variants?.[String(width)];
+  const sha = row ? variantMap(row.variants)[String(width)] : undefined;
   if (!sha) return null;
   return readVariantFile(id, width as VariantWidth, sha);
 }
