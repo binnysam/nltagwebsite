@@ -27,8 +27,10 @@ const editorNo2fa: Principal = { kind: "user", userId: "e", emailVerified: true,
 const bothNo2fa: Principal = { ...adminNo2fa, roles: ["CHURCH_ADMIN", "CONTENT_EDITOR"] };
 
 describe("two-factor policy", () => {
-  it("is required for Church Admins only (owner decision)", () => {
-    expect(TWO_FACTOR_REQUIRED_ROLES).toEqual(["CHURCH_ADMIN"]);
+  it("is required for Church Admins (owner decision) and the Prayer Team (Nov 2026), not Content Editors", () => {
+    expect(TWO_FACTOR_REQUIRED_ROLES).toEqual(["CHURCH_ADMIN", "PRAYER_TEAM"]);
+    expect(needsTwoFactorEnrollment(["PRAYER_TEAM"], false)).toBe(true);
+    expect(needsTwoFactorEnrollment(["PRAYER_TEAM"], true)).toBe(false);
     expect(needsTwoFactorEnrollment(["CHURCH_ADMIN"], false)).toBe(true);
     expect(needsTwoFactorEnrollment(["CHURCH_ADMIN"], true)).toBe(false);
     expect(needsTwoFactorEnrollment(["CONTENT_EDITOR"], false)).toBe(false);

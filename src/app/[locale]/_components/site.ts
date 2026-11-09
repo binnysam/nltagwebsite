@@ -13,6 +13,8 @@ export const publicRoutes = {
   ministries: "/ministries",
   testimonies: "/testimonies",
   contact: "/contact",
+  prayer: "/prayer",
+  gallery: "/gallery",
 } as const;
 export type PublicRoute = keyof typeof publicRoutes;
 
@@ -33,6 +35,8 @@ const labelKey: Record<PublicRoute, UiStringKey> = {
   ministries: "nav.ministries",
   testimonies: "nav.testimonies",
   contact: "nav.contact",
+  prayer: "nav.prayer",
+  gallery: "nav.gallery",
 };
 export const routeLabel = (locale: Locale, route: PublicRoute) => t(labelKey[route], locale);
 
@@ -48,8 +52,9 @@ export const headerNav = (locale: Locale) => (["about", "worshipTimes", "sermons
  * Footer: every fixed public page, then the church's own published CMS pages (titles from the CMS,
  * already in the page language; see `toMenuPages` in src/server/cms/public-site.ts).
  */
-export const footerNav = (locale: Locale, pages: readonly { slug: string; title: string }[] = []): NavItem[] => [
+export const footerNav = (locale: Locale, pages: readonly { slug: string; title: string }[] = [], extra: readonly PublicRoute[] = []): NavItem[] => [
   ...(["home", "about", "worshipTimes", "sermons", "ministries", "testimonies", "contact"] as const).map((r) => item(locale, r)),
+  ...extra.map((r) => item(locale, r)),
   ...pages.map((p) => ({ href: `/${locale}/${p.slug}`, label: p.title })),
 ];
 

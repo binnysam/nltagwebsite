@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
+import { Notice } from "@/design-system/components";
 import { Container, Section } from "@/design-system/primitives";
+import { issueFormToken } from "@/server/forms/protection";
+import { formAvailable, publicFormsEnabled } from "@/server/forms/service";
+import { contactAction } from "../form-actions";
+import { PublicForm } from "../_components/forms/PublicForm.client";
+import { formErrorText, formLabels } from "../_components/forms/copy";
+import { MapPlaceholder } from "../_components/MapPlaceholder";
 import { t, type Locale } from "@/content/ui-strings";
 import { loadPage, RESERVED_PAGE_SLUGS } from "@/server/cms/public-site";
 import { PublicShell } from "../_components/PublicShell";
@@ -20,18 +28,44 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  */
 export default async function ContactPage({ params }: Props) {
   const { locale } = await params;
+  await connection(); // the contact form token carries the time the page was served
   const page = await loadPage(RESERVED_PAGE_SLUGS.contact, locale);
   return (
     <PublicShell locale={locale} route="contact">
       <PageHead title={page?.title || routeLabel(locale, "contact")} lead={page?.summary} />
       <PublicSection id="visit" title={t("section.visit", locale)}>
         <VisitFacts locale={locale} />
+        <MapPlaceholder locale={locale} />
       </PublicSection>
       <Container>
         <Section aria-label={routeLabel(locale, "contact")}>
           {page?.bodyMd ? <PageBody item={page} /> : page ? null : <Empty locale={locale} />}
         </Section>
       </Container>
+      {publicFormsEnabled() ? (
+      <PublicSection id="message" title={t("contactForm.title", locale)}>
+        {formAvailable("contact") ? (
+          <PublicForm
+            id="contact"
+            locale={locale}
+            action={contactAction}
+            initialToken={issueFormToken("contact")}
+            intro={t("contactForm.privacy", locale)}
+            labels={formLabels(locale, "contactForm.submit", "contactForm.received")}
+            errorText={formErrorText(locale)}
+            fields={[
+              { kind: "text", name: "name", label: t("form.field.yourName", locale), required: true, maxLength: 120, autoComplete: "name" },
+              { kind: "email", name: "email", label: t("auth.field.email", locale), required: true, maxLength: 254, autoComplete: "email" },
+              { kind: "tel", name: "phone", label: t("form.field.phone", locale), maxLength: 40, autoComplete: "tel" },
+              { kind: "text", name: "subject", label: t("form.field.subject", locale), required: true, maxLength: 200 },
+              { kind: "textarea", name: "message", label: t("form.field.message", locale), required: true, maxLength: 5000, rows: 7 },
+            ]}
+          />
+        ) : (
+          <Notice tone="info" title={t("form.unavailable", locale)} />
+        )}
+      </PublicSection>
+      ) : null}
     </PublicShell>
   );
 }

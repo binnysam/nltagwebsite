@@ -40,21 +40,29 @@ export interface CheckboxFieldProps {
   name: string;
   label: string;
   hint?: string;
+  /** Error message in words (e.g. a required consent). Marks the box invalid. */
+  error?: string;
+  required?: boolean;
   defaultChecked?: boolean;
   disabled?: boolean;
   className?: string;
 }
 
 /** Checkbox with its label as a 44px target. Edge uses border-control (≥3:1). */
-export function CheckboxField({ id, name, label, hint, defaultChecked, disabled, className }: CheckboxFieldProps) {
+export function CheckboxField({ id, name, label, hint, error, required, defaultChecked, disabled, className }: CheckboxFieldProps) {
   const hintId = hint ? `${id}-hint` : undefined;
+  const errorId = error ? `${id}-error` : undefined;
   return (
     <div className={cx(styles.checkField, className)}>
       <label htmlFor={id} className={styles.checkLabel}>
-        <input id={id} name={name} type="checkbox" className={styles.checkbox} defaultChecked={defaultChecked} disabled={disabled} aria-describedby={hintId} />
+        <input
+          id={id} name={name} type="checkbox" className={styles.checkbox} defaultChecked={defaultChecked} disabled={disabled} required={required}
+          aria-invalid={error ? true : undefined} aria-describedby={[hintId, errorId].filter(Boolean).join(" ") || undefined}
+        />
         <span>{label}</span>
       </label>
       {hint ? <p id={hintId} className={styles.hint}>{hint}</p> : null}
+      {error ? <p id={errorId} className={styles.error}>{error}</p> : null}
     </div>
   );
 }

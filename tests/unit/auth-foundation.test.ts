@@ -11,16 +11,24 @@ const visitor: Principal = { kind: "visitor" };
 const member: Principal = { kind: "user", userId: "m", emailVerified: true, roles: [], twoFactorEnabled: true };
 const editor: Principal = { kind: "user", userId: "e", emailVerified: true, roles: ["CONTENT_EDITOR"], twoFactorEnabled: true };
 const admin: Principal = { kind: "user", userId: "a", emailVerified: true, roles: ["CHURCH_ADMIN"], twoFactorEnabled: true };
+const prayerTeam: Principal = { kind: "user", userId: "p", emailVerified: true, roles: ["PRAYER_TEAM"], twoFactorEnabled: true };
 const unverifiedAdmin: Principal = { kind: "user", userId: "u", emailVerified: false, roles: ["CHURCH_ADMIN"], twoFactorEnabled: true };
 
 /** Architecture §5, written out independently of the implementation. */
-const EXPECTED: Record<"visitor" | "member" | "editor" | "admin", readonly Permission[]> = {
+const EXPECTED: Record<"visitor" | "member" | "editor" | "prayerTeam" | "admin", readonly Permission[]> = {
   visitor: ["content.read_published"],
   member: ["content.read_published", "account.manage_own", "membership.own"],
-  editor: ["content.read_published", "account.manage_own", "membership.own", "admin.access", "content.draft.edit", "content.submit_for_review", "media.upload"],
+  editor: [
+    "content.read_published", "account.manage_own", "membership.own", "admin.access", "staff.portal", "content.draft.edit", "content.submit_for_review", "media.upload",
+    // Nov 2026: testimony submissions (text only, no contact details), accept as draft
+    "submission.read", "submission.decide",
+  ],
+  // Nov 2026 (owner requirement): prayer requests only; no CMS, no contact messages, no submissions.
+  prayerTeam: ["content.read_published", "account.manage_own", "membership.own", "staff.portal", "prayer.read", "prayer.manage"],
   admin: [
-    "content.read_published", "account.manage_own", "membership.own", "admin.access", "content.draft.edit", "content.publish", "media.upload",
+    "content.read_published", "account.manage_own", "membership.own", "admin.access", "staff.portal", "content.draft.edit", "content.publish", "media.upload",
     "membership.read_any", "membership.decide", "membership.birthdays", "membership.reports", "membership.export", "staff.manage", "audit.read",
+    "prayer.read", "prayer.manage", "prayer.delete", "contact.read", "contact.manage", "submission.read", "submission.decide", "submission.contact", "gallery.publish",
   ],
 };
 
@@ -29,6 +37,7 @@ describe("permission matrix (architecture §5)", () => {
     ["visitor", visitor],
     ["member", member],
     ["editor", editor],
+    ["prayerTeam", prayerTeam],
     ["admin", admin],
   ] as const)("%s has exactly the approved permissions", (name, principal) => {
     expect([...permissionsFor(principal)].sort()).toEqual([...EXPECTED[name]].sort());
@@ -40,12 +49,27 @@ describe("permission matrix (architecture §5)", () => {
     expect(can(editor, "staff.manage")).toBe(false);
   });
 
+  it("Content Editors never read prayer requests or contact messages, nor submitters' contact details", () => {
+    for (const p of ["prayer.read", "prayer.manage", "prayer.delete", "contact.read", "contact.manage", "submission.contact", "gallery.publish"] as const) expect(can(editor, p), p).toBe(false);
+  });
+
+  it("Prayer Team reads prayer requests only: no CMS, contact, submissions, staff or audit", () => {
+    for (const p of PERMISSIONS.filter((x) => !["content.read_published", "account.manage_own", "membership.own", "staff.portal", "prayer.read", "prayer.manage"].includes(x))) {
+      expect(can(prayerTeam, p), p).toBe(false);
+    }
+    expect(can({ ...prayerTeam, twoFactorEnabled: false } as Principal, "prayer.read")).toBe(false);
+  });
+
+  it("visitors and members never get any inbox permission", () => {
+    for (const who of [visitor, member]) for (const p of PERMISSIONS.filter((x) => /^(prayer|contact|submission|gallery)\./.test(x))) expect(can(who, p), p).toBe(false);
+  });
+
   it("an unverified email removes every staff permission", () => {
     expect([...permissionsFor(unverifiedAdmin)].sort()).toEqual(["account.manage_own", "content.read_published"]);
   });
 
-  it("only the two approved staff roles exist", () => {
-    expect([...STAFF_ROLES]).toEqual(["CHURCH_ADMIN", "CONTENT_EDITOR"]);
+  it("only the approved staff roles exist (Gate 0 two + Prayer Team, Nov 2026)", () => {
+    expect([...STAFF_ROLES]).toEqual(["CHURCH_ADMIN", "CONTENT_EDITOR", "PRAYER_TEAM"]);
   });
 });
 

@@ -15,3 +15,10 @@ export const churchName = {
  * production site (2 Nov 2026). Indexing stays off (noindex) until the launch gate.
  */
 export const siteOrigin = "https://nltagkuwait.com";
+
+/**
+ * The church's verified location for the Contact map. CONTENT REQUIRED: null until the owner
+ * supplies the address wording and coordinates and approves publishing them (roadmap D3/C2).
+ * Never fill this from a guess or a web search. Cottage Meeting hosts are never published.
+ */
+export const churchLocation: null | { lat: number; lng: number; addressTa: string; addressEn: string } = null;

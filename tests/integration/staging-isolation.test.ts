@@ -6,6 +6,7 @@
 //    Needs a second, empty database whose name contains "staging" (TEST_STAGING_DATABASE_URL);
 //    CI's MariaDB user cannot create databases, so this block runs where that variable is set.
 import mysql from "mysql2/promise";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { DB_MARKER_TABLE, databaseIdentityProblems, resetVerificationForTests, verifyDeployment } from "@/server/deployment/verify";
 
 const TEST_URL = process.env.DATABASE_URL as string;

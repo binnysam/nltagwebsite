@@ -3,6 +3,7 @@ import { SiteFooter, SiteHeader, type NavItem } from "@/design-system/components
 import { t, type Locale } from "@/content/ui-strings";
 import { churchName } from "@/content/church";
 import { loadMenuPages } from "@/server/cms/public-site";
+import { publicFormsEnabled } from "@/server/forms/service";
 import { footerNav, headerNav, href, type PublicRoute } from "./site";
 import styles from "../public.module.css";
 
@@ -25,7 +26,7 @@ export async function PublicShell({
         cta={cta ?? { href: href(locale, "worshipTimes"), label: t("cta.joinFriday", locale) }}
       />
       <main id="main">{children}</main>
-      <SiteFooter locale={locale} name={churchName} navItems={footerNav(locale, pages)} note={t("schedule.timezone", locale)} />
+      <SiteFooter locale={locale} name={churchName} navItems={footerNav(locale, pages, publicFormsEnabled() ? ["prayer", "gallery"] : [])} note={t("schedule.timezone", locale)} />
     </div>
   );
 }

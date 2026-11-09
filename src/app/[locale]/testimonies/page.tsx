@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { Container, Section } from "@/design-system/primitives";
-import type { Locale } from "@/content/ui-strings";
+import { ButtonLink } from "@/design-system/components";
+import { t, type Locale } from "@/content/ui-strings";
+import { formAvailable } from "@/server/forms/service";
+import styles from "../public.module.css";
 import { loadTestimonies } from "@/server/cms/public-site";
 import { PublicShell } from "../_components/PublicShell";
 import { TestimonyEntries, PageHead } from "../_components/sections";
-import { pageMetadata, routeLabel } from "../_components/site";
+import { href, pageMetadata, routeLabel } from "../_components/site";
 
 type Props = { params: Promise<{ locale: Locale }> };
 
@@ -23,6 +26,11 @@ export default async function TestimoniesPage({ params }: Props) {
       <Container>
         <Section aria-label={routeLabel(locale, "testimonies")}>
           <TestimonyEntries items={items} locale={locale} full />
+          {formAvailable("testimony") ? (
+            <div className={styles.action}>
+              <ButtonLink href={`${href(locale, "testimonies")}/share`} variant="secondary">{t("testimonyForm.title", locale)}</ButtonLink>
+            </div>
+          ) : null}
         </Section>
       </Container>
     </PublicShell>

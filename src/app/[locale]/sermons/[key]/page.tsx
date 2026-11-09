@@ -6,6 +6,8 @@ import { t, type Locale } from "@/content/ui-strings";
 import { loadSermon } from "@/server/cms/public-site";
 import { PublicShell } from "../../_components/PublicShell";
 import { ShareButton } from "../../_components/ShareButton.client";
+import { VideoEmbed } from "../../_components/VideoEmbed.client";
+import { youTubeId } from "@/lib/youtube";
 import { PageBody, PageHead, sermonMeta } from "../../_components/sections";
 import { detailHref, href, itemKey, pageMetadata, routeLabel } from "../../_components/site";
 import styles from "../../public.module.css";
@@ -23,8 +25,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * One sermon: title, date · speaker · Bible reference, the church's text, then "Watch the sermon"
- * (a link to the church's own video page: never embedded or re-hosted), Share and back to the list.
+ * One sermon: title, date · speaker · Bible reference, the church's text, then for YouTube links a
+ * click-to-load player (nothing loads from YouTube before the visitor presses play; video is never
+ * re-hosted), "Watch the sermon" (the link itself, always present), Share and back to the list.
  * Same visibility rules as the list: unpublished, out-of-window or untitled-in-this-language is 404.
  */
 export default async function SermonPage({ params }: Props) {
@@ -38,6 +41,9 @@ export default async function SermonPage({ params }: Props) {
       <Container>
         <Section aria-label={s.title} className={styles.detail}>
           {meta ? <Text variant="small" tone="secondary" data-sermon-meta="">{meta}</Text> : null}
+          {youTubeId(s.videoUrl) ? (
+            <VideoEmbed id={youTubeId(s.videoUrl)!} title={s.title} playLabel={t("video.play", locale)} notice={t("video.notice", locale)} />
+          ) : null}
           <PageBody item={s} />
           <div className={styles.actions}>
             {s.videoUrl ? <ButtonLink href={s.videoUrl} rel="noopener noreferrer">{t("sermon.watch", locale)}</ButtonLink> : null}

@@ -174,6 +174,63 @@ const PENDING = [
   "auth.setPassword.title",
   "auth.setPassword.submit",
   "auth.setPassword.done",
+  // Website completion, Nov 2026: forms, gallery, video, map placeholder and error page. Awaiting
+  // owner review; staging only until approved.
+  "nav.prayer",
+  "nav.gallery",
+  "form.field.yourName",
+  "form.field.nameHint",
+  "form.field.contact",
+  "form.field.phone",
+  "form.field.subject",
+  "form.field.message",
+  "form.error.tooLong",
+  "form.error.tooShort",
+  "form.error.email",
+  "form.error.contact",
+  "form.error.phone",
+  "form.error.links",
+  "form.error.html",
+  "form.error.consent",
+  "form.error.summary",
+  "form.busy",
+  "form.expired",
+  "form.unavailable",
+  "form.failed",
+  "form.honeypot",
+  "prayer.title",
+  "prayer.lead",
+  "prayer.field.body",
+  "prayer.field.contactRequested",
+  "prayer.field.contactHint",
+  "prayer.consent",
+  "prayer.submit",
+  "prayer.received",
+  "contactForm.title",
+  "contactForm.privacy",
+  "contactForm.submit",
+  "contactForm.received",
+  "testimonyForm.title",
+  "testimonyForm.lead",
+  "testimonyForm.field.title",
+  "testimonyForm.field.body",
+  "testimonyForm.field.display",
+  "testimonyForm.display.full",
+  "testimonyForm.display.first",
+  "testimonyForm.display.anonymous",
+  "testimonyForm.field.contactHint",
+  "testimonyForm.consentPublish",
+  "testimonyForm.consentOthers",
+  "testimonyForm.submit",
+  "testimonyForm.received",
+  "gallery.lead",
+  "gallery.empty",
+  "video.play",
+  "video.notice",
+  "map.placeholder",
+  "error.title",
+  "error.body",
+  "error.retry",
 ];
 
 /**
@@ -315,7 +372,7 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
     }
   });
 
-  it("leaves no draft-review Tamil outside the Google sign-in, throttle-alert, R4 D9 and Phase A strings, and no open alternatives", () => {
+  it("leaves no draft-review Tamil outside the Google sign-in, throttle-alert, R4 D9 and Nov 2026 website-completion strings, and no open alternatives", () => {
     for (const [key, v] of Object.entries(uiStrings)) {
       if (v.taStatus !== "confirmed") expect(PENDING, key).toContain(key);
       expect((v as { taAlternatives?: unknown }).taAlternatives, key).toBeUndefined();

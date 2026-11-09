@@ -8,6 +8,7 @@ export type FormErrorKey =
   | "form.error.tooLong"
   | "form.error.tooShort"
   | "form.error.email"
+  | "form.error.contact"
   | "form.error.phone"
   | "form.error.links"
   | "form.error.html"
@@ -50,7 +51,7 @@ export function parsePrayer(f: FormData): Parsed<PrayerInput> {
   const d: PrayerInput = { name: clean(f.get("name")), contact: clean(f.get("contact")), contactRequested: checked(f.get("contactRequested")), body: clean(f.get("body"), true) };
   text(errors, "name", d.name, { max: 120 });
   text(errors, "contact", d.contact, { max: 254 });
-  if (d.contact && !EMAIL.test(d.contact) && !PHONE.test(d.contact)) errors.contact = "form.error.email";
+  if (d.contact && !EMAIL.test(d.contact) && !PHONE.test(d.contact)) errors.contact = "form.error.contact";
   if (d.contactRequested && !d.contact) errors.contact = "form.errorRequired";
   text(errors, "body", d.body, { required: true, min: 10, max: 2000, links: true });
   if (!checked(f.get("consent"))) errors.consent = "form.error.consent";
@@ -78,7 +79,7 @@ export function parseTestimony(f: FormData): Parsed<TestimonyInput> {
   text(errors, "body", d.body, { required: true, min: 30, max: 5000, links: true });
   text(errors, "name", d.name, { required: display !== "ANONYMOUS", max: 120 });
   text(errors, "contact", d.contact, { max: 254 });
-  if (d.contact && !EMAIL.test(d.contact) && !PHONE.test(d.contact)) errors.contact = "form.error.email";
+  if (d.contact && !EMAIL.test(d.contact) && !PHONE.test(d.contact)) errors.contact = "form.error.contact";
   if (!checked(f.get("consentPublish"))) errors.consentPublish = "form.error.consent";
   if (!checked(f.get("consentOthers"))) errors.consentOthers = "form.error.consent";
   return Object.keys(errors).length ? { ok: false, errors } : { ok: true, data: d };

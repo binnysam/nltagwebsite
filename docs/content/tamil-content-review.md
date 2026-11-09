@@ -1,7 +1,7 @@
 # Tamil content approval record
 
 **Generated from** `src/content/ui-strings.ts`, `src/content/schedule.ts` and `src/content/tamil-approvals.ts` by `node scripts/tamil-review.ts`. Do not edit by hand; `npm run verify` fails if this file is out of date.
-**Approved by the owner on 2026-11-01** (22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings; 38 Phase 4b account and email strings and 45 Phase 6b two-factor strings, 2026-11-02) **and on 2026-11-09** (13 website Phase A strings). 159 of 171 items approved; 12 still awaiting review. Times, days and NECK were confirmed at Gate 0.
+**Approved by the owner on 2026-11-01** (22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings; 38 Phase 4b account and email strings and 45 Phase 6b two-factor strings, 2026-11-02) **and on 2026-11-09** (13 website Phase A strings). 159 of 226 items approved; 67 still awaiting review. Times, days and NECK were confirmed at Gate 0.
 
 Owner-supplied Tamil is approved content and is reproduced exactly as supplied. Do not rephrase, re-spell or "correct" it; a unit test compares every character. Any change needs new owner approval. The language names தமிழ் and English were confirmed at Gate 0 and are not listed.
 
@@ -85,6 +85,61 @@ Owner-supplied Tamil is approved content and is reproduced exactly as supplied. 
 | pagination.previous | Previous page | முந்தைய பக்கம் | Approved 2026-11-09 (website Phase A) | — |  | Approved (`confirmed`) |
 | pagination.next | Next page | அடுத்த பக்கம் | Approved 2026-11-09 (website Phase A) | — |  | Approved (`confirmed`) |
 | pagination.status | Page {page} of {total} | பக்கம் {page} / {total} | Approved 2026-11-09 (website Phase A) | — | {page} and {total} are numbers, e.g. Page 2 of 5. | Approved (`confirmed`) |
+| nav.prayer | Prayer requests | ஜெப விண்ணப்பங்கள் | — | — | Footer and page link to the prayer request form. | Awaiting church review (`draft-review`) |
+| nav.gallery | Gallery | படத்தொகுப்பு | — | — | Footer link and page heading for the photo gallery. | Awaiting church review (`draft-review`) |
+| form.field.yourName | Your name | உங்கள் பெயர் | — | — |  | Awaiting church review (`draft-review`) |
+| form.field.nameHint | Leave blank to stay anonymous. | பெயர் குறிப்பிட விரும்பவில்லை என்றால் காலியாக விடவும். | — | — |  | Awaiting church review (`draft-review`) |
+| form.field.contact | Email or phone | மின்னஞ்சல் அல்லது தொலைபேசி எண் | — | — |  | Awaiting church review (`draft-review`) |
+| form.field.phone | Phone | தொலைபேசி எண் | — | — |  | Awaiting church review (`draft-review`) |
+| form.field.subject | Subject | பொருள் | — | — |  | Awaiting church review (`draft-review`) |
+| form.field.message | Message | செய்தி | — | — |  | Awaiting church review (`draft-review`) |
+| form.error.tooLong | This is too long. | இது மிக நீளமாக உள்ளது. | — | — |  | Awaiting church review (`draft-review`) |
+| form.error.tooShort | Please write a little more. | இன்னும் சற்று விரிவாக எழுதவும். | — | — |  | Awaiting church review (`draft-review`) |
+| form.error.email | Enter a valid email address. | சரியான மின்னஞ்சல் முகவரியை உள்ளிடவும். | — | — |  | Awaiting church review (`draft-review`) |
+| form.error.contact | Enter a valid email address or phone number. | சரியான மின்னஞ்சல் முகவரி அல்லது தொலைபேசி எண்ணை உள்ளிடவும். | — | — |  | Awaiting church review (`draft-review`) |
+| form.error.phone | Enter a valid phone number. | சரியான தொலைபேசி எண்ணை உள்ளிடவும். | — | — |  | Awaiting church review (`draft-review`) |
+| form.error.links | Please include no more than two links. | இரண்டுக்கு மேற்பட்ட இணைப்புகளைச் சேர்க்க வேண்டாம். | — | — |  | Awaiting church review (`draft-review`) |
+| form.error.html | Please remove the < and > characters. | < மற்றும் > குறிகளை நீக்கவும். | — | — |  | Awaiting church review (`draft-review`) |
+| form.error.consent | Please tick this box to continue. | தொடர இந்தப் பெட்டியைத் தேர்வு செய்யவும். | — | — |  | Awaiting church review (`draft-review`) |
+| form.error.summary | Please correct the fields marked below. Nothing was sent. | கீழே குறிக்கப்பட்ட புலங்களைச் சரிசெய்யவும். எதுவும் அனுப்பப்படவில்லை. | — | — |  | Awaiting church review (`draft-review`) |
+| form.busy | Many messages are arriving right now. Please try again later. | தற்போது அதிகமான செய்திகள் வருகின்றன. சிறிது நேரம் கழித்து மீண்டும் முயற்சிக்கவும். | — | — |  | Awaiting church review (`draft-review`) |
+| form.expired | This form was open for a long time. Please send it again. | இந்தப் படிவம் நீண்ட நேரம் திறந்திருந்தது. மீண்டும் அனுப்பவும். | — | — |  | Awaiting church review (`draft-review`) |
+| form.unavailable | This form is not available yet. | இந்தப் படிவம் இன்னும் கிடைக்கவில்லை. | — | — |  | Awaiting church review (`draft-review`) |
+| form.failed | Your message could not be sent. Please try again. | உங்கள் செய்தியை அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும். | — | — |  | Awaiting church review (`draft-review`) |
+| form.honeypot | Leave this field empty | இந்தப் புலத்தை காலியாக விடவும் | — | — | Hidden from people and screen readers; catches automated spam. | Awaiting church review (`draft-review`) |
+| prayer.title | Prayer request | ஜெப விண்ணப்பம் | — | — |  | Awaiting church review (`draft-review`) |
+| prayer.lead | Share what you would like us to pray for. Your request is read only by the Church Admin and the church's prayer team, and is never published. | நாங்கள் எதற்காக ஜெபிக்க வேண்டும் என்பதைப் பகிருங்கள். உங்கள் விண்ணப்பத்தை சபை நிர்வாகியும் சபையின் ஜெபக் குழுவும் மட்டுமே வாசிப்பார்கள்; அது ஒருபோதும் வெளியிடப்படாது. | — | — |  | Awaiting church review (`draft-review`) |
+| prayer.field.body | Your prayer request | உங்கள் ஜெப விண்ணப்பம் | — | — |  | Awaiting church review (`draft-review`) |
+| prayer.field.contactRequested | Please contact me | என்னைத் தொடர்பு கொள்ளவும் | — | — |  | Awaiting church review (`draft-review`) |
+| prayer.field.contactHint | Only if you would like someone from the church to contact you. | சபையிலிருந்து யாராவது உங்களைத் தொடர்பு கொள்ள விரும்பினால் மட்டும். | — | — |  | Awaiting church review (`draft-review`) |
+| prayer.consent | I agree that the Church Admin and the prayer team may read this request and keep it until it is deleted. | சபை நிர்வாகியும் ஜெபக் குழுவும் இந்த விண்ணப்பத்தை வாசிக்கவும், நீக்கப்படும் வரை வைத்திருக்கவும் சம்மதிக்கிறேன். | — | — | Consent text, version p-2026-11. Needs careful review. | Awaiting church review (`draft-review`) |
+| prayer.submit | Send prayer request | ஜெப விண்ணப்பத்தை அனுப்பு | — | — |  | Awaiting church review (`draft-review`) |
+| prayer.received | Thank you. Your prayer request has been received. | நன்றி. உங்கள் ஜெப விண்ணப்பம் பெறப்பட்டது. | — | — |  | Awaiting church review (`draft-review`) |
+| contactForm.title | Send us a message | எங்களுக்குச் செய்தி அனுப்புங்கள் | — | — |  | Awaiting church review (`draft-review`) |
+| contactForm.privacy | We use these details only to reply to you. They are kept by the church and never published. | உங்களுக்குப் பதிலளிக்க மட்டுமே இந்த விவரங்களைப் பயன்படுத்துகிறோம். இவை சபையால் வைத்திருக்கப்படும்; ஒருபோதும் வெளியிடப்படாது. | — | — |  | Awaiting church review (`draft-review`) |
+| contactForm.submit | Send message | செய்தியை அனுப்பு | — | — |  | Awaiting church review (`draft-review`) |
+| contactForm.received | Thank you. Your message has been sent to the church. | நன்றி. உங்கள் செய்தி சபைக்கு அனுப்பப்பட்டது. | — | — |  | Awaiting church review (`draft-review`) |
+| testimonyForm.title | Share your testimony | உங்கள் சாட்சியைப் பகிருங்கள் | — | — |  | Awaiting church review (`draft-review`) |
+| testimonyForm.lead | Tell us what God has done. The church reads every testimony before anything is published. | தேவன் செய்ததைப் பகிருங்கள். எதுவும் வெளியிடப்படுவதற்கு முன் ஒவ்வொரு சாட்சியையும் சபை வாசிக்கும். | — | — |  | Awaiting church review (`draft-review`) |
+| testimonyForm.field.title | Title | தலைப்பு | — | — |  | Awaiting church review (`draft-review`) |
+| testimonyForm.field.body | Your testimony | உங்கள் சாட்சி | — | — |  | Awaiting church review (`draft-review`) |
+| testimonyForm.field.display | Show my name as | என் பெயரை இப்படிக் காட்டவும் | — | — |  | Awaiting church review (`draft-review`) |
+| testimonyForm.display.full | Full name | முழுப் பெயர் | — | — |  | Awaiting church review (`draft-review`) |
+| testimonyForm.display.first | First name only | முதல் பெயர் மட்டும் | — | — |  | Awaiting church review (`draft-review`) |
+| testimonyForm.display.anonymous | Anonymous (no name) | பெயர் இல்லாமல் | — | — |  | Awaiting church review (`draft-review`) |
+| testimonyForm.field.contactHint | Private. Only if the church needs to ask you something; never published. | தனிப்பட்டது. சபை உங்களிடம் ஏதாவது கேட்க வேண்டியிருந்தால் மட்டும்; ஒருபோதும் வெளியிடப்படாது. | — | — |  | Awaiting church review (`draft-review`) |
+| testimonyForm.consentPublish | I agree that the church may publish this testimony, edited for length and clarity, with the name I chose. | நான் தேர்ந்தெடுத்த பெயருடன், நீளம் மற்றும் தெளிவுக்காகத் திருத்தப்பட்டு, இந்தச் சாட்சியைச் சபை வெளியிடச் சம்மதிக்கிறேன். | — | — | Consent text, version t-2026-11. Needs careful review. | Awaiting church review (`draft-review`) |
+| testimonyForm.consentOthers | I have not included private details about other people without their permission. | மற்றவர்களின் அனுமதி இல்லாமல் அவர்களைப் பற்றிய தனிப்பட்ட விவரங்களை நான் சேர்க்கவில்லை. | — | — | Consent text, version t-2026-11. Needs careful review. | Awaiting church review (`draft-review`) |
+| testimonyForm.submit | Send testimony | சாட்சியை அனுப்பு | — | — |  | Awaiting church review (`draft-review`) |
+| testimonyForm.received | Thank you. The church will read your testimony before anything is published. | நன்றி. எதுவும் வெளியிடப்படுவதற்கு முன் சபை உங்கள் சாட்சியை வாசிக்கும். | — | — |  | Awaiting church review (`draft-review`) |
+| gallery.lead | Photos from church life, published with permission. | அனுமதியுடன் வெளியிடப்பட்ட சபை வாழ்க்கையின் படங்கள். | — | — |  | Awaiting church review (`draft-review`) |
+| gallery.empty | Photos will appear here soon. | படங்கள் விரைவில் இங்கே இடம்பெறும். | — | — |  | Awaiting church review (`draft-review`) |
+| video.play | Play video | காணொளியை இயக்கு | — | — |  | Awaiting church review (`draft-review`) |
+| video.notice | Plays from YouTube. Nothing loads from YouTube until you press play. | YouTube-இலிருந்து இயங்கும். நீங்கள் இயக்கும் வரை YouTube-இலிருந்து எதுவும் ஏற்றப்படாது. | — | — |  | Awaiting church review (`draft-review`) |
+| map.placeholder | A map and directions will be added once the church's location is confirmed. | சபையின் இடம் உறுதிசெய்யப்பட்டதும் வரைபடமும் வழிகாட்டுதலும் சேர்க்கப்படும். | — | — |  | Awaiting church review (`draft-review`) |
+| error.title | Something went wrong | ஏதோ தவறு நடந்தது | — | — |  | Awaiting church review (`draft-review`) |
+| error.body | This page could not be shown. Please try again. | இந்தப் பக்கத்தைக் காட்ட முடியவில்லை. மீண்டும் முயற்சிக்கவும். | — | — |  | Awaiting church review (`draft-review`) |
+| error.retry | Try again | மீண்டும் முயற்சிக்கவும் | — | — |  | Awaiting church review (`draft-review`) |
 | auth.signIn.title | Sign in | உள்நுழைக | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
 | auth.signUp.title | Create an account | கணக்கை உருவாக்குக | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |
 | auth.field.name | Full name | முழுப் பெயர் | Approved 2026-11-02 (Phase 4b accounts and emails) | — |  | Approved (`confirmed`) |

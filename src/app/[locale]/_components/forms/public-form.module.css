@@ -1,0 +1,7 @@
+/* Public forms: a single readable column of design-system fields (tokens only). */
+.wrap { display: flex; flex-direction: column; gap: var(--space-5); max-width: var(--measure-en); }
+.result:focus { outline: none; }
+.result:empty { display: none; }
+.intro { color: var(--color-text-secondary); }
+.form { display: flex; flex-direction: column; gap: var(--space-5); }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
