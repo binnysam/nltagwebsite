@@ -5,6 +5,7 @@ import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import sharp from "sharp";
 import { base32Decode, freshStep, totp } from "../support/totp";
+import { canonicalProblem } from "../support/canonical";
 
 /**
  * Staging QA in a real browser, against a server built and started with the staging
@@ -65,7 +66,8 @@ test.describe("environment indicator and isolation", () => {
       await expect(page).toHaveTitle(/^\[STAGING\]/);
       await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
       await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", new RegExp(`^${BASE.replace(/[.:/]/g, "\\$&")}/${locale}`));
-      expect(await page.locator('link[rel="canonical"]').getAttribute("href")).not.toContain("nltagkuwait.com");
+      // Own origin only: never production (https://nltagkuwait.com), never any other origin.
+      expect(canonicalProblem(await page.locator('link[rel="canonical"]').getAttribute("href"), BASE, `/${locale}`)).toBeNull();
     });
   }
 
@@ -309,6 +311,77 @@ test.describe("staff on staging", () => {
     await page.getByRole("button", { name: "Unpublish" }).first().click();
     await expect(page.getByRole("main").getByRole("status").first()).toContainText("Unpublished");
     expect((await request.get(src)).status()).toBe(404);
+  });
+
+  test("media: deleting the library image removes the published gallery copy (and the original is never public)", async ({ page, request }) => {
+    test.setTimeout(120_000);
+    await signIn(page, "admin");
+    await page.goto("/admin/gallery");
+    await page.getByRole("button", { name: "Publish" }).first().click();
+    await expect(page.getByRole("status").first()).toContainText("Published");
+    await page.goto("/ta/gallery", { waitUntil: "networkidle" });
+    const src = (await page.locator("main img").first().getAttribute("src"))!;
+    expect((await request.get(src)).status()).toBe(200);
+    expect(src).toMatch(/^\/gallery-image\//);
+
+    await page.goto("/admin/media");
+    await page.getByRole("button", { name: "Delete" }).first().click();
+    await page.getByRole("dialog").getByRole("button", { name: "Delete image" }).click();
+    await expect(page.getByRole("main").getByRole("status").first()).toBeVisible();
+    expect((await request.get(src)).status()).toBe(404);
+    await page.goto("/ta/gallery", { waitUntil: "networkidle" });
+    await expect(page.locator("main img")).toHaveCount(0);
+    await page.goto("/admin/gallery");
+    await expect(page.getByText(/library image deleted/).first()).toBeVisible();
+  });
+
+  test("sermon video: nothing loads from YouTube or Google until Play; then the nocookie player; fits a phone", async ({ page }) => {
+    test.setTimeout(120_000);
+    await signIn(page, "admin");
+    await page.goto("/admin/sermons");
+    await page.locator("main table a").first().click();
+    await page.getByLabel("Video link").fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect(page.locator("main").getByRole("status").filter({ hasText: /Saved/ })).toBeVisible();
+    if (await page.getByRole("button", { name: "Publish" }).count()) {
+      await page.getByRole("button", { name: "Publish" }).click();
+      await expect(page.getByText("Published.", { exact: true })).toBeVisible();
+    }
+    const sermonId = new URL(page.url()).pathname.split("/").pop()!;
+
+    const external: string[] = [];
+    page.on("request", (r) => /youtube|google|ytimg|doubleclick/.test(new URL(r.url()).hostname) && external.push(r.url()));
+    await page.setViewportSize({ width: 390, height: 844 });
+    for (const locale of LOCALES) {
+      await page.goto(`/${locale}/sermons/${sermonId}`, { waitUntil: "networkidle" });
+      const facade = page.locator("[data-video-facade]");
+      await expect(facade).toHaveAttribute("data-video-facade", "idle");
+      expect(external).toEqual([]);
+      await quality(page);
+      const box = (await facade.boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(390);
+    }
+    await page.getByRole("button", { name: "Play video" }).click();
+    const frame = page.locator("[data-video-facade=playing] iframe");
+    await expect(frame).toHaveAttribute("src", /^https:\/\/www\.youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/);
+    const fb = (await frame.boundingBox())!;
+    expect(Math.abs(fb.width / fb.height - 16 / 9)).toBeLessThan(0.05);
+    expect(fb.x + fb.width).toBeLessThanOrEqual(390);
+    await page.setViewportSize({ width: 1280, height: 900 });
+  });
+
+  test("sessions: signing out ends the session and closes the admin again", async ({ page }) => {
+    test.setTimeout(120_000);
+    await signIn(page, "admin");
+    expect((await page.goto("/admin"))!.status()).toBe(200);
+    await page.goto("/en/account");
+    await page.getByRole("button", { name: "Sign out", exact: true }).click();
+    await page.waitForURL((u) => !u.pathname.endsWith("/account"));
+    await page.goto("/admin");
+    await expect(page).toHaveURL(/\/sign-in/);
+    const res = await page.request.get("/api/auth/get-session");
+    expect(await res.text()).not.toContain(STAFF.admin);
   });
 
   test("captured mail: every message is marked staging and none is addressed outside the test domains", async () => {

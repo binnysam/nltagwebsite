@@ -21,8 +21,9 @@ export default defineConfig({
     { name: "desktop-1280", use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 900 } } },
   ],
   webServer: {
-    // The gallery only exists in builds made with this flag. Never set it for production builds.
-    command: `NLTAG_DESIGN_SYSTEM_GALLERY=1 npx next build && npx next start -p ${PORT}`,
+    // The gallery only exists where this flag is set at build AND at start (pages render per request
+    // since the staging banner reads the environment in the root layout). Never set it in production.
+    command: `NLTAG_DESIGN_SYSTEM_GALLERY=1 npx next build && NLTAG_DESIGN_SYSTEM_GALLERY=1 npx next start -p ${PORT}`,
     url: `http://localhost:${PORT}/ta`,
     reuseExistingServer: true,
     timeout: 240_000,

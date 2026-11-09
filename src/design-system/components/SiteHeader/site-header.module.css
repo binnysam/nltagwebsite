@@ -79,4 +79,9 @@
 @media (min-width: 1280px) {
   .nav { display: block; }
   .menuButton, .panel { display: none; }
+  /* The approved Tamil labels plus the language switch and CTA are ~34px wider than the 1200px
+     container at the standard spacing (staging QA, Nov 2026), so the row ran into the page gutter.
+     Tamil only: one step less inline padding per link and between the bar's groups (40px). */
+  .header:lang(ta) .bar { gap: var(--space-3); }
+  .header:lang(ta) .navLink { padding-inline: var(--space-2); }
 }

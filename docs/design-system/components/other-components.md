@@ -11,7 +11,7 @@ All implemented in Phase 2 under `src/design-system/components/`. Visual rules c
 **States:** resting (white, no shadow) · scrolled (`data-stuck="true"`, shadow-1) · menu open/closed · nav link hover (paper-100 pill) and current.
 **Keyboard:** Tab order follows reading order. Menu button has `aria-expanded` and `aria-controls`; Escape closes the panel and returns focus to the button; following a link closes it. The panel is a disclosure, not a modal, so focus is not trapped.
 **Public site (Phase 5):** four links — About, Worship times, Sermons, Contact; the wordmark is the home link and "Home" is in the footer. Measured: five Tamil links + switch + the Tamil CTA overflowed by 72px at 1280px; four fit.
-**Responsive:** the inline nav appears from **1280px** (not 1024): with the Phase 2 draft Tamil labels the four links, switch and CTA wrapped at 1024–1279px. Tamil wording was approved on 1 Nov 2026; re-measure the breakpoint with the approved labels in Phase 3.
+**Responsive:** the inline nav appears from **1280px** (not 1024): with the Phase 2 draft Tamil labels the four links, switch and CTA wrapped at 1024–1279px. Tamil wording was approved on 1 Nov 2026; re-measure the breakpoint with the approved labels in Phase 3. Re-measured in staging QA (Nov 2026): with the approved Tamil labels the row was 34px wider than the 1200px container at every desktop width, so from 1280px the Tamil header uses `--space-2` link padding and a `--space-3` bar gap (English unchanged); `tests/e2e/public-site.spec.ts` checks the row stays inside the container at 1280 and 1440px.
 **Tokens:** `--header-height`, `--z-header`, `--tracking-wordmark`, `--shadow-1`, `--color-surface-card`, `--color-border-subtle`.
 
 ## LanguageSwitch

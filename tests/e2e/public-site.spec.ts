@@ -71,6 +71,28 @@ for (const locale of LOCALES) {
     await expect(page).toHaveURL(new RegExp(`/${other}/sermons$`));
   });
 
+  test(`/${locale}: the desktop header stays inside the page container (1280 and 1440px)`, async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop-1280", "one project takes both widths");
+    // Staging QA (Nov 2026): with the approved Tamil labels the header row ran 34px past the
+    // 1200px container, 6px from the window edge at 1280px.
+    for (const width of [1280, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await open(page, `/${locale}/sermons`);
+      const { right, containerRight, navLinks } = await page.evaluate(() => {
+        const header = document.querySelector("header")!;
+        const items = [...header.querySelectorAll("a, button")].filter((e) => (e as HTMLElement).offsetParent !== null);
+        const h1 = document.querySelector("main h1")!.getBoundingClientRect();
+        return {
+          right: Math.max(...items.map((e) => e.getBoundingClientRect().right)),
+          containerRight: window.innerWidth - h1.left, // the container is centred: its right edge mirrors the content's left edge
+          navLinks: header.querySelectorAll("nav a").length,
+        };
+      });
+      expect(navLinks).toBeGreaterThanOrEqual(4);
+      expect(right).toBeLessThanOrEqual(containerRight + 0.5);
+    }
+  });
+
   test(`/${locale}: only the homepage hero animates`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.goto(`/${locale}`, { waitUntil: "networkidle" });
