@@ -98,6 +98,15 @@ describe("staging configuration validation (fails closed)", () => {
     expect(stagingMailDir(stg({ NLTAG_STAGING_MAIL_DIR: "relative" }))).toBeNull();
   });
 
+  it("refuses a configured mail folder that is relative, does not name staging, or sits in the production data folder", () => {
+    const problems = (dir: string) => deploymentConfigProblems(stg({ NLTAG_STAGING_MAIL_DIR: dir }), HOME).join();
+    expect(problems("relative/mail")).toMatch(/NLTAG_STAGING_MAIL_DIR: must be an absolute path/);
+    expect(problems("/tmp/mail")).toMatch(/NLTAG_STAGING_MAIL_DIR: the staging mail folder path must name staging/);
+    expect(problems(`${HOME}/nltag-data/media`)).toMatch(/NLTAG_STAGING_MAIL_DIR: must not be, contain or sit inside the production data folder/);
+    expect(problems(`${HOME}/nltag-data/staging-mail`)).toMatch(/NLTAG_STAGING_MAIL_DIR: must not be, contain or sit inside the production data folder/);
+    expect(deploymentConfigProblems(stg({ NLTAG_STAGING_MAIL_DIR: `${HOME}/nltag-data-staging/mail-capture` }), HOME)).toEqual([]);
+  });
+
   it("refuses production one-off operations and the church's Google client", () => {
     expect(deploymentConfigProblems(stg({ NLTAG_APPROVED_PRODUCTION_MIGRATION: "1" }), HOME).join()).toMatch(/NLTAG_APPROVED_PRODUCTION_MIGRATION/);
     expect(deploymentConfigProblems(stg({ NLTAG_BOOTSTRAP_ADMIN_EMAIL: "a@nltag.test" }), HOME).join()).toMatch(/production admin bootstrap/);

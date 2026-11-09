@@ -156,6 +156,17 @@ export function deploymentConfigProblems(env: Env = process.env, home = ""): str
     if (home && pathsOverlap(dir, productionDataRoot(home))) problems.push("NLTAG_MEDIA_DIR: must not be, contain or sit inside the production data folder");
   }
 
+  // Captured mail (set-password links) must stay in staging's own folder, like the media folder.
+  const mailDir = env.NLTAG_STAGING_MAIL_DIR?.trim();
+  if (mailDir) {
+    if (!path.isAbsolute(mailDir)) problems.push("NLTAG_STAGING_MAIL_DIR: must be an absolute path");
+    else {
+      const dir = path.normalize(mailDir);
+      if (!pathNamesStaging(dir)) problems.push("NLTAG_STAGING_MAIL_DIR: the staging mail folder path must name staging (e.g. …/nltag-data-staging/mail-capture)");
+      if (home && pathsOverlap(dir, productionDataRoot(home))) problems.push("NLTAG_STAGING_MAIL_DIR: must not be, contain or sit inside the production data folder");
+    }
+  }
+
   // One-off production operations are never allowed in staging.
   if ((env.NLTAG_APPROVED_PRODUCTION_MIGRATION ?? "").trim() !== "") problems.push("NLTAG_APPROVED_PRODUCTION_MIGRATION: not allowed in staging (use NLTAG_STAGING_MIGRATE=1)");
   if ((env.NLTAG_BOOTSTRAP_ADMIN_EMAIL ?? "").trim() !== "") problems.push("NLTAG_BOOTSTRAP_ADMIN_EMAIL: the production admin bootstrap is not allowed in staging");

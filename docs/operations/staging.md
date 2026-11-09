@@ -29,6 +29,7 @@ Code: `src/server/deployment/environment.ts` (rules), `verify.ts` (live checks),
    - `BETTER_AUTH_SECRET`: must start with `nltag-staging-`, ≥ 48 characters (a production secret never does).
    - `NLTAG_MEDIA_DIR`: required, absolute, path names staging, must not be, contain or sit inside `/home/u339364475/nltag-data`.
    - Mail: no `SMTP_*` at all (capture mode, default); or `NLTAG_STAGING_MAIL=sandbox` with a sandbox host only (`sandbox.smtp.mailtrap.io`, `smtp.ethereal.email`).
+   - `NLTAG_STAGING_MAIL_DIR` (optional; default `mail-capture` next to the media folder): absolute, names staging, never in or around the production data folder.
    - Refused in staging: `NLTAG_APPROVED_PRODUCTION_MIGRATION`, `NLTAG_BOOTSTRAP_ADMIN_EMAIL`, `GOOGLE_CLIENT_*`; `NLTAG_SIGNUP_ALLOWLIST`, `NLTAG_CHURCH_INBOX` and `NLTAG_STAGING_BOOTSTRAP_ADMIN_EMAIL` accept reserved test addresses only (`…@nltag.test`, `example.com`).
    - Production gets the reverse checks: a staging secret, a staging database name or a staging media folder is refused there.
 3. **Live checks, not names.** At start-up (`src/instrumentation.ts`) and before every staging build, migration and seed:
