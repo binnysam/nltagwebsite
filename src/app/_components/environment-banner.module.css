@@ -1,5 +1,16 @@
-/* Staging indicator wrapper: page gutter only; the Notice supplies colour, border and type. */
-.banner {
-  padding: var(--space-2) var(--space-4);
-  background: var(--color-surface-card);
+/* Staging indicator: the Notice warning tone (status tokens, radius-md, hairline edge), tokens only. */
+.banner { padding: var(--space-2) var(--space-4); background: var(--color-surface-card); }
+.box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: var(--border-width-hairline) solid currentColor;
+  color: var(--color-status-warning-text);
+  background: var(--color-status-warning-surface);
+  font-size: var(--text-small);
+  line-height: var(--leading-small-en);
 }
+.title { margin: 0; font-weight: var(--font-weight-medium); }
+.body { margin: 0; color: var(--color-text-primary); }
