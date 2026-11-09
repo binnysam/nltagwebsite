@@ -70,3 +70,13 @@ export async function withinCeilings(form: FormName, now = Date.now()): Promise<
   const day = await reserveWindow(`form:${form}:day`, c.day, now);
   return day.allowed;
 }
+
+/**
+ * Token for the next attempt after a reply (e.g. a field needed correcting). A visitor who already
+ * passed the minimum fill time keeps their original time, so correcting a field quickly is never
+ * mistaken for a bot; anything else gets a fresh token (2 h maximum age still applies).
+ */
+export function nextFormToken(form: FormName, previous: unknown, now = Date.now()): string {
+  if (checkFormToken(form, previous, now) === "ok") return issueFormToken(form, Number(String(previous).split(".")[0]));
+  return issueFormToken(form, now);
+}

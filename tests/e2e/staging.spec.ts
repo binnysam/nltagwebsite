@@ -28,6 +28,8 @@ test.use({ baseURL: BASE });
 
 const PASSWORD = "staging-e2e-password-long";
 const LOCALES = ["ta", "en"] as const;
+/** Unique per run: identical texts within 24 h are (correctly) accepted once only. */
+const RUN = Date.now().toString(36);
 
 async function quality(page: Page) {
   const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
@@ -106,7 +108,7 @@ test.describe("forms (visitor)", () => {
     await page.getByRole("button", { name: "ஜெப விண்ணப்பத்தை அனுப்பு" }).click();
     await expect(page.getByRole("alert").first()).toBeVisible();
     await expect(page.getByText("இந்தப் புலம் அவசியம்.").first()).toBeVisible();
-    await page.getByLabel(/உங்கள் ஜெப விண்ணப்பம்/).fill("[Staging QA] Please pray for the test family.");
+    await page.getByLabel(/உங்கள் ஜெப விண்ணப்பம்/).fill(`[Staging QA] Please pray for the test family. ${RUN} ${test.info().project.name}`);
     await page.getByLabel(/நீக்கப்படும் வரை வைத்திருக்கவும்/).check();
     await page.getByRole("button", { name: "ஜெப விண்ணப்பத்தை அனுப்பு" }).click();
     await expect(page.getByRole("status").filter({ hasText: "நன்றி" }).first()).toBeVisible();
@@ -119,7 +121,7 @@ test.describe("forms (visitor)", () => {
     await page.getByLabel(/^Email address/).fill("visitor.qa@nltag.test");
     await page.getByLabel(/^Phone/).fill("+965 2222 3333");
     await page.getByLabel(/^Subject/).fill("[Staging QA] Visiting on Friday");
-    await page.getByLabel(/^Message/).fill("Can my family visit the Friday service? [Staging QA]");
+    await page.getByLabel(/^Message/).fill(`Can my family visit the Friday service? [Staging QA ${RUN} ${test.info().project.name}]`);
     await page.waitForTimeout(3200);
     await page.getByRole("button", { name: "Send message" }).click();
     await expect(page.getByRole("status").filter({ hasText: "Thank you" }).first()).toBeVisible();
@@ -133,7 +135,7 @@ test.describe("forms (visitor)", () => {
   test("testimony: submitted with consent, not published", async ({ page }) => {
     await page.goto("/en/testimonies/share");
     await page.getByLabel(/^Title/).fill("[Staging QA] Testimony");
-    await page.getByLabel(/^Your testimony/).fill("God answered our prayers during a difficult year. [Staging QA] fictional text.");
+    await page.getByLabel(/^Your testimony/).fill(`God answered our prayers during a difficult year. [Staging QA ${RUN} ${test.info().project.name}] fictional text.`);
     await page.getByLabel(/^Show my name as/).selectOption("FIRST_NAME");
     await page.getByLabel(/^Your name/).fill("Test Person");
     await page.getByLabel(/may publish this testimony/).check();
@@ -152,12 +154,15 @@ const STAFF = { admin: "admin.qa@nltag.test", editor: "editor.qa@nltag.test", pr
 const secrets: Partial<Record<keyof typeof STAFF, Uint8Array>> = {};
 
 async function requestAccountAndSetPassword(page: Page, email: string) {
+  const before = mailFiles().filter((m) => m.to === email).length;
   await page.goto("/en/sign-up");
   await page.getByLabel(/Email address/).fill(email);
   await page.waitForTimeout(1600);
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByRole("status")).toContainText("Check your email");
-  await expect.poll(() => latestLinkFor(email), { timeout: 15_000 }).toMatch(/reset-password\//);
+  // Wait for this request's own message (earlier runs' links are spent and must not be used).
+  await expect.poll(() => mailFiles().filter((m) => m.to === email).length, { timeout: 15_000 }).toBeGreaterThan(before);
+  expect(latestLinkFor(email)).toMatch(/reset-password\//);
   await page.goto(latestLinkFor(email));
   await page.getByLabel(/New password/).fill(PASSWORD);
   await page.getByRole("button", { name: "Save password" }).click();
@@ -224,7 +229,7 @@ test.describe("staff on staging", () => {
       await expect(page.getByRole("status").first()).toBeVisible();
     }
     await page.goto("/admin/staff");
-    await expect(page.getByText("Prayer Team")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Staff accounts" }).getByText("Prayer Team", { exact: true })).toBeVisible();
   });
 
   test("inboxes: prayer readable by admin and prayer team only; contact admin only; testimony accepted as a draft", async ({ page }) => {
@@ -232,8 +237,8 @@ test.describe("staff on staging", () => {
     await signIn(page, "admin");
     await page.goto("/admin/prayer");
     await quality(page);
-    await page.getByRole("link").filter({ hasText: /\d{4}|AM|PM/ }).first().click();
-    await expect(page.getByText("[Staging QA] Please pray for the test family.")).toBeVisible();
+    await page.locator("main table a").first().click();
+    await expect(page.getByText(/\[Staging QA\] Please pray for the test family\./)).toBeVisible();
     await page.getByRole("button", { name: "Mark as prayed for" }).click();
     await expect(page.getByRole("status").first()).toContainText("Status updated");
     await page.goto("/admin/contact");
@@ -272,6 +277,8 @@ test.describe("staff on staging", () => {
     await page.locator("input[type=file]").setInputFiles({ name: "qa.jpg", mimeType: "image/jpeg", buffer: jpeg });
     await page.getByLabel(/English/).first().fill("[Staging QA] photo");
     await page.getByRole("button", { name: /Upload/ }).click();
+    await expect(page.getByRole("main").getByRole("status").first()).toContainText("Image uploaded");
+    await page.goto("/admin/media");
     await expect(page.getByText("[Staging QA] photo").first()).toBeVisible();
 
     await page.goto("/admin/gallery");
@@ -300,6 +307,7 @@ test.describe("staff on staging", () => {
 
     await page.goto("/admin/gallery");
     await page.getByRole("button", { name: "Unpublish" }).first().click();
+    await expect(page.getByRole("main").getByRole("status").first()).toContainText("Unpublished");
     expect((await request.get(src)).status()).toBe(404);
   });
 

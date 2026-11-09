@@ -48,7 +48,7 @@ export default async function PrayerInbox({ searchParams }: { searchParams: Prom
           <tbody>
             {data.rows.map((r) => (
               <tr key={r.id}>
-                <th scope="row"><Link href={`/admin/prayer/${r.id}`}>{when(r.createdAt)}</Link></th>
+                <th scope="row"><Link className={styles.rowLink} href={`/admin/prayer/${r.id}`}>{when(r.createdAt)}</Link></th>
                 <td>{r.locale === "ta" ? "Tamil" : "English"}</td>
                 <td>{r.contactRequested ? "Yes" : "No"}</td>
                 <td>{PRAYER_STATUS_LABEL[r.status]}</td>

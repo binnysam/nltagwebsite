@@ -44,7 +44,7 @@ export default async function ContactInbox({ searchParams }: { searchParams: Pro
           <tbody>
             {data.rows.map((r) => (
               <tr key={r.id}>
-                <th scope="row"><Link href={`/admin/contact/${r.id}`} lang={r.locale}>{r.subject}</Link></th>
+                <th scope="row"><Link className={styles.rowLink} href={`/admin/contact/${r.id}`} lang={r.locale}>{r.subject}</Link></th>
                 <td>{r.name}</td>
                 <td className={styles.meta}>{when(r.createdAt)}</td>
                 <td>{CONTACT_STATUS_LABEL[r.status]}</td>

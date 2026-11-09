@@ -44,7 +44,7 @@ export default async function SubmissionsInbox({ searchParams }: { searchParams:
           <tbody>
             {data.rows.map((r) => (
               <tr key={r.id}>
-                <th scope="row"><Link href={`/admin/testimony-submissions/${r.id}`} lang={r.locale}>{r.title}</Link></th>
+                <th scope="row"><Link className={styles.rowLink} href={`/admin/testimony-submissions/${r.id}`} lang={r.locale}>{r.title}</Link></th>
                 <td>{DISPLAY_LABEL[r.display]}</td>
                 <td className={styles.meta}>{when(r.createdAt)}</td>
                 <td>{SUBMISSION_STATUS_LABEL[r.status]}</td>

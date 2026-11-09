@@ -4,7 +4,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { parseContact, parsePrayer, parseTestimony, displayNameFor, clean } from "@/server/forms/validation";
-import { checkFormToken, contentHash, issueFormToken, MIN_FILL_MS, MAX_AGE_MS } from "@/server/forms/protection";
+import { checkFormToken, contentHash, issueFormToken, MIN_FILL_MS, MAX_AGE_MS, nextFormToken } from "@/server/forms/protection";
 import { dataKeyConfigured, decryptText, encryptText } from "@/server/forms/crypto";
 import { renderNotification } from "@/server/forms/notify";
 import { formAvailable, publicFormsEnabled } from "@/server/forms/service";
@@ -102,6 +102,17 @@ describe("signed form token", () => {
     expect(checkFormToken("prayer", `${t0 - 60_000}.${token.split(".")[1]}`, t0)).toBe("invalid");
     expect(checkFormToken("prayer", null, t0)).toBe("invalid");
   });
+  it("after a reply, a visitor who passed the fill time keeps it (a quick correction is not a bot); others start fresh", () => {
+    const t0 = 1_800_000_000_000;
+    const first = issueFormToken("prayer", t0);
+    const next = nextFormToken("prayer", first, t0 + 5_000);
+    expect(checkFormToken("prayer", next, t0 + 5_500)).toBe("ok");
+    const early = nextFormToken("prayer", first, t0 + 1_000); // too fast: fresh token
+    expect(checkFormToken("prayer", early, t0 + 1_500)).toBe("too-fast");
+    expect(checkFormToken("prayer", nextFormToken("prayer", "forged.token", t0), t0 + 500)).toBe("too-fast");
+    expect(checkFormToken("prayer", next, t0 + MAX_AGE_MS + 1)).toBe("expired");
+  });
+
   it("duplicate fingerprints ignore case and spacing but not content", () => {
     expect(contentHash("prayer", ["Please  pray\nfor me"])).toBe(contentHash("prayer", ["please pray for me"]));
     expect(contentHash("prayer", ["please pray for me"])).not.toBe(contentHash("prayer", ["please pray for us"]));

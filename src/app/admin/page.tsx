@@ -8,12 +8,14 @@ import { MODULES, moduleByType } from "@/server/cms/registry";
 import { dashboard } from "@/server/cms/service";
 import { inboxCounts } from "@/server/forms/service";
 import { redirect } from "next/navigation";
+import { titlePrefix } from "@/server/deployment/environment";
 import { requireStaffPage } from "./_lib/staff";
 import { AdminShell } from "./_components/AdminShell";
 import { PageHead, StatusTag, Titles, when } from "./_components/parts";
 import styles from "./admin.module.css";
 
-export const metadata = { title: "Dashboard" };
+// The layout's title template does not apply to a page in its own segment: spell it out.
+export const metadata = { title: { absolute: `${titlePrefix()}Dashboard · NLTAG Admin` } };
 
 export default async function DashboardPage() {
   const ctx = await requireStaffPage("staff.portal");

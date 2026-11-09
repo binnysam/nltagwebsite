@@ -92,6 +92,7 @@ Built for the CMS admin from existing tokens only; listed in the gallery (`/[loc
 - **What:** click-to-load YouTube (privacy-enhanced `youtube-nocookie.com`) on sermon pages. Before "Play video" nothing is requested from YouTube or Google (no thumbnail, script or iframe). 16:9, `--radius-lg`, `--color-surface-sunken`, hairline border; static. The page's "Watch the sermon" link stays as the fallback and the no-JS path.
 
 ### Notice (`Notice/`)
+- **`live={false}` (Nov 2026):** persistent notices that are not messages (the staging banner) render without `role="status"/"alert"`; default unchanged.
 - **When:** result of an action, page-level warnings, error summaries.
 - **Anatomy:** status surface + status text tokens (same pairs as StatusBadge), radius 12, hairline edge, title in words + optional body. Links in an error-summary list keep 44px.
 - **A11y:** `error` → `role="alert"`; other tones → `role="status"`. Never colour alone. Static (no timer).

@@ -11,12 +11,17 @@ export interface NoticeProps {
   children?: ReactNode;
   /** Errors interrupt (role="alert"); everything else is polite (role="status"). */
   className?: string;
+  /**
+   * false: a persistent, non-live notice (e.g. the staging environment banner) with no status/alert
+   * role, so it is not announced as a message and never collides with the page's own results.
+   */
+  live?: boolean;
 }
 
 /** Inline message for form results and page-level states. Static: no motion, no dismiss timer. */
-export function Notice({ tone, title, children, className }: NoticeProps) {
+export function Notice({ tone, title, children, className, live = true }: NoticeProps) {
   return (
-    <div role={tone === "error" ? "alert" : "status"} className={cx(styles.notice, styles[tone], className)}>
+    <div role={live ? (tone === "error" ? "alert" : "status") : undefined} className={cx(styles.notice, styles[tone], className)}>
       <p className={styles.title}>{title}</p>
       {children ? <div className={styles.body}>{children}</div> : null}
     </div>

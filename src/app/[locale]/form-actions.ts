@@ -1,6 +1,6 @@
 "use server";
 
-import { issueFormToken } from "@/server/forms/protection";
+import { nextFormToken } from "@/server/forms/protection";
 import { submitContact, submitPrayer, submitTestimony, type SubmitResult } from "@/server/forms/service";
 import { log } from "@/server/security/log";
 import type { PublicFormState } from "./_components/forms/form-state";
@@ -20,7 +20,7 @@ const KEEP: Record<string, readonly string[]> = {
 async function handle(form: "prayer" | "contact" | "testimony", submit: Submit, prev: PublicFormState, f: FormData): Promise<PublicFormState> {
   const locale = f.get("locale") === "en" ? "en" : "ta";
   const seq = prev.seq + 1;
-  const token = issueFormToken(form);
+  const token = nextFormToken(form, f.get("formToken"));
   const values = Object.fromEntries(KEEP[form]!.map((k) => [k, typeof f.get(k) === "string" ? String(f.get(k)).slice(0, 6000) : ""]));
   try {
     const r = await submit(locale, f);

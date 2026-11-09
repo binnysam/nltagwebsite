@@ -12,10 +12,10 @@ import styles from "./environment-banner.module.css";
 export function EnvironmentBanner() {
   if (deploymentKind() !== "staging") return null;
   return (
-    <div className={styles.banner} lang="en" data-environment="staging">
-      <Notice tone="warning" title="STAGING — test site with fictional data">
+    <aside className={styles.banner} lang="en" data-environment="staging" aria-label="Environment">
+      <Notice tone="warning" title="STAGING — test site with fictional data" live={false}>
         <p>This is not the church&apos;s live website. Nothing here is real, and no email is delivered.</p>
       </Notice>
-    </div>
+    </aside>
   );
 }
