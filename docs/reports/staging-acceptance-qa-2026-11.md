@@ -556,5 +556,18 @@ One existing assertion changed with the approved behaviour: `tests/unit/website-
 
 ### 14.5 Live staging and production
 
-Filled in after the staging deploy.
+**Staging:**
+- `03468fa` → Hostinger build `01a1c47e`, completed 08:08 UTC 10 Nov.
+- `/api/health` is OK and staging-verified.
+- `/og/nltag-share-1200x630.jpg` → 200, `image/jpeg`, byte-identical to the committed file.
+- Prayer, gallery and testimony-share → 404 (forms still off).
+- Live run (Chromium 1248, `playwright.staging-live.config.ts`) of the description, canonical and share-image test on all 8 pages, phone + desktop: **2/2 passed**.
+
+**Production unchanged:**
+- `main` is still `c2301e2`, on build `01a1bede` (9 Nov), auto-deploy still on `main`.
+- No merge, PR, production setting, database, email or account change.
+
+### 14.6 Remaining approvals (yours)
+
+Unchanged from §13.9: items 1 (staging accounts), 5 (forms gate, only if wanted) and 6 (Prayer Team on staging).
 
