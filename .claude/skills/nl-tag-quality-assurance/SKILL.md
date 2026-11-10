@@ -20,8 +20,9 @@ Set `CHROME_PATH` if Playwright's bundled browser is not installed.
 
 ## Rules
 - Never weaken a test or the audit to make it pass; fix the code or escalate.
-- New visual baselines are reviewed (look at the image) before committing. Baselines are per platform; regenerate on the CI platform when CI is added.
+- New visual baselines are reviewed (look at the image) before committing. Reuse approved baselines; never regenerate them automatically (`--update-snapshots` only with owner approval, e.g. moving baselines to the CI platform).
+- Minimise screenshots (CLAUDE.md → "Screenshots and token use"): prefer assertions, DOM/computed-style checks and axe; screenshot only a genuine visual defect or on owner request, max one before + one after.
 - Tests never contain real member data or invented church content.
 
 ## Report
-Commands run, pass/fail counts, failures fixed, anything skipped and why, remaining risks.
+Concise: commands run, pass/fail counts, failures fixed, anything skipped and why, remaining risks. No step-by-step narration; no screenshots unless essential evidence.
