@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { uiStrings, type ReviewStatus } from "../src/content/ui-strings.ts";
 import { schedule } from "../src/content/schedule.ts";
+import { listDescriptions } from "../src/content/seo.ts";
 import {
   gate0ConfirmedTamil,
   ownerSuppliedTamil,
@@ -13,6 +14,8 @@ import {
   phase6bApprovedTamil,
   phaseAApprovedTamil,
   PHASEA_APPROVAL_DATE,
+  seoApprovedTamil,
+  SEO_APPROVAL_DATE,
   PHASE5_APPROVAL_DATE,
   PHASE6_APPROVAL_DATE,
   TAMIL_APPROVAL_DATE,
@@ -21,7 +24,7 @@ import {
 
 export const REVIEW_SHEET = fileURLToPath(new URL("../docs/content/tamil-content-review.md", import.meta.url));
 
-export type ApprovalSource = "owner-supplied" | "recommended" | "phase5-approved" | "phase4b-approved" | "phase6b-approved" | "phaseA-approved";
+export type ApprovalSource = "owner-supplied" | "recommended" | "phase5-approved" | "phase4b-approved" | "phase6b-approved" | "phaseA-approved" | "seo-approved";
 
 export interface ReviewItem {
   id: string;
@@ -49,7 +52,9 @@ const sourceOf = (id: string, status: ReviewStatus): ApprovalSource | undefined 
             ? "phase6b-approved"
             : id in phaseAApprovedTamil
               ? "phaseA-approved"
-              : "recommended";
+              : id in seoApprovedTamil
+                ? "seo-approved"
+                : "recommended";
 const previousOf = (id: string, ta: string) => {
   const p = owner[id]?.previousDraft;
   return p && p !== ta ? p : undefined;
@@ -78,6 +83,10 @@ export function reviewItems(): ReviewItem[] {
     if ((gate0ConfirmedTamil as readonly string[]).includes(id)) continue;
     const vv = v as { en: string; ta: string; note?: string; taStatus: ReviewStatus };
     add(id, vv.en, vv.ta, vv.note ?? "", vv.taStatus);
+  }
+  // Meta descriptions (src/content/seo.ts).
+  for (const [page, d] of Object.entries(listDescriptions)) {
+    add(`seo.${page}`, d.en, d.ta, "Meta description (search results and link previews).", "confirmed");
   }
   return items;
 }
@@ -108,7 +117,9 @@ const sourceLabel = (s?: ApprovalSource) =>
             ? `Approved ${PHASE6_APPROVAL_DATE} (Phase 6b two-factor)`
             : s === "phaseA-approved"
               ? `Approved ${PHASEA_APPROVAL_DATE} (website Phase A)`
-              : "—";
+              : s === "seo-approved"
+                ? `Approved ${SEO_APPROVAL_DATE} (SEO descriptions)`
+                : "—";
 
 export function buildTamilReview(): { md: string; count: number } {
   const items = reviewItems();
@@ -119,14 +130,15 @@ export function buildTamilReview(): { md: string; count: number } {
   const phase4bCount = items.filter((i) => i.source === "phase4b-approved").length;
   const phase6bCount = items.filter((i) => i.source === "phase6b-approved").length;
   const phaseACount = items.filter((i) => i.source === "phaseA-approved").length;
+  const seoCount = items.filter((i) => i.source === "seo-approved").length;
   const pending = items.length - confirmed.length;
   const rows = items.map(
     (i) => `| ${i.id} | ${esc(i.en)} | ${esc(i.ta)} | ${sourceLabel(i.source)} | ${i.previousDraft ? esc(i.previousDraft) : "—"} | ${esc(i.note)} | ${statusLabel(i.status)} |`,
   );
   const md = `# Tamil content approval record
 
-**Generated from** \`src/content/ui-strings.ts\`, \`src/content/schedule.ts\` and \`src/content/tamil-approvals.ts\` by \`node scripts/tamil-review.ts\`. Do not edit by hand; \`npm run verify\` fails if this file is out of date.
-**Approved by the owner on ${TAMIL_APPROVAL_DATE}** (${ownerCount} owner-supplied, ${recommendedCount} recommended drafts approved) **and on ${PHASE5_APPROVAL_DATE}** (${phase5Count} Phase 5 public-site strings; ${phase4bCount} Phase 4b account and email strings and ${phase6bCount} Phase 6b two-factor strings, ${PHASE6_APPROVAL_DATE}) **and on ${PHASEA_APPROVAL_DATE}** (${phaseACount} website Phase A strings). ${confirmed.length} of ${items.length} items approved${pending ? `; ${pending} still awaiting review` : "; none awaiting review"}. Times, days and NECK were confirmed at Gate 0.
+**Generated from** \`src/content/ui-strings.ts\`, \`src/content/schedule.ts\`, \`src/content/seo.ts\` and \`src/content/tamil-approvals.ts\` by \`node scripts/tamil-review.ts\`. Do not edit by hand; \`npm run verify\` fails if this file is out of date.
+**Approved by the owner on ${TAMIL_APPROVAL_DATE}** (${ownerCount} owner-supplied, ${recommendedCount} recommended drafts approved) **and on ${PHASE5_APPROVAL_DATE}** (${phase5Count} Phase 5 public-site strings; ${phase4bCount} Phase 4b account and email strings and ${phase6bCount} Phase 6b two-factor strings, ${PHASE6_APPROVAL_DATE}) **and on ${PHASEA_APPROVAL_DATE}** (${phaseACount} website Phase A strings) **and on ${SEO_APPROVAL_DATE}** (${seoCount} SEO descriptions). ${confirmed.length} of ${items.length} items approved${pending ? `; ${pending} still awaiting review` : "; none awaiting review"}. Times, days and NECK were confirmed at Gate 0.
 
 Owner-supplied Tamil is approved content and is reproduced exactly as supplied. Do not rephrase, re-spell or "correct" it; a unit test compares every character. Any change needs new owner approval. The language names தமிழ் and English were confirmed at Gate 0 and are not listed.
 

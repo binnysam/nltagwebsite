@@ -130,7 +130,7 @@ describe("link previews", () => {
   it("adds Open Graph and Twitter tags that match the page title, and keeps noindex", () => {
     const m = pageMetadata("ta", "sermons", { title: "[Sermon]", description: "[Desc]", path: "/sermons/x" });
     expect(m.openGraph).toMatchObject({ type: "website", title: "[Sermon] · NLTAG", description: "[Desc]", url: "/ta/sermons/x" });
-    expect(m.twitter).toMatchObject({ card: "summary", title: "[Sermon] · NLTAG" });
+    expect(m.twitter).toMatchObject({ card: "summary_large_image", title: "[Sermon] · NLTAG" }); // share image approved 10 Nov 2026
     expect(m.robots).toEqual({ index: false, follow: false });
     expect(m.alternates?.canonical).toBe("/ta/sermons/x");
   });

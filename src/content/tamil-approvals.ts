@@ -197,5 +197,20 @@ export const phaseAApprovedTamil = {
   "pagination.status": "பக்கம் {page} / {total}",
 } as const satisfies Record<string, string>;
 
+/**
+ * Tamil meta descriptions for the home page and the three public list pages (search results and
+ * link previews), approved by the owner on 10 Nov 2026 exactly as proposed in
+ * docs/reports/staging-acceptance-qa-2026-11.md §12.5. Used by src/content/seo.ts. Reproduce
+ * EXACTLY; any change needs new owner approval.
+ */
+export const SEO_APPROVAL_DATE = "2026-11-10";
+
+export const seoApprovedTamil = {
+  "seo.home": "புது வாழ்வு தமிழ் AG சபை, குவைத். ஆராதனை அட்டவணை, தேவ செய்திகள், சாட்சிகள் மற்றும் வரவிருக்கும் விசேஷ ஆராதனைகள்.",
+  "seo.sermons": "புது வாழ்வு தமிழ் AG சபையின் தேவ செய்திகள். தலைப்பு அல்லது பிரசங்கியார் பெயரால் தேடிப் பாருங்கள்.",
+  "seo.worshipTimes": "புது வாழ்வு தமிழ் AG சபையின் ஆராதனை அட்டவணை மற்றும் வரவிருக்கும் விசேஷ ஆராதனைகள். அனைத்து நேரங்களும் குவைத் நேரம்.",
+  "seo.testimonies": "புது வாழ்வு தமிழ் AG சபையின் சாட்சிகள். ஒவ்வொரு சாட்சியும் சபை வாசித்த பின், எழுதியவரின் அனுமதியுடன் வெளியிடப்படுகிறது.",
+} as const satisfies Record<string, string>;
+
 /** Interface strings confirmed at Gate 0, before the Tamil review. Not part of the 48. */
 export const gate0ConfirmedTamil = ["lang.ta", "lang.en"] as const;

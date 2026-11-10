@@ -104,28 +104,62 @@ for (const locale of LOCALES) {
   });
 }
 
-test("list pages carry the approved English description; Tamil pages none until approved (10 Nov 2026)", async ({ page }) => {
-  const en: Record<string, RegExp> = {
-    "": /^New Life Tamil AG Church in Kuwait\. Worship schedule, sermons, testimonies and upcoming special meetings, in Tamil and English\.$/,
-    "/sermons": /^Sermons from New Life Tamil AG Church, Kuwait\. Search by title or speaker\.$/,
-    "/worship-times": /^Worship schedule and upcoming special meetings of New Life Tamil AG Church\. All times are Kuwait time\.$/,
-    "/testimonies": /^Testimonies from New Life Tamil AG Church, Kuwait\. Each testimony is published with the author's permission after the church has read it\.$/,
+test("list pages carry the approved description in both languages, with canonical and share image (10 Nov 2026)", async ({ page, request, baseURL }) => {
+  // Exactly the owner-approved wording (English and Tamil approved 10 Nov 2026, QA report §12.5).
+  const text: Record<string, { en: string; ta: string }> = {
+    "": {
+      en: "New Life Tamil AG Church in Kuwait. Worship schedule, sermons, testimonies and upcoming special meetings, in Tamil and English.",
+      ta: "புது வாழ்வு தமிழ் AG சபை, குவைத். ஆராதனை அட்டவணை, தேவ செய்திகள், சாட்சிகள் மற்றும் வரவிருக்கும் விசேஷ ஆராதனைகள்.",
+    },
+    "/sermons": {
+      en: "Sermons from New Life Tamil AG Church, Kuwait. Search by title or speaker.",
+      ta: "புது வாழ்வு தமிழ் AG சபையின் தேவ செய்திகள். தலைப்பு அல்லது பிரசங்கியார் பெயரால் தேடிப் பாருங்கள்.",
+    },
+    "/worship-times": {
+      en: "Worship schedule and upcoming special meetings of New Life Tamil AG Church. All times are Kuwait time.",
+      ta: "புது வாழ்வு தமிழ் AG சபையின் ஆராதனை அட்டவணை மற்றும் வரவிருக்கும் விசேஷ ஆராதனைகள். அனைத்து நேரங்களும் குவைத் நேரம்.",
+    },
+    "/testimonies": {
+      en: "Testimonies from New Life Tamil AG Church, Kuwait. Each testimony is published with the author's permission after the church has read it.",
+      ta: "புது வாழ்வு தமிழ் AG சபையின் சாட்சிகள். ஒவ்வொரு சாட்சியும் சபை வாசித்த பின், எழுதியவரின் அனுமதியுடன் வெளியிடப்படுகிறது.",
+    },
   };
-  for (const [path, text] of Object.entries(en)) {
-    await page.goto(`/en${path}`);
-    for (const sel of ['meta[name="description"]', 'meta[property="og:description"]', 'meta[name="twitter:description"]']) {
-      await expect(page.locator(sel), `${path} ${sel}`).toHaveAttribute("content", text);
+  const name = { en: "New Life Tamil AG Church", ta: "புது வாழ்வு தமிழ் AG சபை" };
+  const origin = new URL(baseURL!).origin;
+  for (const [path, byLocale] of Object.entries(text)) {
+    for (const locale of ["en", "ta"] as const) {
+      const where = `/${locale}${path}`;
+      await page.goto(where);
+      for (const sel of ['meta[name="description"]', 'meta[property="og:description"]', 'meta[name="twitter:description"]']) {
+        await expect(page.locator(sel), `${where} ${sel}`).toHaveAttribute("content", byLocale[locale]);
+      }
+      // Self canonical and og:url on the page's own origin (staging never points at production).
+      const canonical = await page.locator('link[rel="canonical"]').getAttribute("href");
+      expect(new URL(canonical!, origin).pathname, where).toBe(where);
+      await expect(page.locator('meta[property="og:url"]'), where).toHaveAttribute("content", canonical!);
+      // Share image (owner approval 10 Nov 2026).
+      const img = await page.locator('meta[property="og:image"]').getAttribute("content");
+      expect(new URL(img!).pathname, where).toBe("/og/nltag-share-1200x630.jpg");
+      expect(new URL(img!).origin, where).toBe(new URL(canonical!).origin);
+      await expect(page.locator('meta[property="og:image:width"]'), where).toHaveAttribute("content", "1200");
+      await expect(page.locator('meta[property="og:image:height"]'), where).toHaveAttribute("content", "630");
+      await expect(page.locator('meta[property="og:image:alt"]'), where).toHaveAttribute("content", name[locale]);
+      await expect(page.locator('meta[name="twitter:card"]'), where).toHaveAttribute("content", "summary_large_image");
+      expect(new URL((await page.locator('meta[name="twitter:image"]').getAttribute("content"))!).pathname, where).toBe("/og/nltag-share-1200x630.jpg");
+      await expect(page.locator('meta[name="twitter:image:alt"]'), where).toHaveAttribute("content", name[locale]);
     }
-    await page.goto(`/ta${path}`);
-    await expect(page.locator('meta[name="description"]'), `/ta${path}`).toHaveCount(0);
-    await expect(page.locator('meta[property="og:description"]'), `/ta${path}`).toHaveCount(0);
   }
+  // The image itself is served.
+  const res = await request.get("/og/nltag-share-1200x630.jpg");
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toBe("image/jpeg");
   // Other pages never borrow a list page's description.
-  for (const path of ["/en/about", "/en/contact", "/en/ministries"]) {
+  const all = Object.values(text).flatMap((t) => [t.en, t.ta]);
+  for (const path of ["/en/about", "/en/contact", "/en/ministries", "/ta/about", "/ta/contact", "/ta/ministries"]) {
     await page.goto(path);
     const meta = page.locator('meta[name="description"]');
     const own = (await meta.count()) ? await meta.first().getAttribute("content") : null;
-    for (const text of Object.values(en)) expect(own ?? "", path).not.toMatch(text);
+    expect(all, path).not.toContain(own ?? "");
   }
 });
 

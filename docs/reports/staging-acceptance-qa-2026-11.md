@@ -513,7 +513,7 @@ All in `docs/reports/staging-acceptance-qa-2026-11/`.
 - The same 12 variable names.
 - No merge, PR, production setting, database, email or account change.
 
-### 13.9 Remaining approvals (yours)
+### 13.9 Remaining approvals (yours; items 2–4 approved and done 10 Nov 2026, §14)
 
 1. **Staging accounts:** follow §13.1, then run the live CMS suite (§12.2) on your computer. Remove the bootstrap variable right after its build.
 2. **Verse phone baselines:** replace them or keep them (§13.3). Until then those two phone tests keep failing.
@@ -521,3 +521,40 @@ All in `docs/reports/staging-acceptance-qa-2026-11/`.
 4. **Sharing image:** approve the final proposal (§13.4) before it is wired into the site.
 5. **Forms gate:** only if you want forms on live staging; a security design comes first.
 6. **Prayer Team on live staging:** the role can't be granted while forms are off (§13.1 C). This needs no action unless you want it.
+
+## 14. Owner decisions 10 Nov 2026: verse baselines, Tamil descriptions, sharing image
+
+The owner approved all three pending decisions (§13.9 items 2–4). Nothing else changed: no Bible text, no approved Tamil, no tokens, forms stay off, production untouched.
+
+### 14.1 Verse phone baselines: replaced
+
+- `verse-compact-phone-390-linux.png` and `verse-square-phone-390-linux.png` replaced with the §12.3 candidates, rendered on the exact pinned Chromium 1248 (`scripts/pinned-chromium.sh`). They show the approved "இன்றைய தேவ வசனம்" label. No other baseline changed.
+- Result on 1248: all 6 verse baselines and the verse spec tests pass (phone + desktop, 12/12).
+
+### 14.2 Tamil SEO descriptions: implemented
+
+- The four Tamil texts from §12.5, exactly as proposed, are in `seoApprovedTamil` (`src/content/tamil-approvals.ts`), used by `src/content/seo.ts` and listed in the Tamil approval record (now 230 items, 163 approved; `scripts/tamil-review.ts`).
+- Home, Sermons, Worship times and Testimonies now carry their description in both languages as `description`, `og:description` and `twitter:description`; canonical and `og:url` are self-referencing on each page's own origin.
+- Tests: `tests/unit/seo-descriptions.test.ts` and `tests/unit/tamil-review.test.ts` lock the Tamil character for character; `tests/e2e/public-site.spec.ts` checks all 8 pages (description ×3, canonical, `og:url`, image tags) and that About, Contact and Ministries in both languages borrow none of them.
+
+### 14.3 Sharing image: final and wired
+
+- `public/og/nltag-share-1200x630.jpg` (1200 × 630, JPEG, 103 KB; under WhatsApp's ~300 KB preview limit, unlike the 1 MB PNG the grain produces). Rendered by `scripts/render-share-image.mjs` on Chromium 1248 from tokens only: `--gradient-vaigarai`, `--texture-grain` (approved opacity, blend, tile), `--color-text-on-gradient`; "NLTAG" (Inter 500, `--text-body-l`), the Tamil name (Anek Tamil 300, `--text-display-xl-ta`, two lines), the English name (Inter Tight 300, `--text-h1`), `nltagkuwait.com` (`--text-body`).
+- The script reads the Tamil name from the owner-supplied record and stops if it differs; the only change is the approved line break.
+- Square crop: the text block spans x 377–824 px, inside the central 630 × 630 (285–915) with at least 91 px each side; checked by eye once.
+- `pageMetadata` adds `og:image` (+ width 1200, height 630, alt = church name in the page language) and `twitter:card=summary_large_image` with `twitter:image` and alt, on every public page. Absolute URLs come from `metadataBase`, so staging links its own copy.
+
+### 14.4 Tests
+
+| Suite | Result |
+|---|---|
+| `npm run verify` (token audit 0 errors, Tamil record 230 in sync, lint, typecheck, 387 unit tests in 28 files, build) | passed |
+| Browser, all projects, Chromium 1248, unseeded (`E2E_AUTH` off) | **194 passed, 0 failed**, 122 skipped (the suites' own: account, admin and seeded checks) |
+| `npm run test:integration` | not run: no MariaDB in this session; no database or server logic changed (content constants, page metadata, a static file, tests) |
+
+One existing assertion changed with the approved behaviour: `tests/unit/website-phase-a.test.tsx` expected `twitter:card=summary` (no image); it now expects `summary_large_image`. Nothing was skipped or loosened.
+
+### 14.5 Live staging and production
+
+Filled in after the staging deploy.
+

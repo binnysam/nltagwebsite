@@ -10,6 +10,7 @@ import {
   phase4bApprovedTamil,
   phase6bApprovedTamil,
   phaseAApprovedTamil,
+  seoApprovedTamil,
 } from "@/content/tamil-approvals";
 
 /**
@@ -284,9 +285,9 @@ const APPROVED_AS_RECOMMENDED: [string, string][] = [
 ];
 
 describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
-  it("approves 159 items: 22 owner-supplied, 26 recommended (1 Nov), 15 Phase 5, 38 Phase 4b and 45 Phase 6b (2 Nov), 13 Phase A (9 Nov)", () => {
+  it("approves 163 items: 22 owner-supplied, 26 recommended (1 Nov), 15 Phase 5, 38 Phase 4b and 45 Phase 6b (2 Nov), 13 Phase A (9 Nov), 4 SEO descriptions (10 Nov)", () => {
     const items = reviewItems();
-    expect(items.filter((i) => i.status === "confirmed")).toHaveLength(159);
+    expect(items.filter((i) => i.status === "confirmed")).toHaveLength(163);
     // Only the two Google sign-in strings remain under review.
     expect(items.filter((i) => i.status !== "confirmed").map((i) => i.id).sort()).toEqual([...PENDING].sort());
     for (const i of items.filter((x) => x.status !== "confirmed")) expect(i.status, i.id).toBe("draft-review");
@@ -296,6 +297,23 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
     expect(items.filter((i) => i.source === "phase4b-approved")).toHaveLength(38);
     expect(items.filter((i) => i.source === "phase6b-approved")).toHaveLength(45);
     expect(items.filter((i) => i.source === "phaseA-approved")).toHaveLength(13);
+    expect(items.filter((i) => i.source === "seo-approved")).toHaveLength(4);
+  });
+
+  it("reproduces the four approved Tamil SEO descriptions exactly (owner sign-off, 10 Nov 2026)", () => {
+    const SEO_APPROVED: Record<string, string> = {
+      "seo.home": "புது வாழ்வு தமிழ் AG சபை, குவைத். ஆராதனை அட்டவணை, தேவ செய்திகள், சாட்சிகள் மற்றும் வரவிருக்கும் விசேஷ ஆராதனைகள்.",
+      "seo.sermons": "புது வாழ்வு தமிழ் AG சபையின் தேவ செய்திகள். தலைப்பு அல்லது பிரசங்கியார் பெயரால் தேடிப் பாருங்கள்.",
+      "seo.worshipTimes": "புது வாழ்வு தமிழ் AG சபையின் ஆராதனை அட்டவணை மற்றும் வரவிருக்கும் விசேஷ ஆராதனைகள். அனைத்து நேரங்களும் குவைத் நேரம்.",
+      "seo.testimonies": "புது வாழ்வு தமிழ் AG சபையின் சாட்சிகள். ஒவ்வொரு சாட்சியும் சபை வாசித்த பின், எழுதியவரின் அனுமதியுடன் வெளியிடப்படுகிறது.",
+    };
+    expect(seoApprovedTamil).toEqual(SEO_APPROVED);
+    const byId = Object.fromEntries(reviewItems().map((i) => [i.id, i]));
+    for (const [id, ta] of Object.entries(SEO_APPROVED)) {
+      expect(byId[id]?.ta, id).toBe(ta);
+      expect(byId[id]?.source, id).toBe("seo-approved");
+      expect(ta, id).toBe(ta.normalize("NFC"));
+    }
   });
 
   it("reproduces every Phase A approved string exactly (owner sign-off, 9 Nov 2026)", () => {
@@ -390,10 +408,10 @@ describe("Tamil approval record (owner sign-off, 1 Nov 2026)", () => {
     expect(readFileSync(REVIEW_SHEET, "utf8")).toBe(md);
     const pending = reviewItems().filter((i) => i.status !== "confirmed").length;
     expect(md).toContain(
-      "(22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings; 38 Phase 4b account and email strings and 45 Phase 6b two-factor strings, 2026-11-02) **and on 2026-11-09** (13 website Phase A strings)",
+      "(22 owner-supplied, 26 recommended drafts approved) **and on 2026-11-02** (15 Phase 5 public-site strings; 38 Phase 4b account and email strings and 45 Phase 6b two-factor strings, 2026-11-02) **and on 2026-11-09** (13 website Phase A strings) **and on 2026-11-10** (4 SEO descriptions)",
     );
     expect(pending).toBe(PENDING.length);
-    expect(md).toContain(`159 of ${reviewItems().length} items approved; ${PENDING.length} still awaiting review`);
+    expect(md).toContain(`163 of ${reviewItems().length} items approved; ${PENDING.length} still awaiting review`);
     for (const line of md.split("\n").filter((l) => l.includes("draft-review") && l.startsWith("| "))) {
       expect(PENDING).toContain(line.split("|")[1]!.trim());
     }

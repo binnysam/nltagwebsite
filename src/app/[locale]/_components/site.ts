@@ -59,8 +59,16 @@ export const footerNav = (locale: Locale, pages: readonly { slug: string; title:
 ];
 
 /**
+ * Link-preview image (owner approval 10 Nov 2026, QA report §13.4): one static bilingual
+ * 1200 × 630 image for both languages, rendered by scripts/render-share-image.mjs from tokens.
+ * Its key content sits in the central 630 × 630, so square crops (WhatsApp) keep the name.
+ */
+export const shareImage = { url: "/og/nltag-share-1200x630.jpg", width: 1200, height: 630, type: "image/jpeg" } as const;
+
+/**
  * Page metadata: unique title per page and language, self canonical, hreflang ta/en and
- * x-default → /ta, Open Graph / Twitter preview tags (title, description, church name, URL). Indexing stays off (root layout `noindex`) until the launch gate.
+ * x-default → /ta, Open Graph / Twitter preview tags (title, description, church name, URL, share
+ * image with the church name as alt text). Indexing stays off (root layout `noindex`) until the launch gate.
  */
 export function pageMetadata(locale: Locale, route: PublicRoute, opts: { title?: string; description?: string; path?: string } = {}): Metadata {
   const path = opts.path ?? publicRoutes[route];
@@ -70,9 +78,16 @@ export function pageMetadata(locale: Locale, route: PublicRoute, opts: { title?:
   return {
     title: route === "home" ? { absolute: fullTitle } : title,
     description,
-    // Link previews (WhatsApp, Facebook, X …). No image until the church supplies a logo or photo.
-    openGraph: { type: "website", siteName: churchName[locale], title: fullTitle, description, url: `/${locale}${path}` },
-    twitter: { card: "summary", title: fullTitle, description },
+    // Link previews (WhatsApp, Facebook, X …). Absolute image URLs come from the layout's metadataBase.
+    openGraph: {
+      type: "website",
+      siteName: churchName[locale],
+      title: fullTitle,
+      description,
+      url: `/${locale}${path}`,
+      images: [{ ...shareImage, alt: churchName[locale] }],
+    },
+    twitter: { card: "summary_large_image", title: fullTitle, description, images: [{ url: shareImage.url, alt: churchName[locale] }] },
     alternates: {
       canonical: `/${locale}${path}`,
       languages: { ta: `/ta${path}`, en: `/en${path}`, "x-default": `/ta${path}` },
