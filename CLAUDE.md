@@ -53,5 +53,12 @@ Read: `docs/design-system/foundations/foundations.md` → `docs/design-system/to
 - Tamil wording: the 48 reviewed items were approved by the owner on 1 Nov 2026; the 15 Phase 5 public-site strings, 38 Phase 4b account/email strings and 45 Phase 6b two-factor strings on 2 Nov 2026 (`docs/content/tamil-content-review.md`, `phase5ApprovedTamil`, `phase4bApprovedTamil`, `phase6bApprovedTamil`). Only `auth.google`/`auth.or`, the two `email.signInThrottled.*` alert strings (sent English-only until approved) and the 8 R4 D9 strings (`email.setPassword.*`, `auth.accountRequest.*`, `auth.setPassword.*`; owner approval before the first Church Admin activation) remain `draft-review`. Owner-supplied Tamil (`src/content/tamil-approvals.ts`) is reproduced exactly; never rephrase or "correct" it. New Tamil strings start as `draft-review` and need owner approval.
 - Ask before changing tokens, membership policy, security, SEO strategy, dependencies with cost, or deployment. Never deploy, push to `main`, change repo visibility or touch DNS without explicit approval.
 
+## Screenshots and token use (owner rule, 10 Nov 2026 — all sessions)
+- Verify with automated assertions, DOM checks, computed styles, axe and the existing Playwright tests — not screenshots.
+- Screenshot only to investigate a genuine visual defect or when the owner asks for a visual comparison; then at most one before and one after image, one viewport unless more is necessary.
+- No routine full-page shots, per-breakpoint or per-page captures, galleries or repeated visual reports; no screenshots in reports unless essential evidence.
+- Reuse approved visual baselines; never regenerate them automatically (no `--update-snapshots` without owner approval).
+- Keep output concise: report failures, fixes and pass/fail counts, not step-by-step narration. Don't re-audit features already verified.
+
 ## Definition of done
 `npm run verify` (token audit, lint, typecheck, unit tests, build), `npm run test:integration` (MariaDB) and `scripts/serve-gallery.sh && npm run test:e2e` pass (account pages and admin: `E2E_AUTH=1`, see `tests/e2e/auth.spec.ts` and `tests/e2e/admin.spec.ts`); docs/specs updated when behaviour or rules change; report changes, tests and remaining risks.
