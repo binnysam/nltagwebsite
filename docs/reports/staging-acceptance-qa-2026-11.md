@@ -593,3 +593,10 @@ Code only. No staging or production variable, database, permission or migration 
 | Mutation checks | integration fails (2) with the staff check removed; browser spec fails when the server action ignores the session (the visitor/member POST replay is stored); both pass again on the real code |
 | Live staging role tests | not run: they need `staff` set on staging and sessions the owner saves on their own computer (spec header) |
 
+## 16. Live CMS run 1 (10 Nov 2026): test fix
+
+- Result: 4 passed, 1 failed, 5 did not run. Cause: the sermon "no match" check looked at the whole page, which includes the speaker filter. That filter lists every published sermon's speaker by design, so the run's speaker was always there. Not a site defect.
+- Fix (test only): the check now requires "Nothing matches your search." and zero sermon result links, and, when the filter is shown, the run's speaker exactly once.
+- Clean-up hardened: the after-failure hook has its own 5-minute budget and reuses the signed-in session. It touches a record only when its own title field starts with the run's marker, confirms each deletion, also removes the media test's upload, and reports anything it skips or cannot remove (ids only) instead of acting on it.
+- Validated against a local staging server (local MariaDB, fictional accounts): normal run 9 passed, 1 skipped; simulated failure in the sermon test: the run's published sermon and its page were removed, and a seeded page passed in as a decoy was left published and reported; simulated failure after the media upload: upload removed.
+

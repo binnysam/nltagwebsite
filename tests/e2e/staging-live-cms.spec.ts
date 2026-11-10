@@ -41,6 +41,10 @@ const PRAYER = staff("PRAYER");
 /** Created records, removed again by the cleanup test (and by afterAll if a test failed). */
 const created: { segment: string; id: string }[] = [];
 const mediaAlt = `${MARK} photo`;
+/** The media test's upload is still in the library (removed by the test itself, else by afterAll). */
+let mediaPending = false;
+/** Records clean-up did not touch or could not remove: printed for manual review (ids only). */
+const needsReview: string[] = [];
 
 test.beforeAll(({}, info) => {
   const base = String(info.project.use.baseURL ?? "");
@@ -96,22 +100,69 @@ async function unpublish(page: Page, singular: string) {
   await expect(page.getByText(/Unpublished\./)).toBeVisible();
 }
 
-/** Unpublishes (if needed) and deletes every record this run created. Never touches anything else. */
+/**
+ * True only when the admin page of this id is a record of THIS run: its own English or Tamil title
+ * field starts with the run's unique marker (`[E2E LIVE <run>]`). Anything else (another run, seeded
+ * or church content, a page that does not open) is not ours.
+ */
+async function ownedByThisRun(page: Page, segment: string, id: string): Promise<boolean> {
+  const res = await page.goto(`/admin/${segment}/${id}`);
+  if (!res || res.status() !== 200) return false;
+  for (const sel of ["#f-en-title", "#f-ta-title"]) {
+    const field = page.locator(sel);
+    if ((await field.count()) && (await field.inputValue()).startsWith(MARK)) return true;
+  }
+  return false;
+}
+
+/**
+ * Unpublishes (if needed) and deletes every record this run created, newest first. Never touches
+ * anything else: a record whose ownership cannot be confirmed is skipped and reported for manual
+ * review, and so is one that could not be removed. Ids only in the report; never titles or text.
+ */
 async function cleanUp(page: Page) {
   while (created.length) {
-    const { segment, id } = created[created.length - 1]!;
-    await page.goto(`/admin/${segment}/${id}`);
-    await expect(page.locator("main")).toContainText(MARK); // only our own fictional records
-    const unpub = page.getByRole("button", { name: "Unpublish" });
-    if (await unpub.count()) {
-      await unpub.click();
-      await page.getByRole("dialog").getByRole("button", { name: "Unpublish" }).click();
-      await expect(page.getByText(/Unpublished\./)).toBeVisible();
+    const { segment, id } = created.pop()!;
+    try {
+      if (!(await ownedByThisRun(page, segment, id))) {
+        needsReview.push(`/admin/${segment}/${id}: not confirmed as this run's record; left untouched`);
+        continue;
+      }
+      if (!(await page.getByText("This item is deleted.").count())) {
+        const unpub = page.getByRole("button", { name: "Unpublish" });
+        if (await unpub.count()) {
+          await unpub.click();
+          await page.getByRole("dialog").getByRole("button", { name: "Unpublish" }).click();
+          await expect(page.getByText(/Unpublished\./)).toBeVisible();
+        }
+        await page.getByRole("button", { name: "Delete", exact: true }).click();
+        await page.getByRole("dialog").getByRole("button", { name: /^Delete / }).click();
+        await page.waitForLoadState("networkidle");
+      }
+      // Confirmed: still ours, and now deleted (hidden from the website and lists; restorable).
+      expect(await ownedByThisRun(page, segment, id)).toBe(true);
+      await expect(page.getByText("This item is deleted.")).toBeVisible();
+    } catch (e) {
+      needsReview.push(`/admin/${segment}/${id}: clean-up did not complete (${String((e as Error).message).split("\n")[0]})`);
     }
-    await page.getByRole("button", { name: "Delete", exact: true }).click();
-    await page.getByRole("dialog").getByRole("button", { name: /^Delete / }).click();
-    await page.waitForLoadState("networkidle");
-    created.pop();
+  }
+  if (mediaPending) {
+    try {
+      await page.goto("/admin/media");
+      const card = page.locator("li").filter({ hasText: mediaAlt });
+      const n = await card.count();
+      if (n !== 1) needsReview.push(`/admin/media: expected 1 image with this run's marker, found ${n}; left untouched`);
+      else {
+        await card.getByRole("button", { name: "Delete" }).click();
+        await page.getByRole("dialog").getByRole("button", { name: "Delete image" }).click();
+        await expect(page.getByRole("main").getByRole("status").first()).toBeVisible();
+        await page.goto("/admin/media");
+        await expect(page.locator("li").filter({ hasText: mediaAlt })).toHaveCount(0);
+      }
+      mediaPending = false;
+    } catch (e) {
+      needsReview.push(`/admin/media: clean-up did not complete (${String((e as Error).message).split("\n")[0]})`);
+    }
   }
 }
 
@@ -125,11 +176,20 @@ async function adminPage(browser: Browser) {
 }
 
 test.afterAll(async ({ browser }) => {
-  if (!created.length || !ADMIN) return;
-  // A test failed before the cleanup test: sign in again (fresh context) and remove what is left.
-  const p = await (await browser.newContext()).newPage();
-  await signIn(p, ADMIN);
+  if ((!created.length && !mediaPending && !needsReview.length) || !ADMIN) return;
+  // A test failed before the clean-up test. The hook gets its own time (a fresh two-factor sign-in
+  // alone can wait up to 30 s for a new code), reuses the run's admin session when it is still
+  // signed in, and removes only this run's records.
+  test.setTimeout(300_000);
+  let p: Page | null = page && !page.isClosed() ? page : null;
+  if (p && (await p.request.get("/admin", { maxRedirects: 0 })).status() !== 200) p = null;
+  if (!p) {
+    p = await (await browser.newContext()).newPage();
+    await signIn(p, ADMIN);
+  }
   await cleanUp(p);
+  if (needsReview.length) console.warn(`staging-live-cms: for manual review in the admin:\n${needsReview.join("\n")}`);
+  expect(needsReview, "records left for manual review").toEqual([]);
 });
 
 test("unauthorised access: admin closed to visitors, wrong sign-in reveals nothing", async ({ page: anon }, info) => {
@@ -227,7 +287,15 @@ test("sermons: create, edit, publish; public list, search and detail; unpublish"
   await expect(page.locator("main")).toContainText(`${MARK} Test sermon`);
   await axeClean(page);
   await page.goto(`/en/sermons?q=zz-no-match-${RUN}`);
-  await expect(page.locator("main")).not.toContainText(MARK);
+  await expect(page.locator("main")).toContainText("Nothing matches your search.");
+  // No sermon results at all (no detail links). The speaker filter offers the speakers of every
+  // published sermon by design (speakersOf(all) in src/app/[locale]/sermons/page.tsx), so this
+  // run's speaker is still listed there; that is the filter, not a search result.
+  await expect(page.locator('main a[href^="/en/sermons/"]')).toHaveCount(0);
+  // The filter is shown when two or more speakers have published sermons (staging has the seeded
+  // "[E2E Speaker]" too); when shown, it offers this run's speaker exactly once.
+  const speaker = page.locator('main select[name="speaker"]');
+  if (await speaker.count()) await expect(speaker.locator("option").filter({ hasText: `${MARK} Speaker` })).toHaveCount(1);
   // Pagination: an out-of-range page is answered safely (no error page).
   expect((await page.goto("/en/sermons?page=9999"))!.status()).toBe(200);
   expect((await page.goto(`/en/sermons/${id}`))!.status()).toBe(200);
@@ -291,6 +359,7 @@ test("media: upload, original visible to staff only, list, delete", async ({}, i
   await page.getByLabel(/English/).first().fill(mediaAlt);
   await page.getByRole("button", { name: /Upload/ }).click();
   await expect(page.getByRole("main").getByRole("status").first()).toContainText("Image uploaded");
+  mediaPending = true;
   await page.goto("/admin/media");
   const card = page.locator("li").filter({ hasText: mediaAlt });
   await expect(card).toHaveCount(1);
@@ -304,6 +373,7 @@ test("media: upload, original visible to staff only, list, delete", async ({}, i
   await expect(page.getByRole("main").getByRole("status").first()).toBeVisible();
   await page.goto("/admin/media");
   await expect(page.locator("li").filter({ hasText: mediaAlt })).toHaveCount(0);
+  mediaPending = false;
 });
 
 test("role restrictions: Content Editor and Prayer Team", async ({ browser }, info) => {
@@ -332,6 +402,7 @@ test("clean-up: every record this run created is unpublished and deleted", async
   test.setTimeout(180_000);
   await cleanUp(page);
   expect(created).toEqual([]);
+  expect(needsReview, "records left for manual review").toEqual([]);
   await page.goto(`/admin/sermons?q=${encodeURIComponent(RUN)}`);
   await expect(page.locator("main")).not.toContainText(MARK);
   expect(await (await page.request.get("/en/sermons")).text()).not.toContain(MARK);
