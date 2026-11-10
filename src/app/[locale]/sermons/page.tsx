@@ -9,12 +9,13 @@ import { PublicShell } from "../_components/PublicShell";
 import { SermonEntries, PageHead } from "../_components/sections";
 import { href, pageMetadata, routeLabel } from "../_components/site";
 import styles from "../public.module.css";
+import { listDescription } from "@/content/seo";
 
 type Props = { params: Promise<{ locale: Locale }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
-  return pageMetadata(locale, "sermons");
+  return pageMetadata(locale, "sermons", { description: listDescription(locale, "sermons") });
 }
 
 /**

@@ -8,12 +8,13 @@ import { loadTestimonies } from "@/server/cms/public-site";
 import { PublicShell } from "../_components/PublicShell";
 import { TestimonyEntries, PageHead } from "../_components/sections";
 import { href, pageMetadata, routeLabel } from "../_components/site";
+import { listDescription } from "@/content/seo";
 
 type Props = { params: Promise<{ locale: Locale }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
-  return pageMetadata(locale, "testimonies");
+  return pageMetadata(locale, "testimonies", { description: listDescription(locale, "testimonies") });
 }
 
 /** Testimonies: published only with recorded, granted permission; anonymous authors stay anonymous. */

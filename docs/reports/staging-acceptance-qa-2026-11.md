@@ -230,7 +230,7 @@ Note: `docs/operations/staging.md` §1 names the branch `staging`, but the live 
 
 **About clean-up:** the CMS "Delete" hides a record from the site and from lists, and a Church Admin can restore it from the Deleted filter. Nothing else is touched, and no data is permanently deleted.
 
-**To run it**, the suite needs the account's password and two-factor setup key. You can pass them to me however you prefer (see "Remaining approvals"), or run it yourself:
+**To run it** (owner decision 10 Nov 2026: the owner runs it; credentials are never sent to Claude), on the owner's own computer:
 ```bash
 STAGING_LIVE_CMS=1 STAGING_ADMIN_EMAIL=admin@nltag.test STAGING_ADMIN_PASSWORD=… STAGING_ADMIN_TOTP_KEY=… \
 npx playwright test --config playwright.staging-live.config.ts staging-live-cms --project desktop-1280 --trace off
@@ -255,7 +255,7 @@ npx playwright test --config playwright.staging-live.config.ts staging-live-cms 
 
 **Not done:**
 - The approved baselines were not changed and no test was weakened.
-- Candidate baselines made on the pinned 1248 are in `docs/reports/staging-acceptance-qa-2026-11/candidate-baselines/`. The `*-old-vs-candidate.png` files beside them show old and new side by side.
+- Candidate baselines made on the pinned 1248 are in `docs/reports/staging-acceptance-qa-2026-11/candidate-baselines/`. Side-by-side comparisons: §13.3.
 - With them, all 8 visual baselines pass 3 runs in a row on 1248 (and also on 1243).
 - **Needs your approval** to replace `verse-compact-phone-390-linux.png` and `verse-square-phone-390-linux.png`.
 
@@ -267,7 +267,7 @@ npx playwright test --config playwright.staging-live.config.ts staging-live-cms 
 
 The approved spec (Phase 1 §6, `other-components.md`) says "editorial rows divided by line-10" and is silent on the bleed.
 
-**Proposed minimal fix** (`docs/reports/staging-acceptance-qa-2026-11/schedule-divider-fix.patch`, tokens only, token audit passes):
+**Minimal fix** (tokens only, token audit passes; applied in §13.2):
 - The row keeps its bleed and hover tint.
 - The divider moves to `::after`, inset by `--space-3`, so it runs exactly along the list's top border and the text (16→374 / 40→1240).
 - The bottom padding grows by one hairline, so rows keep their exact height (all row heights identical before and after).
@@ -277,7 +277,7 @@ The approved spec (Phase 1 §6, `other-components.md`) says "editorial rows divi
 - The approved `schedule` baseline **still passes** on phone and desktop (under its 1% threshold), so no baseline changes.
 - Before/after: `docs/reports/staging-acceptance-qa-2026-11/schedule-divider-before-after-390.png`.
 
-**Waiting for:** your approval to apply it (an approved component's look changes slightly).
+**Approved 10 Nov 2026 and applied (§13.2).**
 
 ### 12.5 SEO descriptions and sharing image: drafts for approval (nothing published)
 
@@ -299,7 +299,7 @@ The approved spec (Phase 1 §6, `other-components.md`) says "editorial rows divi
 - **New Tamil words** (not in an approved string): `மற்றும்`, `சபையின்`, `தலைப்பு அல்லது … பெயரால் தேடிப் பாருங்கள்`, and the testimony sentence.
 - **Once approved:** they go into `ui-strings.ts` as `seo.*` keys and are passed to `pageMetadata(…, { description })`.
 
-**Sharing image direction** (mock: `docs/reports/staging-acceptance-qa-2026-11/og-direction-mock.png`, made only from approved tokens and fonts):
+**Sharing image direction** (final proposal: §13.4):
 - One static, bilingual 1200 × 630 PNG for both languages.
 - Approved **Vaigarai** gradient with the approved grain. The image is still; only the hero animates.
 - "NLTAG" in small Inter.
@@ -369,7 +369,7 @@ There are no application code changes, so the staging page output is unchanged.
 - Its 12 variable names are the same (values never read or written).
 - Never done: production database access, migrations, emails, accounts or admin changes, merges or PRs.
 
-### 12.9 Remaining approvals (yours)
+### 12.9 Remaining approvals (superseded by §13.5)
 
 1. **Staging admin:** do the hPanel steps in §12.1: request, File Manager, password + two-factor, then set the bootstrap variable for one build and remove it.
 2. **Live CMS run:** choose how I get the staging-only credentials, or run §12.2 yourself.
@@ -378,3 +378,122 @@ There are no application code changes, so the staging page output is unchanged.
 5. **SEO:** approve or edit the 8 descriptions, including the Tamil glue words (§12.5). Confirm that "events" means the Worship times page.
 6. **Sharing image:** approve the direction (§12.5). The logo decision is still open.
 7. **Forms:** choose the access gate before any staging forms test (§12.6).
+
+## 13. Owner decisions (10 November 2026) and work done
+
+**Decisions:**
+1. The owner creates the staging accounts in hPanel. No links, passwords, codes or credentials are ever sent to Claude.
+2. The two verse baselines are kept until the owner explicitly approves replacing them.
+3. The schedule divider fix is approved.
+4. The four English descriptions are approved exactly as proposed. Tamil stays pending.
+5. Prepare the sharing image (design only, not published).
+6. `NLTAG_PUBLIC_FORMS=0` stays on live staging. Forms are tested only locally, and no custom access control is added without a security design for approval.
+
+### 13.1 Staging accounts: owner procedure (Church Admin, then Editor, then Prayer Team)
+
+Fictional `@nltag.test` addresses on the **staging website only**. Never open the production website's settings. Don't send any link, password, setup key or code to anyone.
+
+**A. Church Admin `admin@nltag.test`**: follow §12.1 steps 1–7:
+- Request on `/en/sign-up`.
+- Find the link in File Manager → `nltag-data-staging/mail-capture/`, in the newest `.json` file whose `"to"` is `admin@nltag.test`.
+- Set a password and turn on two-factor.
+- Add `NLTAG_STAGING_BOOTSTRAP_ADMIN_EMAIL=admin@nltag.test`, then **Rebuild**. Check the build log for `Admin bootstrap: Church Admin role granted`.
+- **Delete the variable straight away.**
+
+**B. Content Editor `editor@nltag.test`** (no bootstrap variable):
+1. If it isn't already listed, add `editor@nltag.test` to staging's `NLTAG_SIGNUP_ALLOWLIST` (staging website → Environment variables), save and rebuild. This list accepts test addresses only.
+2. Open `https://staging.nltagkuwait.com/en/sign-up` in a private window, enter `editor@nltag.test` and send.
+3. In File Manager → `mail-capture`, open the newest file whose `"to"` is `editor@nltag.test` and open its link within 1 hour. Set a password.
+4. Optional (not required for Content Editors): Account → Two-factor.
+5. As `admin@nltag.test`: Admin → **Staff and roles** → "Grant a role" → "Email of a verified account" `editor@nltag.test`, Role **Content Editor** → **Grant role**.
+
+**C. Prayer Team `prayer@nltag.test`**:
+1. Steps B1–B3 with `prayer@nltag.test`.
+2. Two-factor is **required** for Prayer Team: Account → Two-factor.
+3. **Limit:** the Prayer Team role can only be granted while public forms are on (`publicFormsEnabled()`). With `NLTAG_PUBLIC_FORMS=0` the role isn't offered on live staging. The account stays a plain verified account there, and Prayer Team behaviour remains covered by the local staging suite (§4).
+
+**After setup:**
+- Run the live suite on your own computer (§12.2). With the editor's details it also checks the review step and the editor's restrictions.
+- `NLTAG_STAGING_BOOTSTRAP_ADMIN_EMAIL` must be absent afterwards. I check variable names on every deployment check, and it is absent as of this deploy.
+
+### 13.2 Schedule dividers: applied
+
+- **Change:** `ScheduleList` `.row`. The divider is drawn by `::after`, inset `--space-3`, and the bottom padding becomes `--space-5` + hairline.
+- **Unchanged:** existing tokens only, row heights, the hover tint bleed and `tokens.css`.
+- **Spec updated:** `docs/design-system/components/other-components.md`.
+- **New regression test** `design-system.spec.ts` "schedule list dividers", for `/ta` and `/en` on phone 390 and desktop 1280. On every row it checks:
+  - the line starts and ends on the list's edges;
+  - the line sits at the row bottom;
+  - the row has no border;
+  - the extra bottom padding equals the hairline;
+  - the row still bleeds 12 px each side.
+- **Approved `schedule` baseline:** passes on phone and desktop (Chromium 1248). Unchanged.
+
+### 13.3 Verse baselines: comparison for your decision (nothing replaced)
+
+| File | Shows |
+|---|---|
+| `verse-compact-original-vs-proposed.png` | original (approved baseline, kept), proposed (r1248), changed pixels in red |
+| `verse-compact-label-zoom.png` | the Tamil text difference, 3× |
+| `verse-square-original-vs-proposed.png` | the same three panels for verse-square |
+
+All in `docs/reports/staging-acceptance-qa-2026-11/`.
+
+- **verse-compact:**
+  - Text difference: the card label. The original shows "இன்றைய வசனம்", the wording from before your 1 Nov approval. The proposed shows the owner-approved "இன்றைய தேவ வசனம்", which is what the site renders today.
+  - The longer label shifts the pill slightly. The text below moves by sub-pixel amounts.
+- **verse-square:**
+  - No text difference: both show "இன்றைய தேவ வசனம்".
+  - Only glyph edges at sub-pixel positions change, mostly the first Tamil line, and the image is 390 → 391 px tall.
+- **Until you approve:** the existing baselines stay, so these two phone tests keep failing (the known cause, §12.3).
+
+### 13.4 Sharing image: final proposal (not published, not wired)
+
+| File | |
+|---|---|
+| `og-share-image-proposal-1200x630.jpg` | 80 KB |
+| `og-share-image-square-crop-check.jpg` | the central 630 × 630, as WhatsApp may crop it |
+
+**Design:**
+- Rendered from the site's own CSS on Chromium 1248, so tokens only: `--gradient-vaigarai`, `--texture-grain` at its approved opacity and blend.
+- Text is `--color-text-on-gradient`.
+- "NLTAG": Inter, `--text-body-l`.
+- Church name: Anek Tamil 300 at `--text-display-xl-ta`, `--leading-display-ta`, on two lines.
+- English name: Inter Tight 300, `--text-h1`.
+- `nltagkuwait.com`: `--text-body`.
+- Centred, so the square crop keeps the whole name.
+
+**Content:**
+- The Tamil name is the owner-supplied text, unchanged apart from a line break between "வாழ்வு" and "தமிழ்".
+- No logo, photo, verse text, times or address.
+
+**Next, after your approval:** commit it as a static file, add `og:image` (+ width, height, alt) and `twitter:card=summary_large_image` in `pageMetadata`, with a test.
+
+### 13.5 English SEO descriptions: implemented
+
+- **Where:**
+  - `src/content/seo.ts` holds the four approved English texts, exactly as proposed. Tamil is `null`.
+  - They are passed by `listDescription()` only on `/en`, `/en/sermons`, `/en/worship-times` (events) and `/en/testimonies`.
+  - They appear as `<meta name="description">`, `og:description` and `twitter:description`.
+- **Tamil:** pages carry no description. The four Tamil drafts remain only in §12.5, pending your review.
+- **Other pages:** CMS pages, About, Contact and detail pages keep their own description; none borrows a list text.
+- **Tests:**
+  - `tests/unit/seo-descriptions.test.ts` (3): wording locked, Tamil `null`, metadata wiring.
+  - `tests/e2e/public-site.spec.ts` "list pages carry the approved English description …": the 4 English pages show all three tags; the 4 Tamil pages show none; About, Contact and Ministries don't borrow a list text.
+- **Docs:** `docs/backend/cms.md`.
+
+### 13.6 Forms
+
+- No change: `NLTAG_PUBLIC_FORMS` stays as configured (off).
+- No access-control code was added.
+- A gate, if wanted, will first be presented as a security design for your approval.
+
+### 13.7 Tests (this round)
+
+| Suite | Result |
+|---|---|
+| `npm run verify` (token audit, Tamil record 226, lint, typecheck, 385 unit tests in 28 files, build) | passed |
+| Browser on **Chromium 1248** (`scripts/pinned-chromium.sh`): design-system, hero, public-site (unseeded), accounts-gate, phone 390 + desktop 1280 | 192 passed, 22 skipped (the suites' own), **2 failed: the known verse phone baselines, kept by your decision** |
+| Of those: approved `schedule` baseline (phone + desktop), new divider tests (4), new description test (2) | all passed |
+| `npm run test:integration` (MariaDB) | **not run this round**: no MariaDB in this session. The changes touch no database or server code (CSS, page metadata, content constant, tests). |
+| Live staging after deploy | see §13.8 |

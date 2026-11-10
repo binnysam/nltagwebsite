@@ -41,6 +41,7 @@ All implemented in Phase 2 under `src/design-system/components/`. Visual rules c
 **Anatomy:** `<ul role="list">` of rows: name (page language, Anek Tamil 400 / Inter Tight 400) with the other language beneath (14px ink-500, own `lang`) → when (tabular numerals) → where. Screen readers get "When:" / "Where:" prefixes.
 **Responsive:** one column below a 680px container width; three columns (5fr / 5fr / 3fr) above.
 **States:** row tint paper-100 on hover.
+**Dividers (owner-approved 10 Nov 2026):** rows bleed by `--space-3` on each side so the hover tint has room, but the hairline divider (`::after`) runs exactly along the list's top border and the text; the bottom padding takes the hairline, so row heights are unchanged. Test: `design-system.spec.ts` "schedule list dividers".
 **Rules:** NECK exactly; no address; Cottage Meeting hosts never published; Sunday School shown on Friday.
 
 ## SectionIntro (section micro-hero)

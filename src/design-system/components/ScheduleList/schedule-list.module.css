@@ -10,8 +10,20 @@
   gap: var(--space-1);
   padding: var(--space-5) var(--space-3);
   margin-inline: calc(var(--space-3) * -1);
-  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
+  /* The row bleeds by --space-3 so the hover tint has room; the divider must not. ::after draws it
+     at the list's width (aligned with the top border and the text); the bottom padding keeps the
+     hairline's height, so rows are as tall as before. */
+  position: relative;
+  padding-bottom: calc(var(--space-5) + var(--border-width-hairline));
   transition: background-color var(--motion-duration-standard) var(--motion-ease-standard);
+}
+.row::after {
+  content: "";
+  position: absolute;
+  inset-inline: var(--space-3);
+  bottom: 0;
+  border-bottom: var(--border-width-hairline) solid var(--color-border-subtle);
+  pointer-events: none;
 }
 .row:hover { background: var(--color-surface-subtle); }
 

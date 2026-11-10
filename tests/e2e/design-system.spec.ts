@@ -232,6 +232,44 @@ test.describe("pages", () => {
   });
 });
 
+test.describe("schedule list dividers (owner-approved fix, 10 Nov 2026)", () => {
+  for (const locale of ["ta", "en"] as const) {
+    test(`/${locale}: row dividers run exactly along the list's top border; the hover tint still bleeds`, async ({ page }) => {
+      await open(page, `/${locale}`);
+      const m = await page.evaluate(() => {
+        const ul = document.querySelector("#schedule ul")!;
+        const list = ul.getBoundingClientRect();
+        return [...ul.children].map((li) => {
+          const r = li.getBoundingClientRect();
+          const after = getComputedStyle(li, "::after");
+          const lineLeft = r.left + parseFloat(after.left);
+          const lineRight = r.right - parseFloat(after.right);
+          return {
+            listLeft: list.left, listRight: list.right, lineLeft, lineRight,
+            lineBottom: r.bottom - parseFloat(after.bottom), rowBottom: r.bottom,
+            lineWidth: parseFloat(after.borderBottomWidth), rowBorder: parseFloat(getComputedStyle(li).borderBottomWidth),
+            rowLeft: r.left, rowRight: r.right,
+            // Rows keep their former height: the hairline the border used to take is now padding.
+            padExtra: parseFloat(getComputedStyle(li).paddingBottom) - parseFloat(getComputedStyle(li).paddingTop),
+          };
+        });
+      });
+      expect(m.length).toBeGreaterThan(0);
+      for (const row of m) {
+        expect(row.lineLeft).toBeCloseTo(row.listLeft, 1);
+        expect(row.lineRight).toBeCloseTo(row.listRight, 1);
+        expect(row.lineBottom).toBeCloseTo(row.rowBottom, 1);
+        expect(row.lineWidth).toBeGreaterThan(0);
+        expect(row.rowBorder).toBe(0);
+        expect(row.padExtra).toBeCloseTo(row.lineWidth, 2);
+        // The row (and its hover tint) still bleeds by --space-3 (12px) on both sides.
+        expect(row.listLeft - row.rowLeft).toBeCloseTo(12, 1);
+        expect(row.rowRight - row.listRight).toBeCloseTo(12, 1);
+      }
+    });
+  }
+});
+
 test.describe("visual baselines", () => {
   for (const id of ["verse-compact", "verse-square", "verse-split"]) {
     test(id, async ({ page }) => {

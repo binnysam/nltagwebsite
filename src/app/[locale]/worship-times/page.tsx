@@ -8,12 +8,13 @@ import { PublicShell } from "../_components/PublicShell";
 import { AnnouncementEntries, MeetingCards, PageHead, PublicSection } from "../_components/sections";
 import { pageMetadata, routeLabel } from "../_components/site";
 import styles from "../public.module.css";
+import { listDescription } from "@/content/seo";
 
 type Props = { params: Promise<{ locale: Locale }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
-  return pageMetadata(locale, "worshipTimes");
+  return pageMetadata(locale, "worshipTimes", { description: listDescription(locale, "worshipTimes") });
 }
 
 /** Worship times: the Gate 0 weekly schedule, upcoming special meetings and announcements. */

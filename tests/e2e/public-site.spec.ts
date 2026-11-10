@@ -104,6 +104,31 @@ for (const locale of LOCALES) {
   });
 }
 
+test("list pages carry the approved English description; Tamil pages none until approved (10 Nov 2026)", async ({ page }) => {
+  const en: Record<string, RegExp> = {
+    "": /^New Life Tamil AG Church in Kuwait\. Worship schedule, sermons, testimonies and upcoming special meetings, in Tamil and English\.$/,
+    "/sermons": /^Sermons from New Life Tamil AG Church, Kuwait\. Search by title or speaker\.$/,
+    "/worship-times": /^Worship schedule and upcoming special meetings of New Life Tamil AG Church\. All times are Kuwait time\.$/,
+    "/testimonies": /^Testimonies from New Life Tamil AG Church, Kuwait\. Each testimony is published with the author's permission after the church has read it\.$/,
+  };
+  for (const [path, text] of Object.entries(en)) {
+    await page.goto(`/en${path}`);
+    for (const sel of ['meta[name="description"]', 'meta[property="og:description"]', 'meta[name="twitter:description"]']) {
+      await expect(page.locator(sel), `${path} ${sel}`).toHaveAttribute("content", text);
+    }
+    await page.goto(`/ta${path}`);
+    await expect(page.locator('meta[name="description"]'), `/ta${path}`).toHaveCount(0);
+    await expect(page.locator('meta[property="og:description"]'), `/ta${path}`).toHaveCount(0);
+  }
+  // Other pages never borrow a list page's description.
+  for (const path of ["/en/about", "/en/contact", "/en/ministries"]) {
+    await page.goto(path);
+    const meta = page.locator('meta[name="description"]');
+    const own = (await meta.count()) ? await meta.first().getAttribute("content") : null;
+    for (const text of Object.values(en)) expect(own ?? "", path).not.toMatch(text);
+  }
+});
+
 test.describe("content visibility", () => {
   test.skip(SEEDED, "empty-state checks run without a database");
   test("unknown page addresses are 404", async ({ page }) => {

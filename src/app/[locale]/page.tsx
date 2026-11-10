@@ -13,10 +13,11 @@ import {
 } from "./_components/sections";
 import { href, pageMetadata } from "./_components/site";
 import styles from "./home.module.css";
+import { listDescription } from "@/content/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
   const { locale } = await params;
-  return pageMetadata(locale, "home");
+  return pageMetadata(locale, "home", { description: listDescription(locale, "home") });
 }
 
 /** How many records each homepage section shows before "View all". */
