@@ -1,4 +1,4 @@
-# Staging acceptance QA: report (9–10 November 2026)
+# Staging acceptance QA: report (9–10 November 2026, follow-up §12)
 
 ## 1. Deployment
 
@@ -113,7 +113,7 @@ The live crawl at 390, 768 and 1280 px found no overflow and no broken images. D
 | Staging suite, local staging build (forms on) | 41 | 0 | 7 |
 | Live staging: environment, canonical, public pages, map placeholder; header, language switch, hero-only motion | 14 + 10 | 0 | 2 |
 
-**The 2 failures:** the phone pixel baselines `verse-compact` and `verse-square` (1942 px, 2%). They fail the same way on code that hasn't been touched: this sandbox's Chromium is build 1243 and the project pins 1248. These tests are not in CI. Baselines were not regenerated, because a 1243 baseline would be wrong for 1248.
+**The 2 failures:** the phone pixel baselines `verse-compact` and `verse-square` (1942 px, 2%). *Corrected 10 Nov 2026 (§12.3):* the browser version is **not** the cause. They fail identically on the exact pinned Chromium 1248, and a bisect shows they have been stale since commit `70af50e` (2 Nov). Baselines were not regenerated.
 
 **Skips** are the suites' own: seeded/unseeded halves, one-project tests, and staff flows at 1280 only.
 
@@ -138,7 +138,7 @@ The live crawl at 390, 768 and 1280 px found no overflow and no broken images. D
 3. **Not fixed (your decision):**
    - **Schedule list dividers:** in the approved ScheduleList, the row dividers extend 12 px past the list's top border. On phones they start 4 px from the screen edge. A change would alter the approved `schedule` pixel baseline, which cannot be regenerated faithfully here.
    - **Meta descriptions:** the homepage and list pages have no description (`og:description`), and there is no `og:image` (logo not chosen yet). Both need approved church wording or a logo. Testimony pages leave the description empty on purpose.
-4. **2 pixel baselines** (Chromium version): regenerate on the pinned Chromium in CI or on a developer machine.
+4. **2 pixel baselines:** see §12.3. The cause is stale baselines, not the Chromium version. Candidate baselines made on the pinned Chromium await your approval.
 
 ## 11. Production: unchanged
 
@@ -149,3 +149,209 @@ Checked against the baseline before and after every deploy:
 - **GitHub:** `main` still `c2301e2`; `claude/upbeat-faraday-qh8gmr` still `2f59f35`.
 
 Never done: production migrations, production emails, production admin changes, merges or PRs. `noindex, nofollow` stays on staging.
+
+## 12. Follow-up: live CMS acceptance and final polish (10 November 2026)
+
+**Baseline at start:**
+- **Staging:** branch `claude/elegant-pasteur-es9mnm` @ `0d57240`, Hostinger build `01a1c2bf` completed 23:59 UTC 9 Nov, auto-deploy on this branch.
+- **Health:** `{"status":"ok","deployment":"staging","database":true,"stagingVerified":true}`.
+- **Production:** `main` @ `c2301e2`, build `01a1bede`, 12 variable names.
+
+Note: `docs/operations/staging.md` §1 names the branch `staging`, but the live staging app deploys `claude/elegant-pasteur-es9mnm`, as hPanel shows.
+
+### 12.1 Staging administrator (`admin@nltag.test`): ready for your two hPanel steps
+
+**Status:**
+- Not created yet. No staff account exists on live staging.
+- I can't finish this alone. The set-password link is written only to a file outside the web root, which the Hostinger API can't read. Changing the bootstrap variable means replacing the whole variable set in hPanel, and the API returns values masked.
+- Nothing was logged, and no link or password was put anywhere else.
+
+**Controls checked in code** (`environment.ts`, `transport.ts`, `scripts/staging/staging.ts`):
+- `NLTAG_STAGING_BOOTSTRAP_ADMIN_EMAIL` is accepted only for reserved test addresses (`…@nltag.test`).
+- The production variable `NLTAG_BOOTSTRAP_ADMIN_EMAIL` is refused on staging.
+- The bootstrap applies production's rules: verified account, allowlisted, two-factor on, first admin only.
+- It runs only in a staging build, against the verified staging database (name and marker row).
+- Staging has no `SMTP_*` variables, so mail can only be captured to files (`getTransport` → `stagingCapture`).
+
+**Exact procedure (staging website only; never open the production website's settings):**
+
+1. **Request the account** (link valid 1 hour, single use): open `https://staging.nltagkuwait.com/en/sign-up`, enter `admin@nltag.test` and send. You always get the same neutral reply, by design. If no file appears in step 2, `admin@nltag.test` is probably missing from staging's `NLTAG_SIGNUP_ALLOWLIST`.
+2. **Get the captured email:**
+   - hPanel → **Websites** → `staging.nltagkuwait.com` → **Files → File Manager**.
+   - Go up from `public_html` to the account home, then to `nltag-data-staging/mail-capture/`. This is the folder named in `NLTAG_STAGING_MAIL_DIR`, which the earlier report recorded.
+   - Files are named `<date-time>-<8 hex>.json`. Sort by date, newest first. Open the newest file whose `"to"` is `admin@nltag.test` and whose `"subject"` starts with `[STAGING]`.
+   - Copy the `https://staging.nltagkuwait.com/api/auth/reset-password/…` link from the `"text"` field into a private browser window.
+   - Don't download, forward or paste the file anywhere. It is mode 0600 and lives only on staging.
+3. **Choose a password** (at least 10 characters, never one used for a real account). The page then sends you to sign in.
+4. **Sign in and turn on two-factor:** Account → Two-factor → scan the QR code into your authenticator app, or type the setup key. Enter the 6-digit code and keep the recovery codes privately. Two-factor must be on **before** step 5, or the bootstrap is refused.
+5. **Enable the bootstrap, once:**
+   - hPanel → staging website → **Advanced → Node.js → Environment variables**.
+   - Add `NLTAG_STAGING_BOOTSTRAP_ADMIN_EMAIL` = `admin@nltag.test` and save.
+   - Then **Deploy / Rebuild**. The bootstrap runs only during a build, not on a restart.
+6. **Check the build log** for `Admin bootstrap: Church Admin role granted …`. If you see `refused by the role rules`, two-factor or the set password is missing. Redo step 4 and rebuild.
+7. **Remove the variable straight away:**
+   - Delete `NLTAG_STAGING_BOOTSTRAP_ADMIN_EMAIL` and save.
+   - No rebuild is needed: the variable is read only at build time, and a second bootstrap is refused once an admin exists.
+   - It must not stay set. I'll confirm it's gone (by name) when I next check the deployment.
+8. **Optional, for the role and review checks:**
+   - Repeat steps 1–4 for `editor@nltag.test` and `prayer@nltag.test` (if they are in the allowlist).
+   - As the admin, grant Content Editor and Prayer Team under Admin → Staff and roles. No bootstrap variable is needed for these.
+
+### 12.2 Live CMS acceptance: test written, waiting for the account
+
+**Status:** not run on live yet. It is blocked on §12.1.
+
+**What was checked on live now (anonymous):**
+- `/admin`, `/admin/staff` and `/admin/media` → 307 to `/en/sign-in`.
+- `/admin/prayer` → 404 (forms off).
+- `/api/auth/get-session` → no user.
+
+**New suite `tests/e2e/staging-live-cms.spec.ts`** (desktop project, serial, fictional content marked `[E2E LIVE <run>]`). It covers:
+
+| Area | What it checks |
+|---|---|
+| Unauthorised access | admin pages → sign-in; preview closed to visitors; unknown fictional address → neutral error, no session |
+| Login, two-factor | password alone leaves `/admin` closed (307); TOTP → session |
+| Session persistence | reload, second tab, `get-session` |
+| Dashboard | Church Admin sections, `noindex`, axe |
+| Pages | create → edit → preview (`no-store`, not public; 404 before publish) → publish (ta + en public) → unpublish (404) |
+| Sermons | create → edit → publish → public search hit and no-match, out-of-range page, detail page → admin search and empty state → unpublish |
+| Events (special meetings) | home address refused; Content Editor drafts and submits (no Publish button) → admin review queue → publish → public in ta + en → unpublish |
+| Media | upload a generated fictional JPEG → original not public → delete |
+| Roles | Content Editor: no staff, audit, prayer or contact pages, no Publish. Prayer Team: no CMS, media, staff, audit or contact pages |
+| Clean-up | unpublishes and deletes only records carrying this run's mark (asserted before each delete); `afterAll` repeats it if a test failed |
+| Logout | sign out → `/admin` closed, session gone |
+
+**Safety built into the suite:**
+- It refuses to run unless the origin is exactly `https://staging.nltagkuwait.com`, checked again before any credential is typed.
+- It refuses any staff address outside `@nltag.test`.
+- Credentials are read from environment variables only, never printed.
+- Traces, videos and screenshots are off.
+
+**About clean-up:** the CMS "Delete" hides a record from the site and from lists, and a Church Admin can restore it from the Deleted filter. Nothing else is touched, and no data is permanently deleted.
+
+**To run it**, the suite needs the account's password and two-factor setup key. You can pass them to me however you prefer (see "Remaining approvals"), or run it yourself:
+```bash
+STAGING_LIVE_CMS=1 STAGING_ADMIN_EMAIL=admin@nltag.test STAGING_ADMIN_PASSWORD=… STAGING_ADMIN_TOTP_KEY=… \
+npx playwright test --config playwright.staging-live.config.ts staging-live-cms --project desktop-1280 --trace off
+```
+
+### 12.3 Phone screenshot failures: the cause is not the browser
+
+**Exact pinned browser obtained:**
+- `@playwright/test` 1.64.1 pins Chromium revision **1248** = Chrome for Testing **156.0.8078.4**.
+- `cdn.playwright.dev` is blocked here, but Google publishes the identical build at `storage.googleapis.com/chrome-for-testing-public/156.0.8078.4/`.
+- **New `scripts/pinned-chromium.sh <dir>`** installs it from there, checks `--version`, and is used with `PLAYWRIGHT_BROWSERS_PATH=<dir>`. The preinstalled browser is untouched.
+
+**Result:** on 1248 the same two tests fail with the same 1942 px (2%).
+
+**Root cause (git bisect, each step built and tested on 1248):**
+- At `6f8fea0`, when the baselines were approved (1 Nov), all verse baselines **pass** on both 1248 and 1243.
+- The first bad commit is **`70af50e`** (Phase 4c, 2 Nov). It only adds SelectField, CheckboxField, Notice, DataTable and ConfirmButton examples **above** the verse cards on the design-system gallery page.
+- The cards moved down the page, so on phone (2× pixels) they now render at different sub-pixel offsets. Glyph edges shift, and `verse-square` grows from 390 to 391 px tall.
+- The VerseCard component and its CSS are unchanged.
+- The old `verse-compact` phone baseline also still shows the pre-approval label "இன்றைய வசனம்". The page correctly shows the owner-approved "இன்றைய தேவ வசனம்".
+- These tests are not in CI, so this was never noticed.
+
+**Not done:**
+- The approved baselines were not changed and no test was weakened.
+- Candidate baselines made on the pinned 1248 are in `docs/reports/staging-acceptance-qa-2026-11/candidate-baselines/`. The `*-old-vs-candidate.png` files beside them show old and new side by side.
+- With them, all 8 visual baselines pass 3 runs in a row on 1248 (and also on 1243).
+- **Needs your approval** to replace `verse-compact-phone-390-linux.png` and `verse-square-phone-390-linux.png`.
+
+### 12.4 Schedule row dividers: proposed fix (not applied)
+
+**Cause:**
+- `.row` bleeds out by `--space-3` (`margin-inline: -12px`, padding 12px) so its hover tint has room. Its `border-bottom` therefore bleeds out too.
+- Measured on the live layout: the top border runs 16→374 px and the row dividers 4→386 px at 390 px. At 1280 px it is 40→1240 against 28→1252.
+
+The approved spec (Phase 1 §6, `other-components.md`) says "editorial rows divided by line-10" and is silent on the bleed.
+
+**Proposed minimal fix** (`docs/reports/staging-acceptance-qa-2026-11/schedule-divider-fix.patch`, tokens only, token audit passes):
+- The row keeps its bleed and hover tint.
+- The divider moves to `::after`, inset by `--space-3`, so it runs exactly along the list's top border and the text (16→374 / 40→1240).
+- The bottom padding grows by one hairline, so rows keep their exact height (all row heights identical before and after).
+
+**Impact:**
+- 192 changed pixels at 390 px (0.04% of the section) and 96 at 1280 px. Only the 12 px line ends change.
+- The approved `schedule` baseline **still passes** on phone and desktop (under its 1% threshold), so no baseline changes.
+- Before/after: `docs/reports/staging-acceptance-qa-2026-11/schedule-divider-before-after-390.png`.
+
+**Waiting for:** your approval to apply it (an approved component's look changes slightly).
+
+### 12.5 SEO descriptions and sharing image: drafts for approval (nothing published)
+
+**How the drafts were built:**
+- Only confirmed facts and approved wording: the official names, Kuwait, approved labels (`nav.sermons`, `nav.testimonies`, `schedule.heading`, `section.specialMeetings`, `schedule.timezone`, `sermon.speaker`) and the testimony consent rules.
+- No beliefs, history, times or addresses were added.
+- Tamil glue words that are not in an approved string are marked; all Tamil below is `draft-review` until you approve it.
+
+**No `/events` page:** special meetings are shown on **Worship times** (`/worship-times`). The "events" description below is written for that page.
+
+| Page | Tamil (draft-review) | English |
+|---|---|---|
+| Home | புது வாழ்வு தமிழ் AG சபை, குவைத். ஆராதனை அட்டவணை, தேவ செய்திகள், சாட்சிகள் மற்றும் வரவிருக்கும் விசேஷ ஆராதனைகள். | New Life Tamil AG Church in Kuwait. Worship schedule, sermons, testimonies and upcoming special meetings, in Tamil and English. |
+| Sermons | புது வாழ்வு தமிழ் AG சபையின் தேவ செய்திகள். தலைப்பு அல்லது பிரசங்கியார் பெயரால் தேடிப் பாருங்கள். | Sermons from New Life Tamil AG Church, Kuwait. Search by title or speaker. |
+| Events (Worship times) | புது வாழ்வு தமிழ் AG சபையின் ஆராதனை அட்டவணை மற்றும் வரவிருக்கும் விசேஷ ஆராதனைகள். அனைத்து நேரங்களும் குவைத் நேரம். | Worship schedule and upcoming special meetings of New Life Tamil AG Church. All times are Kuwait time. |
+| Testimonies | புது வாழ்வு தமிழ் AG சபையின் சாட்சிகள். ஒவ்வொரு சாட்சியும் சபை வாசித்த பின், எழுதியவரின் அனுமதியுடன் வெளியிடப்படுகிறது. | Testimonies from New Life Tamil AG Church, Kuwait. Each testimony is published with the author's permission after the church has read it. |
+
+- **Length:** 90–140 characters each.
+- **New Tamil words** (not in an approved string): `மற்றும்`, `சபையின்`, `தலைப்பு அல்லது … பெயரால் தேடிப் பாருங்கள்`, and the testimony sentence.
+- **Once approved:** they go into `ui-strings.ts` as `seo.*` keys and are passed to `pageMetadata(…, { description })`.
+
+**Sharing image direction** (mock: `docs/reports/staging-acceptance-qa-2026-11/og-direction-mock.png`, made only from approved tokens and fonts):
+- One static, bilingual 1200 × 630 PNG for both languages.
+- Approved **Vaigarai** gradient with the approved grain. The image is still; only the hero animates.
+- "NLTAG" in small Inter.
+- Church name in **Anek Tamil** (display), with the English name beneath in Inter Tight; all text `--color-text-on-gradient`.
+- `nltagkuwait.com` at the foot.
+- Key content kept in the central 630 × 630 so WhatsApp's square crop keeps the name.
+- **Left out:** no logo (concepts not chosen yet), no photos of people, no verse text (permission), no times or address.
+- **Wiring:** served as a static file. `og:image` and `twitter:card=summary_large_image` are added in `pageMetadata`, with alt text from the church name.
+- When a logo is approved, it replaces "NLTAG".
+
+### 12.6 Forms and privacy: verified
+
+| Check | Result |
+|---|---|
+| `NLTAG_PUBLIC_FORMS` | Variable present on staging (name only; values are masked by the API). The code enables forms only for the exact value `1` (`forms/service.ts`). Live: `/ta/prayer`, `/en/prayer`, `/en/gallery`, `/en|ta/testimonies/share` and `/admin/prayer` → **404**; Contact has no form, so it is off. |
+| No real email | Staging has **no `SMTP_*`** variables, so `getTransport()` can only capture to files (sandbox mode also needs a sandbox SMTP host; Gmail and every other real host are refused at start-up). Every captured subject is prefixed `[STAGING]`, and `NLTAG_CHURCH_INBOX` and the allowlist accept only `@nltag.test` / `example.com`. |
+| No real personal data | Live staging content is the `[E2E …]` fixture set; staff addresses are `@nltag.test`; the new live suite refuses any other address. |
+| Prayer requests | `prayer.read` is granted only to `CHURCH_ADMIN` and `PRAYER_TEAM` (`policy/permissions.ts`); only Church Admin deletes. Requests are encrypted (AES-256-GCM, `NLTAG_DATA_KEY`); notifications carry no content. Covered by the integration suite (§4). |
+| Testimonies | A submission never publishes. "Accept as draft" makes an unpublished draft, and `publishBlocker` refuses Publish until a Church Admin records the author's permission (`cms/rules.ts`). Covered by the integration and admin suites. |
+
+**Controlled staging-only forms test later** (needs your go-ahead for each numbered step):
+1. **Access gate first:** decide on hPanel directory protection, or a staff-only form gate (security change, needs review). Without one, turning forms on publishes them to anyone with the staging address.
+2. **In hPanel**, staging website only: set `NLTAG_PUBLIC_FORMS=1` and rebuild. The build log must show `Staging check passed …` and the migration step. Confirm `/api/health` is OK.
+3. **Submit fictional data only:**
+   - Prayer: anonymous, text `[STAGING TEST] prayer`.
+   - Contact: name `[STAGING TEST]`, email `visitor@nltag.test`.
+   - Testimony: `[STAGING TEST]`, with consent ticked.
+4. **Check delivery and access:**
+   - In File Manager → `mail-capture`: one `[STAGING]` notification per form, addressed only to `@nltag.test`, and the prayer notification without its text.
+   - Sign in as the Prayer Team account and check that Prayer is visible and Contact gives 404.
+   - Sign in as the Church Admin and check that all three inboxes are visible. Accept the testimony as a draft, then confirm Publish is blocked until permission is recorded.
+5. **Delete** the three test records (Church Admin, "Delete permanently").
+6. **Turn off:** set `NLTAG_PUBLIC_FORMS=0`, rebuild, and confirm the 404s again.
+
+### 12.7 Tests run (this follow-up)
+
+| Suite | Result |
+|---|---|
+| Design system + hero on the **pinned Chromium 1248** | 85 passed, 2 failed (the two stale phone baselines, §12.3), 1 skipped |
+| Visual baselines with the candidate baselines (not committed), 1248 ×3 and 1243 ×1 | 8/8 passed each run |
+| `schedule` baseline with the proposed divider fix applied (then reverted), 1248 | 4/4 passed |
+| Bisect `6f8fea0..0d57240` (build + verse phone baselines on 1248) | first bad `70af50e` |
+| `npm run verify` (token audit, Tamil record 226, lint, typecheck, unit, build) | 382 unit tests (27 files) passed, build OK |
+| New live suite: list and type check (`--list`, `tsc`, `eslint`) | 20 tests (10 per project; mutating tests desktop-only), compiles, lint clean |
+
+### 12.8 Changes in this follow-up, deployment and production
+
+**Committed** (staging branch only):
+- `tests/e2e/staging-live-cms.spec.ts`
+- `scripts/pinned-chromium.sh`
+- this report and its folder of images and the patch
+
+There are no application code changes, so the staging page output is unchanged.
+
+**Production unchanged:** see the final check below.
