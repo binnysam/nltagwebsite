@@ -42,7 +42,7 @@ If someone else saved the same item while you were editing, your save is refused
 - **Staff and roles**: grant *Content Editor*, *Prayer Team* (when the inboxes are enabled) or *Church Admin* to a verified account by email; remove roles. You cannot change your own roles, and the last Church Admin cannot be removed.
 - **Audit log**: who did what and when (ids and actions only, no content or personal details).
 
-## Inboxes and gallery (Nov 2026; on once migration 0004 is applied and `NLTAG_PUBLIC_FORMS=1`)
+## Inboxes and gallery (Nov 2026; on once migration 0004 is applied and `NLTAG_PUBLIC_FORMS=1`, or `staff` on staging)
 - **Prayer requests** (Church Admin and Prayer Team only; Content Editors never see them): the list shows date, language and status, never names or text. Opening one is recorded in the audit log. Mark it *Read*, *Prayed for* or *Archived*. Only a Church Admin deletes, and deletion is permanent (requests are otherwise kept until deleted). Stored encrypted; the notification email says only that a request arrived.
 - **Contact messages** (Church Admin): the visitor's name, email, optional phone, subject and message. Reply from the church mailbox; mark *Replied* or *Archived*; delete when no longer needed.
 - **Testimony submissions** (Church Admin; Content Editors without the submitter's contact details): *Accept as draft* creates an unpublished testimony with the submitter's chosen name; then edit, submit and publish as usual. A Church Admin's acceptance records the submitter's consent as the permission. *Do not accept* and *Archive* keep it off the site.

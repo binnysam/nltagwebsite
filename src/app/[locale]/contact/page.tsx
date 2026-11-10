@@ -3,7 +3,9 @@ import { connection } from "next/server";
 import { Notice } from "@/design-system/components";
 import { Container, Section } from "@/design-system/primitives";
 import { issueFormToken } from "@/server/forms/protection";
-import { formAvailable, publicFormsEnabled } from "@/server/forms/service";
+import { formsOpenTo } from "@/server/forms/mode";
+import { formAvailable } from "@/server/forms/service";
+import { formsViewer } from "@/server/forms/viewer";
 import { contactAction } from "../form-actions";
 import { PublicForm } from "../_components/forms/PublicForm.client";
 import { formErrorText, formLabels } from "../_components/forms/copy";
@@ -30,6 +32,8 @@ export default async function ContactPage({ params }: Props) {
   const { locale } = await params;
   await connection(); // the contact form token carries the time the page was served
   const page = await loadPage(RESERVED_PAGE_SLUGS.contact, locale);
+  // The message form: everyone with NLTAG_PUBLIC_FORMS=1; signed-in staff only in staff-only mode.
+  const viewer = await formsViewer();
   return (
     <PublicShell locale={locale} route="contact">
       <PageHead title={page?.title || routeLabel(locale, "contact")} lead={page?.summary} />
@@ -42,9 +46,9 @@ export default async function ContactPage({ params }: Props) {
           {page?.bodyMd ? <PageBody item={page} /> : page ? null : <Empty locale={locale} />}
         </Section>
       </Container>
-      {publicFormsEnabled() ? (
+      {formsOpenTo(viewer) ? (
       <PublicSection id="message" title={t("contactForm.title", locale)}>
-        {formAvailable("contact") ? (
+        {formAvailable("contact", viewer) ? (
           <PublicForm
             id="contact"
             locale={locale}

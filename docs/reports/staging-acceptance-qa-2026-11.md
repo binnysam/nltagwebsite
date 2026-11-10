@@ -571,3 +571,25 @@ One existing assertion changed with the approved behaviour: `tests/unit/website-
 
 Unchanged from §13.9: items 1 (staging accounts), 5 (forms gate, only if wanted) and 6 (Prayer Team on staging).
 
+## 15. Staff-only forms gate (`NLTAG_PUBLIC_FORMS=staff`), owner approval 10 Nov 2026
+
+Code only. No staging or production variable, database, permission or migration changed; forms stay off on live staging until the owner sets the value.
+
+### 15.1 What it does
+
+- `src/server/forms/mode.ts`: `off` / `public` (`1`) / `staff`. `staff` opens the form pages, the contact form, the gallery and its image copies only to an account with `staff.portal` (verified email, a staff role, two-factor where the role needs it: Church Admin, Prayer Team). Visitors, members, unverified accounts and Church Admin / Prayer Team without two-factor are refused.
+- Enforced at every entry point: the three server actions pass the session's principal into the forms service, which checks it before validation or storage (no principal = visitor), so a direct POST stores nothing and is audited (`form.refused`, `not-open`). Pages 404 the same way; links are shown only in `public` mode; image copies are `private, no-store`.
+- Inboxes and the Prayer Team grant work in `staff` mode as with `1`. Permissions unchanged: Prayer Team reads and updates status, cannot delete; Content Editors never reach prayer requests; grants, revocations and denials stay audited.
+- Production fails closed three ways: `staff` resolves to off, `serverEnv()` throws (variable named, no value), and the Hostinger production build exits before any step. The staging build path is unchanged.
+
+### 15.2 Tests
+
+| Suite | Result |
+|---|---|
+| `npm run verify` (token audit, Tamil record, lint, typecheck, 397 unit tests in 29 files, build) | passed; new `forms-staff-mode.test.ts` 10/10 |
+| `npm run test:integration`, **local MariaDB 10.11.14** (CI and Hostinger use 11.8.9; not available here) | 27 files: 291 passed, 3 skipped (their own conditions); production pass 6/6. New `forms-staff-gate.test.ts` 8/8 |
+| Browser, all suites, Chromium 1248, unseeded | 194 passed, 0 failed, 132 skipped (incl. the new spec without `E2E_FORMS_GATE`) |
+| New `forms-staff-gate.spec.ts` against a **local staging server** (staging config, local MariaDB, `staff` mode), desktop 1280 | 5/5 passed |
+| Mutation checks | integration fails (2) with the staff check removed; browser spec fails when the server action ignores the session (the visitor/member POST replay is stored); both pass again on the real code |
+| Live staging role tests | not run: they need `staff` set on staging and sessions the owner saves on their own computer (spec header) |
+

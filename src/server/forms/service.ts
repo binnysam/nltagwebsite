@@ -6,7 +6,8 @@ import { contactMessage, prayerRequest, testimonySubmission, type ContactStatus,
 import { sendStaffNotification } from "../email/send";
 import { log } from "../security/log";
 import { audit } from "../services/audit";
-import { can, type Permission } from "../policy/permissions";
+import { can, type Permission, type Principal } from "../policy/permissions";
+import { formsConfigured, formsOpenTo } from "./mode";
 import { CmsError, createItem, recordTestimonyPermission, type Ctx } from "../cms/service";
 import { parseContentForm } from "../cms/schemas";
 import { AuthzError } from "../auth/session";
@@ -19,18 +20,26 @@ import { renderNotification } from "./notify";
  * Public forms and the staff inboxes (website completion, Nov 2026). The only module that reads or
  * writes prayer_request, contact_message and testimony_submission (a unit test enforces this).
  *
- * Feature switch: NLTAG_PUBLIC_FORMS=1, set only where migration 0004 has been applied (staging
- * now; production after the owner approves the migration). Prayer requests also need
- * NLTAG_DATA_KEY (encryption at rest). Without them the forms say "not available yet" and the
- * inboxes return 404: nothing is collected that nobody can read.
+ * Feature switch: NLTAG_PUBLIC_FORMS (src/server/forms/mode.ts), set only where migration 0004 has
+ * been applied (staging now; production after the owner approves the migration). "1" opens the
+ * forms to everyone; "staff" (staging only) opens them only to signed-in staff, checked again on
+ * every submission, so a direct POST of the server action from anyone else stores nothing.
+ * Prayer requests also need NLTAG_DATA_KEY (encryption at rest). Without them the forms say "not
+ * available yet" and the inboxes return 404: nothing is collected that nobody can read.
  */
 export const CONSENT_VERSION = { prayer: "p-2026-11", testimony: "t-2026-11" } as const;
 
+/**
+ * The forms feature is set up (migration 0004 in use): the staff inboxes, the gallery admin and the
+ * Prayer Team role. True for NLTAG_PUBLIC_FORMS=1 and, outside production, =staff. Who may use the
+ * public side is `formAvailable` / `formsOpenTo`.
+ */
 export function publicFormsEnabled(env: Record<string, string | undefined> = process.env): boolean {
-  return (env.NLTAG_PUBLIC_FORMS ?? "").trim() === "1";
+  return formsConfigured(env);
 }
-export function formAvailable(form: FormName, env: Record<string, string | undefined> = process.env): boolean {
-  if (!publicFormsEnabled(env)) return false;
+/** May this viewer use this form now? Visitors are `{ kind: "visitor" }`; fail closed. */
+export function formAvailable(form: FormName, viewer: Principal, env: Record<string, string | undefined> = process.env): boolean {
+  if (!formsOpenTo(viewer, env)) return false;
   return form === "prayer" ? dataKeyConfigured(env) : true;
 }
 
@@ -42,10 +51,18 @@ export type SubmitResult =
   | { kind: "unavailable" };
 
 const RECEIVED: SubmitResult = { kind: "received" };
+/** No viewer given = a visitor (fail closed in staff-only mode). */
+const VISITOR: Principal = { kind: "visitor" };
 
 /** Steps shared by every form: availability, honeypot, token, validation, ceilings, duplicates. */
-async function gate(form: FormName, f: FormData, now: number): Promise<SubmitResult | null> {
-  if (!formAvailable(form)) return { kind: "unavailable" };
+async function gate(form: FormName, f: FormData, now: number, viewer: Principal): Promise<SubmitResult | null> {
+  if (!formAvailable(form, viewer)) {
+    // Staff-only mode: someone who may not use the form (e.g. a direct POST) is refused and audited.
+    if (formsConfigured()) {
+      await audit({ actorUserId: viewer.kind === "user" ? viewer.userId : null, action: "form.refused", outcome: "DENIED", entity: form, reason: "not-open" });
+    }
+    return { kind: "unavailable" };
+  }
   if (typeof f.get(HONEYPOT_FIELD) === "string" && (f.get(HONEYPOT_FIELD) as string).trim() !== "") {
     await audit({ action: "form.refused", outcome: "DENIED", entity: form, reason: "honeypot" });
     return RECEIVED; // a bot: same answer, nothing stored
@@ -91,8 +108,8 @@ export async function flushFormNotificationsForTests() {
 
 // ── Public submissions ─────────────────────────────────────────────────────────────────────────
 
-export async function submitPrayer(locale: "ta" | "en", f: FormData, now = Date.now()): Promise<SubmitResult> {
-  const early = await gate("prayer", f, now);
+export async function submitPrayer(locale: "ta" | "en", f: FormData, now = Date.now(), viewer: Principal = VISITOR): Promise<SubmitResult> {
+  const early = await gate("prayer", f, now, viewer);
   if (early) return early;
   const parsed = parsePrayer(f);
   if (!parsed.ok) return { kind: "invalid", errors: parsed.errors };
@@ -113,8 +130,8 @@ export async function submitPrayer(locale: "ta" | "en", f: FormData, now = Date.
   return RECEIVED;
 }
 
-export async function submitContact(locale: "ta" | "en", f: FormData, now = Date.now()): Promise<SubmitResult> {
-  const early = await gate("contact", f, now);
+export async function submitContact(locale: "ta" | "en", f: FormData, now = Date.now(), viewer: Principal = VISITOR): Promise<SubmitResult> {
+  const early = await gate("contact", f, now, viewer);
   if (early) return early;
   const parsed = parseContact(f);
   if (!parsed.ok) return { kind: "invalid", errors: parsed.errors };
@@ -134,8 +151,8 @@ export async function submitContact(locale: "ta" | "en", f: FormData, now = Date
   return RECEIVED;
 }
 
-export async function submitTestimony(locale: "ta" | "en", f: FormData, now = Date.now()): Promise<SubmitResult> {
-  const early = await gate("testimony", f, now);
+export async function submitTestimony(locale: "ta" | "en", f: FormData, now = Date.now(), viewer: Principal = VISITOR): Promise<SubmitResult> {
+  const early = await gate("testimony", f, now, viewer);
   if (early) return early;
   const parsed = parseTestimony(f);
   if (!parsed.ok) return { kind: "invalid", errors: parsed.errors };

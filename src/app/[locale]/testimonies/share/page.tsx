@@ -5,7 +5,9 @@ import { Notice } from "@/design-system/components";
 import { Container, Section } from "@/design-system/primitives";
 import { t, type Locale } from "@/content/ui-strings";
 import { issueFormToken } from "@/server/forms/protection";
-import { formAvailable, publicFormsEnabled } from "@/server/forms/service";
+import { formsOpenTo } from "@/server/forms/mode";
+import { formAvailable } from "@/server/forms/service";
+import { formsViewer } from "@/server/forms/viewer";
 import { testimonyAction } from "../../form-actions";
 import { PublicShell } from "../../_components/PublicShell";
 import { PageHead } from "../../_components/sections";
@@ -26,9 +28,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  */
 export default async function ShareTestimonyPage({ params }: Props) {
   const { locale } = await params;
-  if (!publicFormsEnabled()) notFound(); // needs migration 0004 (switch NLTAG_PUBLIC_FORMS)
   await connection();
-  const available = formAvailable("testimony");
+  // Forms off, or staff-only mode and the viewer is not signed-in staff → 404 (src/server/forms/mode.ts).
+  const viewer = await formsViewer();
+  if (!formsOpenTo(viewer)) notFound();
+  const available = formAvailable("testimony", viewer);
   return (
     <PublicShell locale={locale} route="testimonies" currentPath={href(locale, "testimonies")}>
       <PageHead title={t("testimonyForm.title", locale)} lead={t("testimonyForm.lead", locale)} />

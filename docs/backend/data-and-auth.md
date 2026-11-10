@@ -88,7 +88,7 @@ Database default and every table: `utf8mb4` / `utf8mb4_uca1400_ai_ci` (Tamil). I
 | membership.read_any/decide/birthdays/reports/export | | | | | ✓ |
 | staff.manage, audit.read | | | | | ✓ |
 
-Prayer Team (owner requirement: prayer requests readable only by the Church Admin and specifically authorised prayer-team members) has no CMS access; `/admin` sends it to `/admin/prayer`. Two-factor is required for Prayer Team as for Church Admin. The role exists in the database from migration 0004; the staff page offers it only where `NLTAG_PUBLIC_FORMS=1`.
+Prayer Team (owner requirement: prayer requests readable only by the Church Admin and specifically authorised prayer-team members) has no CMS access; `/admin` sends it to `/admin/prayer`. Two-factor is required for Prayer Team as for Church Admin. The role exists in the database from migration 0004; the staff page offers it only where `NLTAG_PUBLIC_FORMS` is `1` or (staging only) `staff`. Prayer Team permissions: `staff.portal`, `prayer.read`, `prayer.manage` (status); never `prayer.delete`, CMS, contact or submissions.
 
 An unverified email removes every permission except reading published content and managing one's own account.
 **Two-factor (Phase 6b):** the Church Admin role grants nothing until the person has a verified authenticator app (`TWO_FACTOR_REQUIRED_ROLES` in `two-factor-policy.ts`, applied in `permissionsFor`). Content Editors are not required to (owner decision; one-line change to require it).

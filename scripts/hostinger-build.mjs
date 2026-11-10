@@ -50,6 +50,13 @@ if (staging) {
   process.exit(0);
 }
 
+// NLTAG_PUBLIC_FORMS=staff is a staging-only test mode (src/server/forms/mode.ts): a production
+// build with it is refused before anything runs. The server also refuses it at run time.
+if ((process.env.NLTAG_PUBLIC_FORMS ?? "").trim() === "staff") {
+  console.error("Refused: NLTAG_PUBLIC_FORMS=staff is a staging-only test mode and is not allowed in production. Nothing was done.");
+  process.exit(1);
+}
+
 if (migration && bootstrap) {
   console.error("Refused: a production migration and the admin bootstrap cannot run in the same build. Nothing was done.");
   process.exit(1);

@@ -53,7 +53,7 @@ Code: `src/server/deployment/environment.ts` (rules), `verify.ts` (live checks),
 | `NLTAG_ACCOUNTS_ENABLED` | `1` | staging accounts with captured mail |
 | `AUTH_RATE_LIMIT` | `on` | required for accounts |
 | `NLTAG_SIGNUP_ALLOWLIST` | e.g. `admin@nltag.test,editor@nltag.test,prayer@nltag.test` | test addresses only |
-| `NLTAG_PUBLIC_FORMS` | `1` | prayer, contact, testimony forms and gallery (needs migration 0004, applied by the staging build) |
+| `NLTAG_PUBLIC_FORMS` | unset, `staff` or `1` | prayer, contact, testimony forms and gallery (needs migration 0004, applied by the staging build). `staff`: open only to signed-in staff (staging test mode; refused by production); `1`: open to anyone with the address |
 | `NLTAG_DATA_KEY` | output of `openssl rand -hex 32` | encrypts prayer requests; new, staging only |
 | `NLTAG_CHURCH_INBOX` | `office@nltag.test` | notification address (captured) |
 | `NLTAG_STAGING_MIGRATE` | `1` | migrate on each build |
@@ -99,3 +99,13 @@ NLTAG_DEPLOYMENT=staging NODE_ENV=production BETTER_AUTH_URL=http://127.0.0.1:32
 BETTER_AUTH_SECRET=nltag-staging-<64 hex> DATABASE_URL=mysql://nltag_staging:…@127.0.0.1:3306/nltag_staging_local \
 NLTAG_MEDIA_DIR=/tmp/nltag-data-staging/media … npm run staging:init && npx next build && npx next start -p 3200
 ```
+
+## 7. Staff-only forms test (`NLTAG_PUBLIC_FORMS=staff`, approved 10 Nov 2026)
+
+Lets signed-in staff test the prayer, contact and testimony forms and the gallery on staging while visitors and accounts without a staff role still get 404s. hPanel, **staging website only**:
+
+1. Environment variables: set `NLTAG_PUBLIC_FORMS=staff`; check `NLTAG_DATA_KEY` is present (prayer form); make sure `NLTAG_SIGNUP_ALLOWLIST` lists the test accounts (e.g. `editor@nltag.test,prayer1@nltag.test`). Save and rebuild. The build log shows `Staging check passed …`; `/api/health` must answer `ok`.
+2. Signed out, `/ta/prayer`, `/en/testimonies/share` and `/en/gallery` are 404 and the contact page has no form.
+3. Test accounts: Sign up (mailbox-first) → newest file in `…/nltag-data-staging/mail-capture/` → set-password link → set a password. Church Admin → Admin → Staff and roles → grant Content Editor / Prayer Team. Prayer Team must set up two-factor before the role grants anything.
+4. Browser check (optional, on your computer): `tests/e2e/forms-staff-gate.spec.ts` with saved sessions (`FORMS_GATE_STATES`); see the file header.
+5. To end the test, remove `NLTAG_PUBLIC_FORMS` (or leave it `staff`) and rebuild. Never set `staff` on production: the build refuses it.

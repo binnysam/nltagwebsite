@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Container, Section } from "@/design-system/primitives";
 import { ButtonLink } from "@/design-system/components";
 import { t, type Locale } from "@/content/ui-strings";
+import { formsOpenToEveryone } from "@/server/forms/mode";
 import { formAvailable } from "@/server/forms/service";
 import styles from "../public.module.css";
 import { loadTestimonies } from "@/server/cms/public-site";
@@ -27,7 +28,8 @@ export default async function TestimoniesPage({ params }: Props) {
       <Container>
         <Section aria-label={routeLabel(locale, "testimonies")}>
           <TestimonyEntries items={items} locale={locale} full />
-          {formAvailable("testimony") ? (
+          {/* Advertised only when open to everyone; staff-only testers open /testimonies/share directly. */}
+          {formsOpenToEveryone() && formAvailable("testimony", { kind: "visitor" }) ? (
             <div className={styles.action}>
               <ButtonLink href={`${href(locale, "testimonies")}/share`} variant="secondary">{t("testimonyForm.title", locale)}</ButtonLink>
             </div>

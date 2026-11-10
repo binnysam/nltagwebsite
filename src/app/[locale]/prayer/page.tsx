@@ -5,7 +5,9 @@ import { Notice } from "@/design-system/components";
 import { Container, Section } from "@/design-system/primitives";
 import { t, type Locale } from "@/content/ui-strings";
 import { issueFormToken } from "@/server/forms/protection";
-import { formAvailable, publicFormsEnabled } from "@/server/forms/service";
+import { formsOpenTo } from "@/server/forms/mode";
+import { formAvailable } from "@/server/forms/service";
+import { formsViewer } from "@/server/forms/viewer";
 import { prayerAction } from "../form-actions";
 import { PublicShell } from "../_components/PublicShell";
 import { PageHead } from "../_components/sections";
@@ -26,9 +28,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  */
 export default async function PrayerPage({ params }: Props) {
   const { locale } = await params;
-  if (!publicFormsEnabled()) notFound(); // needs migration 0004 (switch NLTAG_PUBLIC_FORMS)
   await connection(); // the form token carries the time the page was served
-  const available = formAvailable("prayer");
+  // Forms off, or staff-only mode and the viewer is not signed-in staff → 404 (src/server/forms/mode.ts).
+  const viewer = await formsViewer();
+  if (!formsOpenTo(viewer)) notFound();
+  const available = formAvailable("prayer", viewer);
   return (
     <PublicShell locale={locale} route="prayer">
       <PageHead title={t("prayer.title", locale)} lead={t("prayer.lead", locale)} />

@@ -140,11 +140,11 @@ describe("encryption at rest (prayer requests)", () => {
   });
   it("without a valid key the prayer form is unavailable (fail closed)", () => {
     expect(dataKeyConfigured({ NLTAG_DATA_KEY: "short" })).toBe(false);
-    expect(formAvailable("prayer", { NLTAG_PUBLIC_FORMS: "1" })).toBe(false);
-    expect(formAvailable("prayer", { NLTAG_PUBLIC_FORMS: "1", NLTAG_DATA_KEY: "c".repeat(64) })).toBe(true);
-    expect(formAvailable("contact", { NLTAG_PUBLIC_FORMS: "1" })).toBe(true);
+    expect(formAvailable("prayer", { kind: "visitor" }, { NLTAG_PUBLIC_FORMS: "1" })).toBe(false);
+    expect(formAvailable("prayer", { kind: "visitor" }, { NLTAG_PUBLIC_FORMS: "1", NLTAG_DATA_KEY: "c".repeat(64) })).toBe(true);
+    expect(formAvailable("contact", { kind: "visitor" }, { NLTAG_PUBLIC_FORMS: "1" })).toBe(true);
     expect(publicFormsEnabled({})).toBe(false);
-    expect(formAvailable("contact", {})).toBe(false);
+    expect(formAvailable("contact", { kind: "visitor" }, {})).toBe(false);
   });
 });
 

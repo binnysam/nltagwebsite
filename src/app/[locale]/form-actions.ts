@@ -2,14 +2,18 @@
 
 import { nextFormToken } from "@/server/forms/protection";
 import { submitContact, submitPrayer, submitTestimony, type SubmitResult } from "@/server/forms/service";
+import { formsViewer } from "@/server/forms/viewer";
 import { log } from "@/server/security/log";
+import type { Principal } from "@/server/policy/permissions";
 import type { PublicFormState } from "./_components/forms/form-state";
 
 /**
  * Public form submissions (server actions; Next.js checks the Origin header, so other sites cannot
- * post them). Every rule is in src/server/forms. Personal data is never logged.
+ * post them). Every rule is in src/server/forms, including who may submit (staff-only mode refuses
+ * visitors and accounts without a staff role even when the action is posted directly). Personal
+ * data is never logged.
  */
-type Submit = (locale: "ta" | "en", f: FormData) => Promise<SubmitResult>;
+type Submit = (locale: "ta" | "en", f: FormData, now: number, viewer: Principal) => Promise<SubmitResult>;
 
 const KEEP: Record<string, readonly string[]> = {
   prayer: ["name", "contact", "body"],
@@ -23,7 +27,8 @@ async function handle(form: "prayer" | "contact" | "testimony", submit: Submit, 
   const token = nextFormToken(form, f.get("formToken"));
   const values = Object.fromEntries(KEEP[form]!.map((k) => [k, typeof f.get(k) === "string" ? String(f.get(k)).slice(0, 6000) : ""]));
   try {
-    const r = await submit(locale, f);
+    // Who is asking is checked here on every submission, not only on the page (staff-only mode).
+    const r = await submit(locale, f, Date.now(), await formsViewer());
     if (r.kind === "received") return { status: "received", errors: {}, values: {}, token, seq };
     if (r.kind === "invalid") return { status: "invalid", errors: r.errors, values, token, seq };
     return { status: r.kind, errors: {}, values, token, seq };

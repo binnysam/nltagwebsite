@@ -2,6 +2,7 @@ import "server-only";
 import os from "node:os";
 import { z } from "zod";
 import { deploymentConfigProblems } from "./deployment/environment";
+import { formsConfigProblem } from "./forms/mode";
 
 /**
  * Server environment. Parsed lazily (on first use) so `next build` and pages that never touch
@@ -107,7 +108,9 @@ export function serverEnv(): ServerEnv {
     const problems = parsed.error.issues.map((i) => `${i.path.join(".") || "env"}: ${i.message}`).join("; ");
     throw new Error(`Invalid server environment: ${problems}`);
   }
-  const guard = [...productionGuardProblems(process.env), ...deploymentConfigProblems(process.env, homeDir())];
+  // NLTAG_PUBLIC_FORMS=staff is a staging-only test mode: production refuses to run with it.
+  const formsProblem = formsConfigProblem(process.env);
+  const guard = [...productionGuardProblems(process.env), ...deploymentConfigProblems(process.env, homeDir()), ...(formsProblem ? [formsProblem] : [])];
   if (guard.length) throw new Error(`Invalid server environment: ${guard.join("; ")}`);
   cached = parsed.data;
   return cached;

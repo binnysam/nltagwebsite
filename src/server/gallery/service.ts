@@ -8,6 +8,8 @@ import { can, type Permission } from "../policy/permissions";
 import { CmsError, type Ctx } from "../cms/service";
 import { AuthzError } from "../auth/session";
 import { publicFormsEnabled } from "../forms/service";
+import { formsOpenTo } from "../forms/mode";
+import type { Principal } from "../policy/permissions";
 import { discardVariantFiles, readMediaFile, readVariantFile, VARIANT_WIDTHS, writeVariantFile, type VariantWidth } from "../storage/media-store";
 import { log } from "../security/log";
 
@@ -182,8 +184,9 @@ export interface PublicPhoto {
   widths: VariantWidth[];
 }
 
-export async function listPublicGallery(locale: "ta" | "en", page = 1): Promise<{ photos: PublicPhoto[]; total: number; page: number; pageSize: number }> {
-  if (!publicFormsEnabled()) return { photos: [], total: 0, page: 1, pageSize: GALLERY_PAGE_SIZE };
+/** Published photos for this viewer (staff-only mode: signed-in staff only; anyone else sees none). */
+export async function listPublicGallery(locale: "ta" | "en", page = 1, viewer: Principal = { kind: "visitor" }): Promise<{ photos: PublicPhoto[]; total: number; page: number; pageSize: number }> {
+  if (!formsOpenTo(viewer)) return { photos: [], total: 0, page: 1, pageSize: GALLERY_PAGE_SIZE };
   const p = Math.max(1, Math.floor(page) || 1);
   const db = getDb();
   const [total] = await db.select({ n: count() }).from(galleryPhoto).innerJoin(mediaAsset, eq(mediaAsset.id, galleryPhoto.mediaAssetId)).where(publicWhere());
@@ -206,8 +209,8 @@ export async function listPublicGallery(locale: "ta" | "en", page = 1): Promise<
 }
 
 /** Bytes of one public copy, or null (404) unless published, permitted and intact. */
-export async function publicVariant(id: string, width: number): Promise<Buffer | null> {
-  if (!publicFormsEnabled()) return null;
+export async function publicVariant(id: string, width: number, viewer: Principal = { kind: "visitor" }): Promise<Buffer | null> {
+  if (!formsOpenTo(viewer)) return null;
   if (!(VARIANT_WIDTHS as readonly number[]).includes(width)) return null;
   const [row] = await getDb()
     .select({ variants: galleryPhoto.variants })

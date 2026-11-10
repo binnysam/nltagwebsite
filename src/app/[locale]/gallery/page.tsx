@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { Container, Section } from "@/design-system/primitives";
 import { t, type Locale } from "@/content/ui-strings";
 import { listPublicGallery } from "@/server/gallery/service";
-import { publicFormsEnabled } from "@/server/forms/service";
+import { connection } from "next/server";
+import { formsOpenTo } from "@/server/forms/mode";
+import { formsViewer } from "@/server/forms/viewer";
 import { PublicShell } from "../_components/PublicShell";
 import { Empty, PageHead } from "../_components/sections";
 import { Pagination } from "../_components/Pagination";
@@ -23,10 +25,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  */
 export default async function GalleryPage({ params, searchParams }: Props) {
   const { locale } = await params;
-  if (!publicFormsEnabled()) notFound(); // needs migration 0004 (switch NLTAG_PUBLIC_FORMS)
+  await connection();
+  // Forms off, or staff-only mode and the viewer is not signed-in staff → 404 (src/server/forms/mode.ts).
+  const viewer = await formsViewer();
+  if (!formsOpenTo(viewer)) notFound();
   const sp = await searchParams;
   const page = Number(Array.isArray(sp.page) ? sp.page[0] : sp.page) || 1;
-  const data = await listPublicGallery(locale, page);
+  const data = await listPublicGallery(locale, page, viewer);
   const pages = Math.max(1, Math.ceil(data.total / data.pageSize));
   if (page > pages) notFound();
   return (
