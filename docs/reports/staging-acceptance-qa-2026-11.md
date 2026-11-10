@@ -355,3 +355,26 @@ The approved spec (Phase 1 §6, `other-components.md`) says "editorial rows divi
 There are no application code changes, so the staging page output is unchanged.
 
 **Production unchanged:** see the final check below.
+
+**Deployed and verified on live staging:**
+- `d5bf575` → Hostinger build `01a1c31b`, completed 01:41 UTC 10 Nov.
+- `/api/health` → `{"status":"ok","deployment":"staging","database":true,"stagingVerified":true}`.
+- `/ta`, `/en`, `/en/sermons`, `/ta/worship-times`, `/ta/testimonies` → 200 with the STAGING banner.
+- Prayer, gallery and testimony-share → 404 (forms off); `/admin` → 307 to sign-in.
+- Staging variable names are unchanged (15). `NLTAG_STAGING_BOOTSTRAP_ADMIN_EMAIL` is not set.
+
+**Production: unchanged** (checked after the staging deploy):
+- `main` is still `c2301e2`.
+- Production build is still `01a1bede` (9 Nov 05:53 UTC), with auto-deploy still on `main`.
+- Its 12 variable names are the same (values never read or written).
+- Never done: production database access, migrations, emails, accounts or admin changes, merges or PRs.
+
+### 12.9 Remaining approvals (yours)
+
+1. **Staging admin:** do the hPanel steps in §12.1: request, File Manager, password + two-factor, then set the bootstrap variable for one build and remove it.
+2. **Live CMS run:** choose how I get the staging-only credentials, or run §12.2 yourself.
+3. **Verse phone baselines:** replace the two baselines with the r1248 candidates (§12.3)?
+4. **Schedule dividers:** apply the patch (§12.4)?
+5. **SEO:** approve or edit the 8 descriptions, including the Tamil glue words (§12.5). Confirm that "events" means the Worship times page.
+6. **Sharing image:** approve the direction (§12.5). The logo decision is still open.
+7. **Forms:** choose the access gate before any staging forms test (§12.6).
