@@ -497,3 +497,27 @@ All in `docs/reports/staging-acceptance-qa-2026-11/`.
 | Of those: approved `schedule` baseline (phone + desktop), new divider tests (4), new description test (2) | all passed |
 | `npm run test:integration` (MariaDB) | **not run this round**: no MariaDB in this session. The changes touch no database or server code (CSS, page metadata, content constant, tests). |
 | Live staging after deploy | see §13.8 |
+
+### 13.8 Live staging after deploy, and production
+
+**Staging:**
+- `6806465` → Hostinger build `01a1c3f8`, completed 05:41 UTC 10 Nov.
+- `/api/health` is OK and staging-verified.
+- Prayer, gallery and testimony-share → 404 (forms still off).
+- The variable names are the same 15. `NLTAG_STAGING_BOOTSTRAP_ADMIN_EMAIL` is absent.
+
+**Run against live staging** (Chromium 1248): divider alignment (`/ta`, `/en`, phone + desktop) and the English description tags with no Tamil description: **6/6 passed.**
+
+**Production unchanged:**
+- `main` is still `c2301e2`, on build `01a1bede`, with auto-deploy still on `main`.
+- The same 12 variable names.
+- No merge, PR, production setting, database, email or account change.
+
+### 13.9 Remaining approvals (yours)
+
+1. **Staging accounts:** follow §13.1, then run the live CMS suite (§12.2) on your computer. Remove the bootstrap variable right after its build.
+2. **Verse phone baselines:** replace them or keep them (§13.3). Until then those two phone tests keep failing.
+3. **Tamil descriptions:** review the four drafts (§12.5).
+4. **Sharing image:** approve the final proposal (§13.4) before it is wired into the site.
+5. **Forms gate:** only if you want forms on live staging; a security design comes first.
+6. **Prayer Team on live staging:** the role can't be granted while forms are off (§13.1 C). This needs no action unless you want it.
